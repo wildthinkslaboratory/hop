@@ -14,6 +14,7 @@ class Constants:
         self.Ixx = 1
         self.Iyy = 1
         self.Izz = 1
+        self.dt = 0.1
 
         self.g = np.array([
             self.gx,

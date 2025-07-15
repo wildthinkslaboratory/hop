@@ -3,60 +3,51 @@ from rclpy.node import Node
 
 from std_msgs.msg import Float64MultiArray
 
-import numpy as np
+import do_mpc
+from do_mpc import estimator
 import casadi as ca
 from casadi import sin, cos
-import do_mpc
 from hop.constants import Constants
 
 mc = Constants()
 
-class NMPC(Node):
+class Dynamics(Node):
 
     def __init__(self):
-        super().__init__('NMPC')
+        super().__init__('dynamics')
 
-        self.publisher_ = self.create_publisher(Float64MultiArray, 'NMPC', 10)
+        self.publisher_ = self.create_publisher(Float64MultiArray, 'dynamics', 10)
 
         self.subscription = self.create_subscription(
             Float64MultiArray,
-            'dynamics',
+            'NMPC',
             self.listener_callback,
             10)
         self.subscription
+        self.model = self.build_model()
+        self.control = None
 
         self.dt = mc.dt
-        self.state = ca.vertcat(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+        x0 = ca.vertcat(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 
-
-        self.model = self.build_model()
-        self.mpc = self.initialize_NMPC()
-
-        self.timer = self.create_timer(self.dt, self.timer_callback)
+        self.simulator = self.create_simulator(self.dt)
+        self.estimator = self.create_estimator(x0)
 
     def timer_callback(self):
+        if self.control is None:
+            return
         msg = Float64MultiArray()
-        control = self.run_NMPC()
-        msg.data = control.flatten().tolist()
+        state = self.run_dynamics()
+        msg.data = state.flatten().tolist()
         self.publisher_.publish(msg)
-        state_np = np.array(self.state).flatten()
-        control_np = np.array(control).flatten()
-
-        self.get_logger().info(
-            f"""\n=== NMPC Step ===
-        State:
-        x: {state_np[0:3]}
-        v: {state_np[3:6]}
-        q: {state_np[6:9]}
-        w: {state_np[9:12]}
-        Control:
-        u: {control_np}
-        """
-        )
+        # self.get_logger().info('Publishing: "%s"' % msg.data)
 
     def listener_callback(self, msg):
         # self.get_logger().info('I heard: "%s"' % msg.data)
-        self.state = ca.DM(msg.data)
+        self.control = ca.DM(msg.data)
+        if not hasattr(self, 'timer'):
+            self.get_logger().info("Starting simulation timer.")
+            self.timer = self.create_timer(self.dt, self.timer_callback)
 
     def build_model(self):
         model_type = 'continuous' 
@@ -109,60 +100,34 @@ class NMPC(Node):
 
         return model
     
-    def build_NMPC(self):
-        silence_solver=True
-        mpc = do_mpc.controller.MPC(self.model)
-        
-        mpc.settings.n_horizon = 10
-        mpc.settings.n_robust = 1
-        mpc.settings.open_loop = 0
-        mpc.settings.t_step = self.dt
-        mpc.settings.state_discretization = 'collocation'
-        mpc.settings.collocation_type = 'radau'
-        mpc.settings.collocation_deg = 2
-        mpc.settings.collocation_ni = 1
-        mpc.settings.store_full_solution = True
+    def create_simulator(self, dt):
+        simulator = do_mpc.simulator.Simulator(self.model)
+        simulator.set_param(t_step = dt)
+        simulator.setup()
+        return simulator
 
-        if silence_solver:
-            mpc.settings.supress_ipopt_output()
-        
-        Q = ca.diag(12)
-        xr = ca.vertcat(1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-        x = ca.vertcat(self.model.x['x'], self.model.x['v'], self.model.x['q'], self.model.x['w'])
-        error = x - xr
+    def create_estimator(self, x0):
+        estimator = do_mpc.estimator.StateFeedback(self.model)
+        estimator.x0 = x0
+        return estimator
 
-        lterm = error.T @ Q @ error
-
-        mpc.set_objective(lterm=lterm, mterm=lterm)
-
-        mpc.set_rterm(u=np.array([1, 1, 1, 1], dtype=float))
-        mpc.setup()
-        return mpc
-
-    def initialize_NMPC(self):
-        mpc = self.build_NMPC()
-        mpc.x0 = self.state
-        mpc.set_initial_guess()
-        return mpc
-
-    def run_NMPC(self):
-        control = self.mpc.make_step(self.state)
-        return control
-
-
-
+    def run_dynamics(self):
+        measurement = self.simulator.make_step(self.control)
+        new_state = self.estimator.make_step(measurement)
+        return new_state
 
     
 
 
 
 def main(args=None):
+    print('dynamics node')
     rclpy.init(args=args)
 
-    nmpc = NMPC()
+    dynamics = Dynamics()
 
-    rclpy.spin(nmpc)
-    nmpc.destroy_node()
+    rclpy.spin(dynamics)
+    dynamics.destroy_node()
     rclpy.shutdown()
 
 
