@@ -42,17 +42,17 @@ class NMPC(Node):
         state_np = np.array(self.state).flatten()
         control_np = np.array(control).flatten()
 
-        self.get_logger().info(
-            f"""\n=== NMPC Step ===
-        State:
-        x: {state_np[0:3]}
-        v: {state_np[3:6]}
-        q: {state_np[6:9]}
-        w: {state_np[9:12]}
-        Control:
-        u: {control_np}
-        """
-        )
+        # self.get_logger().info(
+        #     f"""\n=== NMPC Step ===
+        # State:
+        # x: {state_np[0:3]}
+        # v: {state_np[3:6]}
+        # q: {state_np[6:9]}
+        # w: {state_np[9:12]}
+        # Control:
+        # u: {control_np}
+        # """
+        # )
 
     def listener_callback(self, msg):
         # self.get_logger().info('I heard: "%s"' % msg.data)

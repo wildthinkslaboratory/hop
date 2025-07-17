@@ -22,7 +22,8 @@ setup(
     entry_points={
         'console_scripts': [
             'nmpc = hop.nmpc:main',
-            'dynamics = hop.dynamics:main'
+            'dynamics = hop.dynamics:main',
+            'recorder = hop.recorder:main',
         ],
     },
 )

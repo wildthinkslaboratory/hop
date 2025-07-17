@@ -12,5 +12,10 @@ def generate_launch_description():
             package='hop',
             executable='nmpc',
             name='nmpc'
-        )
+        ),
+        Node(
+            package='hop',
+            executable='recorder',
+            name='recorder'
+        )       
     ])
