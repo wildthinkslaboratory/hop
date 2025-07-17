@@ -1,4 +1,5 @@
 import numpy as np
+import casadi as ca
 
 # TO DO:
 # - Each constant could use a documentation line
@@ -15,6 +16,19 @@ class Constants:
         self.Iyy = 1
         self.Izz = 1
         self.dt = 0.1
+
+        self.a = 0
+        self.b = 1
+        self.c = 0
+        self.d = 1
+
+        self.outer_gimbal_range = [-15,15]
+        self.inner_gimbal_range = [-15,15]
+
+        self.theta_dot_constraint = [-6.16,6.16]
+
+        self.prop_thrust_constraint = [0,1.0]
+        self.diff_thrust_constraint = [-0.8,0.8]
 
         self.g = np.array([
             self.gx,
@@ -36,6 +50,10 @@ class Constants:
 
         self.I_diag = [self.Ixx, self.Iyy, self.Izz]
         self.I_inv = np.linalg.inv(self.I)
+
+        self.x0 = ca.vertcat(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+        self.Q = ca.diag(12)
+        self.xr = ca.vertcat(1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 
 
     # This function makes it possible to print the Constants with print function
@@ -60,6 +78,7 @@ class Constants:
             'gx': self.gx,  
             'g': self.g.tolist(),
         }
+
         
 
     
