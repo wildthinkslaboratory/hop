@@ -10,7 +10,7 @@ import casadi as ca
 from casadi import sin, cos
 import do_mpc
 from hop.constants import Constants
-from hop.plotter import DronePlotter3d
+from hop.utilities import output_data
 
 mc = Constants()
 
@@ -339,11 +339,9 @@ class NMPC(Node):
     def finalize(self):
         if not self.log_rows:
             return
-        data = np.vstack(self.log_rows)
-        np.savez('run.npz', data=data, dt=self.dt)
-        t = data.shape[0] * self.dt
-        sim = DronePlotter3d(data, self.dt, t)
-        sim.plot()
+        data = self.log_rows
+        output_data(data, "current.json")
+
 
 def main(args=None):
     rclpy.init(args=args)
