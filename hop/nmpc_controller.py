@@ -102,8 +102,13 @@ class NMPC(Node):
         t = self.get_clock().now().nanoseconds // 1000
         servo_command.timestamp_sample = t
         servo_command.timestamp = t
-        servo_command.control = [0, servo_pwm[1], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]   # 4 motors + 4 unused
-        # servo_command.control = [servo_pwm[0], servo_pwm[1], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]   # 4 motors + 4 unused
+        self.get_logger().info(
+            f"""\n=== NMPC Step ===
+            Control:
+            pwm: {servo_pwm[0]}
+            """
+        )
+        servo_command.control = [servo_pwm[0], servo_pwm[1], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]   # 4 motors + 4 unused
         self.publisher_servos.publish(servo_command)
         # self.get_logger().info('Sent PWM sservo: ' + str(msg2.control[:5]))
 
@@ -138,33 +143,33 @@ class NMPC(Node):
         self.run_motors(motor_pwm)
         self.run_servos(servo_pwm)
         self.offboard_arm()
-        self.get_logger().info(
-            f"""\n=== NMPC Step ===
-            Control:
-            u: {control}
-            pwm: {servo_pwm[0]}
-            """
-        )
+        # self.get_logger().info(
+        #     f"""\n=== NMPC Step ===
+        #     Control:
+        #     u: {control}
+        #     pwm: {servo_pwm[0]}
+        #     """
+        # )
 
 
     def listener_callback(self, msg):
-        state = [0.0] * 12
+        state = [0.0] * 13
         q_full = np.array(msg.q)
         norm = np.linalg.norm(q_full)
         if norm > 0:
             q_full /= norm
         state[0:3] = msg.position
         state[3:6] = msg.velocity
-        state[6:9] = q_full[1:4]
-        state[9:12] = msg.angular_velocity
+        state[6:10] = [q_full[1], q_full[2], q_full[3], q_full[0]]
+        state[10:13] = msg.angular_velocity
         self.state = ca.DM(state)
         self.get_logger().info(
             f"""\n=== NMPC Step ===
             State:
             p: {state[0:3]}
             v: {state[3:6]}
-            q: {state[6:9]}
-            w: {state[9:12]}
+            q: {state[6:10]}
+            w: {state[10:13]}
             """
         )
 
@@ -175,7 +180,7 @@ class NMPC(Node):
 
         p = model.set_variable(var_type='_x', var_name='p', shape=(3,1))
         v = model.set_variable(var_type='_x', var_name='v', shape=(3,1))
-        q = model.set_variable(var_type='_x', var_name='q', shape=(3,1))
+        q = model.set_variable(var_type='_x', var_name='q', shape=(4,1))
         w = model.set_variable(var_type='_x', var_name='w', shape=(3,1))
     
         state = ca.vertcat(p,v,q,w)
@@ -198,28 +203,26 @@ class NMPC(Node):
 
         angular_momentum = I_mat @ w
 
-        qw = (1 - (state[6])**2 - (state[7])**2 - (state[8])**2)**(0.5)
-
         r_b2w = ca.vertcat(
-            ca.horzcat(1 - 2*(state[7]**2 + state[8]**2), 2*(state[6]*state[7] - state[8]*qw), 2*(state[6]*state[8] + state[7]*qw)),
-            ca.horzcat(2*(state[6]*state[7] + state[8]*qw), 1 - 2*(state[6]**2 + state[8]**2), 2*(state[7]*state[8] - state[6]*qw)),
-            ca.horzcat(2*(state[6]*state[8] - state[7]*qw), 2*(state[7]*state[8] + state[6]*qw), 1 - 2*(state[6]**2 + state[7]**2)),
+            ca.horzcat(1 - 2*(state[7]**2 + state[8]**2), 2*(state[6]*state[7] - state[8]*state[9]), 2*(state[6]*state[8] + state[7]*state[9])),
+            ca.horzcat(2*(state[6]*state[7] + state[8]*state[9]), 1 - 2*(state[6]**2 + state[8]**2), 2*(state[7]*state[8] - state[6]*state[9])),
+            ca.horzcat(2*(state[6]*state[8] - state[7]*state[9]), 2*(state[7]*state[8] + state[6]*state[9]), 1 - 2*(state[6]**2 + state[7]**2)),
         )
 
         Q_omega = ca.vertcat(
-            ca.horzcat(0, state[11], -state[10], state[9]),
-            ca.horzcat(-state[11], 0, state[9], state[10]),
-            ca.horzcat(state[10], -state[9], 0, state[11]),
-            ca.horzcat(state[9], state[10], -state[11], 0)
+            ca.horzcat(0, state[12], -state[11], state[10]),
+            ca.horzcat(-state[12], 0, state[10], state[11]),
+            ca.horzcat(state[11], -state[10], 0, state[12]),
+            ca.horzcat(state[10], state[11], -state[12], 0)
         )
 
-        q_full = ca.vertcat(state[6:9], qw)
+        q_full = state[6:10]
 
         q_full = q_full / ca.norm_2(q_full)
 
         model.set_rhs('p', v)
         model.set_rhs('v', (r_b2w @ F_vector) / mc.m + mc.g)
-        model.set_rhs('q', 0.5 * Q_omega[0:3, :] @ q_full)
+        model.set_rhs('q', 0.5 * Q_omega @ q_full)
         model.set_rhs('w', ca.solve(I_mat, M_vector - ca.cross(w, angular_momentum)))
 
         model.setup()
