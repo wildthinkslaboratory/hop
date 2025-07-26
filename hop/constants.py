@@ -11,7 +11,7 @@ class Constants:
         self.gy = 0
         self.gz = -9.81
         self.m = 1
-        self.l = 2           # moment arm length
+        self.l = 2          
         self.Ixx = 1
         self.Iyy = 1
         self.Izz = 1

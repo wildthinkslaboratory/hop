@@ -10,6 +10,7 @@ import casadi as ca
 from casadi import sin, cos
 import do_mpc
 from hop.constants import Constants
+from hop.plotter import DronePlotter3d
 
 mc = Constants()
 
@@ -73,6 +74,8 @@ class NMPC(Node):
 
         self.model = self.build_model()
         self.mpc = self.initialize_NMPC()
+
+        self.log_rows = []
 
         self.timer = self.create_timer(self.dt, self.timer_callback)
 
@@ -143,6 +146,8 @@ class NMPC(Node):
         self.run_motors(motor_pwm)
         self.run_servos(servo_pwm)
         self.offboard_arm()
+        x_np = np.array(self.state).flatten()
+        self.log_rows.append(np.hstack([x_np, control]))
         # self.get_logger().info(
         #     f"""\n=== NMPC Step ===
         #     Control:
@@ -213,7 +218,7 @@ class NMPC(Node):
             ca.horzcat(0, state[12], -state[11], state[10]),
             ca.horzcat(-state[12], 0, state[10], state[11]),
             ca.horzcat(state[11], -state[10], 0, state[12]),
-            ca.horzcat(state[10], state[11], -state[12], 0)
+            ca.horzcat(-state[10], -state[11], -state[12], 0)
         )
 
         q_full = state[6:10]
@@ -331,6 +336,15 @@ class NMPC(Node):
         pwm = [outer_angle, inner_angle, top_prop_pwm, bottom_prop_pwm]
         return pwm
 
+    def finalize(self):
+        if not self.log_rows:
+            return
+        data = np.vstack(self.log_rows)
+        np.savez('run.npz', data=data, dt=self.dt)
+        t = data.shape[0] * self.dt
+        sim = DronePlotter3d(data, self.dt, t)
+        sim.plot()
+
 def main(args=None):
     rclpy.init(args=args)
     nmpc = NMPC()
@@ -338,9 +352,10 @@ def main(args=None):
         rclpy.spin(nmpc)
     except KeyboardInterrupt:
         pass
-    nmpc.destroy_node()
-    rclpy.shutdown()
-
+    finally:
+        nmpc.finalize()
+        nmpc.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
