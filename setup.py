@@ -21,9 +21,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'nmpc = hop.nmpc:main',
-            'dynamics = hop.dynamics:main',
-            'recorder = hop.recorder:main',
+            'nmpc_controller = hop.nmpc_controller:main'
+            # 'test = hop.test:main',
         ],
     },
 )

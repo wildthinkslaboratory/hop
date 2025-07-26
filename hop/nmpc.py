@@ -25,8 +25,11 @@ class NMPC(Node):
             10)
         self.subscription
 
-        self.dt = mc.dt
-        self.state = ca.vertcat(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+        self.dt = mc.dt               # in seconds
+        self.timelimit = mc.timelimit # in seconds
+        self.count = 0                # keep track of the number of loop iterations
+
+        self.state = mc.x0
 
 
         self.model = self.build_model()
@@ -39,23 +42,15 @@ class NMPC(Node):
         control = self.run_NMPC()
         msg.data = control.flatten().tolist()
         self.publisher_.publish(msg)
-        state_np = np.array(self.state).flatten()
-        control_np = np.array(control).flatten()
+        self.get_logger().info('timer callback nmpc')
 
-        # self.get_logger().info(
-        #     f"""\n=== NMPC Step ===
-        # State:
-        # x: {state_np[0:3]}
-        # v: {state_np[3:6]}
-        # q: {state_np[6:9]}
-        # w: {state_np[9:12]}
-        # Control:
-        # u: {control_np}
-        # """
-        # )
+        self.count += 1
+        if self.count * self.dt > self.timelimit:
+            self.get_logger().info('time limit reached. shutting down')
+            raise SystemExit
 
     def listener_callback(self, msg):
-        # self.get_logger().info('I heard: "%s"' % msg.data)
+        self.get_logger().info('I heard: "%s"' % msg.data)
         self.state = ca.DM(msg.data)
 
     def build_model(self):
@@ -161,7 +156,11 @@ def main(args=None):
 
     nmpc = NMPC()
 
-    rclpy.spin(nmpc)
+    try:
+        rclpy.spin(nmpc)
+    except:
+        rclpy.logging.get_logger("Quitting").info('Done')
+
     nmpc.destroy_node()
     rclpy.shutdown()
 

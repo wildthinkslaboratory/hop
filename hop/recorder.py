@@ -10,6 +10,9 @@ class Recorder(Node):
     def __init__(self):
         super().__init__('recorder')
 
+        self.input_data = []
+        self.state_data = []
+
         self.nmpc_sub = self.create_subscription(
             Float64MultiArray,
             'NMPC',
@@ -26,8 +29,6 @@ class Recorder(Node):
 
         self.recordfile = open('recordings/record.json', 'w')
         
-
-
 
   
     def nmpc_callback(self, msg):

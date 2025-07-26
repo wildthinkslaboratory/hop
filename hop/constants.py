@@ -16,6 +16,7 @@ class Constants:
         self.Iyy = 1
         self.Izz = 1
         self.dt = 0.1
+        self.timelimit = 1 # in seconds
 
         self.a = 0
         self.b = 1
@@ -54,6 +55,7 @@ class Constants:
         self.x0 = ca.vertcat(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0)
         self.Q = ca.diag(12)
         self.xr = ca.vertcat(1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+
 
 
     # This function makes it possible to print the Constants with print function

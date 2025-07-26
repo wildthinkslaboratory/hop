@@ -5,17 +5,8 @@ def generate_launch_description():
     return LaunchDescription([
         Node(
             package='hop',
-            executable='dynamics',
-            name='dynamics'
-        ),
-        Node(
-            package='hop',
-            executable='nmpc',
-            name='nmpc'
-        ),
-        Node(
-            package='hop',
-            executable='recorder',
-            name='recorder'
-        )       
+            executable='nmpc_controller',
+            name='nmpc_controller'
+        )
     ])
+    

@@ -28,10 +28,13 @@ class Dynamics(Node):
         self.control = None
 
         self.dt = mc.dt
-        x0 = ca.vertcat(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+        self.timelimit = mc.timelimit
+        # x0 = ca.vertcat(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 
         self.simulator = self.create_simulator(self.dt)
-        self.estimator = self.create_estimator(x0)
+        self.estimator = self.create_estimator(mc.x0)
+
+        self.count = 0
 
     def timer_callback(self):
         if self.control is None:
@@ -45,6 +48,12 @@ class Dynamics(Node):
     def listener_callback(self, msg):
         # self.get_logger().info('I heard: "%s"' % msg.data)
         self.control = ca.DM(msg.data)
+
+        self.count += 1
+        if self.count * self.dt > self.timelimit:
+            self.get_logger().info('time limit reached. shutting down')
+            raise SystemExit
+        
         if not hasattr(self, 'timer'):
             self.get_logger().info("Starting simulation timer.")
             self.timer = self.create_timer(self.dt, self.timer_callback)
@@ -126,7 +135,10 @@ def main(args=None):
 
     dynamics = Dynamics()
 
-    rclpy.spin(dynamics)
+    try:
+        rclpy.spin(dynamics)
+    except:
+        rclpy.logging.get_logger("Quitting").info('Done')
     dynamics.destroy_node()
     rclpy.shutdown()
 
