@@ -349,9 +349,9 @@ class NMPC(Node):
     def finalize(self):
         if not self.log_rows:
             return
-        output_data(self.log_rows, "plotter_logs/current.json")
+        output_data(self.log_rows, "src/hop/plotter_logs/current.json")
         formatted_date = datetime.now().strftime("%Y-%m-%d")
-        output_data(self.log_rows, "plotter_logs/" + formatted_date + "log.json")
+        output_data(self.log_rows, "src/hop/plotter_logs/" + formatted_date + "log.json")
 
 
 
