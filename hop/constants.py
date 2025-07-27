@@ -53,7 +53,7 @@ class Constants:
         self.I_inv = np.linalg.inv(self.I)
 
         self.x0 = ca.vertcat(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0)
-        self.Q = ca.diag(13)
+        self.Q = ca.DM.eye(13)
         self.xr = ca.vertcat(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0)
 
 
@@ -78,7 +78,27 @@ class Constants:
     def __dict__(self):
         return {  
             'gx': self.gx,  
-            'g': self.g.tolist(),
+            'gy': self.gy,
+            'gz': self.gz,
+            'm' : self.m,
+            'l' : self.l,       
+            'Ixx': self.Ixx,
+            'Iyy': self.Iyy,
+            'Izz': self.Izz,
+            'dt' : self.dt,
+            'timelimit': self.timelimit,
+            'a' : self.a,
+            'b' : self.b,
+            'c' : self.c,
+            'd' : self.d,
+            'outer_gimbal_range': self.outer_gimbal_range,
+            'inner_gimbal_range': self.inner_gimbal_range,
+            'theta_dot_constraint': self.theta_dot_constraint,
+            'prop_thrust_constraint': self.prop_thrust_constraint,
+            'diff_thrust_constraint': self.diff_thrust_constraint,
+            'x0': self.x0.full().tolist(),
+            'Q' : ca.diag(self.Q).full().tolist(),
+            'xr': self.xr.full().tolist()
         }
 
         

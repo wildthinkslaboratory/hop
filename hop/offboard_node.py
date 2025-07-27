@@ -39,6 +39,7 @@ class OffBoardNode(Node):
             qos_profile_sensor_data
         )
 
+
         self.nav_state = VehicleStatus.NAVIGATION_STATE_MAX
         self.arming_state = VehicleStatus.ARMING_STATE_DISARMED
 
@@ -120,13 +121,17 @@ class OffBoardNode(Node):
                 w: {state[10:13]}
                 """
             )
+    def keyboard_callback(self, msg):
+        self.get_logger().info(
+            f'Received keyboard key'
+        )
 
-
-    def finalize(self):
-        data = {'constants': mc, 'run_data': self.log_rows}
+    def destroy_node(self):
+        data = {'constants': mc.__dict__(), 'run_data': self.log_rows}
         output_data(data, "src/hop/plotter_logs/current.json")
         formatted_date = datetime.now().strftime("%Y-%m-%d")
         output_data(data, "src/hop/plotter_logs/" + formatted_date + "log.json")
+        super().destroy_node()
 
 
 ################################### PUBLISHER functions #######################################
