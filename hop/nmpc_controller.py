@@ -11,6 +11,7 @@ from casadi import sin, cos
 import do_mpc
 from hop.constants import Constants
 from hop.utilities import output_data
+from datetime import datetime
 
 mc = Constants()
 
@@ -69,6 +70,7 @@ class NMPC(Node):
             qos_pub
         )
 
+
         self.dt = mc.dt
         self.state = mc.x0
 
@@ -78,6 +80,8 @@ class NMPC(Node):
         self.log_rows = []
 
         self.timer = self.create_timer(self.dt, self.timer_callback)
+
+        self.count = 0
 
     def publish_vehicle_command(self, command, p1=0., p2=0.):
         msg = VehicleCommand()
@@ -138,6 +142,12 @@ class NMPC(Node):
         self.publisher_offboard_mode.publish(offboard_msg)
 
     def timer_callback(self):
+
+        self.count += 1
+
+        if self.count > 10:
+            self.destroy_node() # This shuts down the current node
+
         self.maintain_offboard()
         control = self.run_NMPC()
         pwm_output = self.control_translator(control)
@@ -147,7 +157,7 @@ class NMPC(Node):
         self.run_servos(servo_pwm)
         self.offboard_arm()
         x_np = np.array(self.state).flatten()
-        self.log_rows.append(np.hstack([x_np, control]))
+        self.log_rows.append(np.hstack([x_np, control]).tolist())
         # self.get_logger().info(
         #     f"""\n=== NMPC Step ===
         #     Control:
@@ -339,8 +349,10 @@ class NMPC(Node):
     def finalize(self):
         if not self.log_rows:
             return
-        data = self.log_rows
-        output_data(data, "current.json")
+        output_data(self.log_rows, "plotter_logs/current.json")
+        formatted_date = datetime.now().strftime("%Y-%m-%d")
+        output_data(self.log_rows, "plotter_logs/" + formatted_date + "log.json")
+
 
 
 def main(args=None):
