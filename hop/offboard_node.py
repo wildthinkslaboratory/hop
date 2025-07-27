@@ -13,9 +13,10 @@ mc = Constants()
 
 class OffBoard(Node):
 
-    def __init__(self, dt = mc.dt):
+    def __init__(self, timelimit = None, dt = mc.dt):
         super().__init__('nmpc_controller')
 
+        self.timelimit = timelimit
         self.dt = dt
         qos_pub = QoSProfile(
             reliability=QoSReliabilityPolicy.BEST_EFFORT,
@@ -80,7 +81,7 @@ class OffBoard(Node):
     def timer_callback(self):
 
         self.count += 1
-        if self.count > 100:
+        if not self.timelimit == None and self.count * self.dt > self.timelimit:
             raise SystemExit  # time to exit node
 
         if self.count > 10:
