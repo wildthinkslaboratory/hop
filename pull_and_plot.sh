@@ -1,4 +1,4 @@
-git pu#!/bin/bash
+#!/bin/bash
 
-scp izzy@192.168.0.100:~/drone_ws/plotter_lots/current.json ./plotter_logs/current.json
-python plotter.py
+scp izzy@192.168.0.100:~/drone_ws/plotter_logs/current.json ./
+python hop/plotter.py
