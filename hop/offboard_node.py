@@ -10,6 +10,12 @@ from hop.utilities import output_data
 from datetime import datetime
 mc = Constants()
 
+# this is all needed for keyboard input
+import sys
+import select
+import termios
+import tty
+import threading
 
 class OffBoardNode(Node):
 
@@ -31,14 +37,27 @@ class OffBoardNode(Node):
             history=QoSHistoryPolicy.KEEP_LAST,
             depth=1
         )             
-        
+
+        ################# Subscriptons #########################  
+
+        # state subscription      
         self.vehicle_odometry = self.create_subscription(
             VehicleOdometry,
             '/fmu/out/vehicle_odometry',
-            self.listener_callback,
+            self.state_callback,
             qos_profile_sensor_data
         )
 
+        # we create our own thread to listen for keyboard strokes
+        self.settings = termios.tcgetattr(sys.stdin)
+        tty.setcbreak(sys.stdin.fileno())
+        self.running = True
+        self.listener_thread = threading.Thread(target=self.keyboard_callback, daemon=True)
+        self.listener_thread.start()
+        self.key = ''
+
+
+        ############ Publishers #########################
 
         self.nav_state = VehicleStatus.NAVIGATION_STATE_MAX
         self.arming_state = VehicleStatus.ARMING_STATE_DISARMED
@@ -67,6 +86,7 @@ class OffBoardNode(Node):
             qos_pub
         )
 
+        ####################  locally store data ###################
         self.state = mc.x0
         self.control = [0.0, 0.0, 0.0, 0.0]
         self.pwm_motors = [0.0, 0.0]
@@ -76,7 +96,9 @@ class OffBoardNode(Node):
         self.count = 0
         self.logging_on = True
 
-#############################   ####################################
+
+
+############################# callbacks  ####################################
 
     # publish all of our messages
     def timer_callback(self):
@@ -99,8 +121,9 @@ class OffBoardNode(Node):
             'pwm_servos': self.pwm_servos
         })
 
+
     # recieve vehicle odometry message
-    def listener_callback(self, msg):
+    def state_callback(self, msg):
         state = [0.0] * 13
         q_full = np.array(msg.q)
         norm = np.linalg.norm(q_full)
@@ -121,18 +144,27 @@ class OffBoardNode(Node):
                 w: {state[10:13]}
                 """
             )
-    def keyboard_callback(self, msg):
-        self.get_logger().info(
-            f'Received keyboard key'
-        )
 
+    # receive keyboard strokes
+    def keyboard_callback(self):    
+        while self.running:
+            if select.select([sys.stdin], [], [], 0.1)[0]:
+                self.key = sys.stdin.read(1)
+                if self.logging_on:
+                    self.get_logger().info(f"Key pressed: {self.key}")
+
+
+    # when we exit do clean up and output the run data
     def destroy_node(self):
+        # shutting down keyboard listenting
+        self.running = False
+        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.settings)
+
         data = {'constants': mc.__dict__(), 'run_data': self.log_rows}
         output_data(data, "src/hop/plotter_logs/current.json")
         formatted_date = datetime.now().strftime("%Y-%m-%d")
         output_data(data, "src/hop/plotter_logs/" + formatted_date + "log.json")
         super().destroy_node()
-
 
 ################################### PUBLISHER functions #######################################
 

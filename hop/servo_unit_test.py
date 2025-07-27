@@ -8,7 +8,13 @@ class ServoTest(OffBoardNode):
 
     def timer_callback(self):
         self.pwm_servos = [0.2, 0.3]
+
+        # quit if someone pressed a key
+        if not self.key == '':
+            raise SystemExit
+
         super().timer_callback()
+
 
 
 def main(args=None):
