@@ -7,6 +7,11 @@ def generate_launch_description():
             package='hop',
             executable='nmpc_controller',
             name='nmpc_controller'
+        ),
+            Node(
+            package='hop',
+            executable='test_servo',
+            name='test_servo'
         )
     ])
     

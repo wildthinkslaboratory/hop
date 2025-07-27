@@ -4,17 +4,17 @@ from px4_msgs.msg import ActuatorMotors, ActuatorServos, OffboardControlMode, Ve
 from rclpy.qos import qos_profile_sensor_data
 
 import numpy as np
-from constants import Constants
+from hop.constants import Constants
 from casadi import DM
-from utilities import output_data
+from hop.utilities import output_data
 from datetime import datetime
 mc = Constants()
 
 
-class OffBoard(Node):
+class OffBoardNode(Node):
 
-    def __init__(self, timelimit = None, dt = mc.dt):
-        super().__init__('nmpc_controller')
+    def __init__(self, name, timelimit = None, dt = mc.dt):
+        super().__init__(name)
 
         self.timelimit = timelimit
         self.dt = dt
@@ -92,7 +92,7 @@ class OffBoard(Node):
         self.run_servos()
 
         self.log_rows.append({
-            'state': self.state.flatten().tolist(),
+            'state': self.state.full().tolist(),
             'control': self.control,
             'pwm_motors': self.pwm_motors,
             'pwm_servos': self.pwm_servos
