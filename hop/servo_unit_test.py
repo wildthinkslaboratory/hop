@@ -4,10 +4,10 @@ from hop.offboard_node import OffBoardNode
 class ServoTest(OffBoardNode):
 
     def __init__(self):
-        super().__init__('ServoTestNode', timelimit=1)
+        super().__init__('ServoTestNode', timelimit=100)
 
     def timer_callback(self):
-        self.pwm_servos = [0.2, 0.3]
+        self.pwm_servos = [1.5, 0]
 
         # quit if someone pressed a key
         if not self.key == '':

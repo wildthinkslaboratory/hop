@@ -145,8 +145,8 @@ class NMPC(Node):
 
         self.count += 1
 
-        if self.count > 10:
-            self.destroy_node() # This shuts down the current node
+        # if self.count > 10:
+        #     self.destroy_node() # This shuts down the current node
 
         self.maintain_offboard()
         control = self.run_NMPC()
@@ -169,12 +169,14 @@ class NMPC(Node):
 
     def listener_callback(self, msg):
         state = [0.0] * 13
+        pos = np.array(msg.position)
+        vel = np.array(msg.velocity)
         q_full = np.array(msg.q)
         norm = np.linalg.norm(q_full)
         if norm > 0:
             q_full /= norm
-        state[0:3] = msg.position
-        state[3:6] = msg.velocity
+        state[0:3] = [pos[1], pos[0], -pos[2]]
+        state[3:6] = [vel[1], vel[0], -vel[2]]
         state[6:10] = [q_full[1], q_full[2], q_full[3], q_full[0]]
         state[10:13] = msg.angular_velocity
         self.state = ca.DM(state)
@@ -327,13 +329,14 @@ class NMPC(Node):
         gimbal_angles[0] = np.clip(gimbal_angles[0], mc.outer_gimbal_range[0], mc.outer_gimbal_range[1])
         gimbal_angles[1] = np.clip(gimbal_angles[1],  mc.inner_gimbal_range[0], mc.inner_gimbal_range[1])
 
-        outer_angle_pwm = gimbal_angles[0] / 90
-        inner_angle_pwm = gimbal_angles[1] / 90
+        outer_angle_pwm = gimbal_angles[0] / 42
+
+        inner_angle_pwm = gimbal_angles[1] / 42
         return outer_angle_pwm, inner_angle_pwm
     
     def get_thrust_pwm(self, thrust_values):
         top_prop_pwm = thrust_values[0] + thrust_values[1]/2
-        bottom_prop_pwm = thrust_values[0] - thrust_values[1]/2
+        bottom_prop_pwm = thrust_values[0] - thrust_values[1]
         top_prop_pwm = np.clip(top_prop_pwm, mc.prop_thrust_constraint[0], mc.prop_thrust_constraint[1])
         bottom_prop_pwm = np.clip(bottom_prop_pwm, mc.prop_thrust_constraint[0], mc.prop_thrust_constraint[1])
         return top_prop_pwm, bottom_prop_pwm
@@ -363,7 +366,7 @@ def main(args=None):
     except KeyboardInterrupt:
         pass
     finally:
-        nmpc.finalize()
+        # nmpc.finalize()
         nmpc.destroy_node()
         rclpy.shutdown()
 
