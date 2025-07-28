@@ -1,4 +1,9 @@
 #!/bin/bash
 
-scp izzy@192.168.0.100:~/drone_ws/plotter_logs/current.json ./
-python hop/plotter.py
+
+if [ ! -d "plotter_logs" ]; then
+  echo "directory plotter_logs does not exist. Creating it."
+  mkdir plotter_logs
+fi
+
+scp izzy@192.168.0.100:~/drone_ws/src/hop/plotter_logs/current.json ./plotter_logs/

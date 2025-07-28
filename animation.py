@@ -44,7 +44,7 @@ class RocketAnimation:
         for k in range(len(tspan)):
             rate(1 / dt_vis)
             pos = x_hist[k, 0:3]
-            qv = x_hist[k, 6:9]
+            qv = x_hist[k, 6:10]
             self.apply_pose(pos, qv)
             self.scene.center = self.body.pos + vector(0, 0.3, 0)
 
@@ -61,12 +61,10 @@ class RocketAnimation:
         ])
 
     def apply_pose(self, pos_model, q_vec):
-        qw_sq = max(0.0, 1.0 - np.dot(q_vec, q_vec))
-        qw = sqrt(qw_sq)
-        quat = np.hstack((q_vec, qw))
         vp_pos = vector(pos_model[0], pos_model[2], -pos_model[1])
         self.body.pos = vp_pos
-        R = self.quat_to_rot(quat)
+
+        R = self.quat_to_rot(q_vec)
         axis_m = R[:, 2]
         vp_axis = vector(axis_m[0], axis_m[2], -axis_m[1])
         self.body.axis = vp_axis * self.rocket_length
@@ -74,4 +72,6 @@ class RocketAnimation:
         self.nose.axis = vp_axis * self.nose_length
         self.thrust.pos = self.body.pos
         self.thrust.axis = -vp_axis.norm() * self.thrust_length
+
+
 

@@ -101,12 +101,12 @@ class DronePlotter3d:
             self.apply_pose(pos, qv, F, body, nose, thrust)
             scene.center = body.pos + vector(0, 0.3, 0)
 
-            def main(args=None):
-                dt = 0.1
-                data = import_data("current.json")
-                t = data.shape[0] * dt
-                DronePlotter3d(data, dt, t)
+def main(args=None):
+    dt = 0.1
+    data = import_data("current.json")
+    t = data.shape[0] * dt
+    DronePlotter3d(data, dt, t)
 
-            if __name__ == '__main__':
-                main()
+if __name__ == '__main__':
+    main()
 
