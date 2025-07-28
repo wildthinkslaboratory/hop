@@ -32,7 +32,6 @@ class NMPC(OffBoardNode):
 
         super().timer_callback()
     
-
     
     def get_angle_pwm(self, gimbal_angles):
         gimbal_angles[0] = np.clip(gimbal_angles[0], mc.outer_gimbal_range[0], mc.outer_gimbal_range[1])
