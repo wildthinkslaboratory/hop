@@ -116,7 +116,7 @@ class OffBoardNode(Node):
 
         self.log_rows.append({
             'state': self.state.full().tolist(),
-            'control': self.control,
+            'control': self.control.tolist(),
             'pwm_motors': self.pwm_motors,
             'pwm_servos': self.pwm_servos
         })

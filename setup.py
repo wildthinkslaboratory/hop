@@ -22,7 +22,7 @@ setup(
     entry_points={
         'console_scripts': [
             'nmpc_controller = hop.nmpc_controller:main',
-            # 'servo_unit_test = hop.servo_unit_test:main',
+            'servo_unit_test = hop.servo_unit_test:main',
         ],
     },
 )

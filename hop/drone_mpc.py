@@ -2,8 +2,7 @@ import do_mpc
 import numpy as np
 import casadi as ca
 
-# from hop.constants import Constants
-from constants import Constants
+from hop.constants import Constants
 
 mc = Constants()
 
@@ -36,26 +35,25 @@ class DroneMPC:
             np.inf,
             mc.diff_thrust_constraint[1]
         ]
-
-        # restrict rate of change for gimbals
-        # du_bounds = [c * self.dt for c in mc.theta_dot_constraint]
-        # self.mpc.bounds['lower','_du','u'] = [du_bounds[0], du_bounds[0], -np.inf, -np.inf]
-        # self.mpc.bounds['upper','_du','u'] = [du_bounds[1], du_bounds[1],  np.inf,  np.inf]
+        # du = mpc.model._u - mpc.model._u_prev
+        # mpc.set_nl_cons('du_rate_limit', du, lb=-du_bounds, ub=du_bounds)
 
         self.mpc.bounds['lower', '_x', 'p'] = [-ca.inf, -ca.inf, 0]
         self.mpc.bounds['upper', '_x', 'p'] = [ ca.inf,  ca.inf,  ca.inf]
 
-        
-        # u = self.model.u['u']
-        # P_avg = u[2]
-        # P_diff = u[3]
+
+        # P_avg = self.model.u[2]
+        # P_diff = self.model.u[3]
+
         # P_upper = P_avg + P_diff / 2
         # P_lower = P_avg - P_diff / 2
 
-        # self.mpc.set_nl_cons('upper_pwm_limit', P_upper, ub=mc.prop_thrust_constraint[1])
-        # self.mpc.set_nl_cons('upper_pwm_floor', P_upper, lb=mc.prop_thrust_constraint[0])
-        # self.mpc.set_nl_cons('lower_pwm_limit', P_lower, ub=mc.prop_thrust_constraint[1])
-        # self.mpc.set_nl_cons('lower_pwm_floor', P_lower, lb=mc.prop_thrust_constraint[0])
+        # pmin, pmax = mc.prop_thrust_constraint
+
+        # self.mpc.set_nl_cons('upper_pwm_max', P_upper, ub=pmax)
+        # self.mpc.set_nl_cons('upper_pwm_min', P_upper, lb=pmin)
+        # self.mpc.set_nl_cons('lower_pwm_max', P_lower, ub=pmax)
+        # self.mpc.set_nl_cons('lower_pwm_min', P_lower, lb=pmin)
 
         self.mpc.settings.supress_ipopt_output()
         
