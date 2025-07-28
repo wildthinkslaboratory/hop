@@ -1,24 +1,22 @@
 import matplotlib.pyplot as plt
-from drone_model import DroneModel
-from drone_mpc import DroneMPC
-from constants import Constants
+from hop.drone_model import DroneModel
+from hop.drone_mpc import DroneMPC
+from hop.constants import Constants
 from do_mpc.simulator import Simulator
 from do_mpc import graphics
 import casadi as ca
 from do_mpc.estimator import StateFeedback
 import numpy as np
-from utilities import import_data
+from hop.utilities import import_data
 from time import perf_counter
 from animation import RocketAnimation
+from plots import plot_state, plot_control
 
 mc = Constants()
 
 num_iterations = 200
 plot = True
-run_animation = False
-
-if run_animation:
-    rc = RocketAnimation()
+run_animation = True
 
 tests = import_data('nmpc_test_cases.json')
 for test in tests:
@@ -38,7 +36,7 @@ for test in tests:
     sim.x0 = x0
     estimator.x0 = x0
     data = []
-    state_data = np.empty([num_iterations,12])
+    state_data = np.empty([num_iterations,13])
     control_data = np.empty([num_iterations,4])
     tspan = np.arange(0,num_iterations* mc.dt,mc.dt)
     time_data = []
@@ -51,7 +49,7 @@ for test in tests:
         x0 = estimator.make_step(y_next)
 
 
-        state_data[k] = np.reshape(x0, (12,))
+        state_data[k] = np.reshape(x0, (13,))
         control_data[k] = np.reshape(u0, (4,))
         time_data.append(step_time)
 
@@ -64,34 +62,9 @@ for test in tests:
             print('mpc timestep exceeded:',t)
     print('average time for mpc step: ', cum_time / num_iterations)
 
-
-    if plot:
-        fig, axs = plt.subplots(6)
-        fig.set_figheight(8)
-        fig.suptitle("NMPC Drone Simulation")
-
-        for i in range(3):
-            axs[0].plot(tspan, state_data[:,i])
-        axs[0].set_ylabel('x')
-        for i in range(3):
-            axs[1].plot(tspan, state_data[:,i+3])
-        axs[1].set_ylabel('v')
-        for i in range(3):
-            axs[2].plot(tspan, state_data[:,i+6])
-        axs[2].set_ylabel('q')
-        for i in range(3):
-            axs[3].plot(tspan, state_data[:,i+9])
-        axs[3].set_ylabel('w')
-
-        for i in range(2):
-            axs[4].plot(tspan, control_data[:,i])
-        axs[4].set_ylabel('g')
-        for i in range(2):
-            axs[5].plot(tspan, control_data[:,i+2])
-        axs[5].set_ylabel('t')
-
-        plt.xlabel('Time')
-        plt.show()
+    plot_state(tspan, state_data)
+    plot_control(tspan, control_data)
     
     if run_animation:
+        rc = RocketAnimation()
         rc.animate(tspan, state_data, control_data)
