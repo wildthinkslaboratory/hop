@@ -7,7 +7,7 @@ class ServoTest(OffBoardNode):
         super().__init__('ServoTestNode', timelimit=100)
 
     def timer_callback(self):
-        self.pwm_servos = [1.5, 0]
+        self.pwm_servos = [0, 0]
 
         # quit if someone pressed a key
         if not self.key == '':
@@ -20,7 +20,7 @@ class ServoTest(OffBoardNode):
 def main(args=None):
     rclpy.init(args=args)
     servo_test = ServoTest()
-
+    # servo_test.logging_on = False
     try:
         rclpy.spin(servo_test)
     except SystemExit:
