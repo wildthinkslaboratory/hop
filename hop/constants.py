@@ -52,9 +52,9 @@ class Constants:
         self.I_diag = [self.Ixx, self.Iyy, self.Izz]
         self.I_inv = np.linalg.inv(self.I)
 
-        self.x0 = ca.vertcat(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0)
+        self.x0 = ca.vertcat(0.0,0.0,0.0, 0.0,0.0,0.0, 1.0,0.0,0.0,0.0, 0.0,0.0,0.0)
         self.Q = ca.DM.eye(13)
-        self.xr = ca.vertcat(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0)
+        self.xr = ca.vertcat(0.0,0.0,0.0, 0.0,0.0,0.0, 1.0,0.0,0.0,0.0, 0.0,0.0,0.0)
 
 
 
