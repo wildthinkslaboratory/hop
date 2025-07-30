@@ -127,26 +127,21 @@ class OffBoardNode(Node):
     # recieve vehicle odometry message
     def state_callback(self, msg):
         state = [0.0] * 13
-        pos = np.array(msg.position)
-        vel = np.array(msg.velocity)
-        q_full = np.array(msg.q)
-        q_full = np.array([q_full[1],q_full[2],q_full[3],q_full[0]])
+        # pos = np.array(msg.position)
+        pos = np.array([0,0,0])
+        # vel = np.array(msg.velocity)
+        vel = np.array([0,0,0])
+        ang_vel = np.array([0,0,0])
 
+        q_full = np.array(msg.q)
+        # ang_vel = msg.angular_velocity
         norm = np.linalg.norm(q_full)
         if norm > 0:
             q_full /= norm
-
-        q_transform = np.array([-sqrt(2)/2, -sqrt(2)/2, 0.0, 0.0])
-        r_transform = R.from_quat(q_transform)
-        r_full = R.from_quat(q_full)
-        r_result = r_transform * r_full
-        q_transform = r_result.as_quat()
-
         state[0:3] = [pos[1], pos[0], -pos[2]]
         state[3:6] = [vel[1], vel[0], -vel[2]]
-        state[6:10] = q_transform
-
-        state[10:13] = msg.angular_velocity
+        state[6:10] = np.array([q_full[1],q_full[2],q_full[3],q_full[0]])
+        state[10:13] = [ang_vel[1], ang_vel[0], -ang_vel[2]]
         self.state = DM(state)
         if self.logging_on:
             self.get_logger().info(

@@ -22,9 +22,9 @@ class DroneModel:
         M = mc.d * mc.Izz * u[3]
 
         F_vector = F * ca.vertcat(
-            sin(u[1]),
-            -sin(u[0])*cos(u[1]),
-            cos(u[0])*cos(u[1])
+            sin((np.pi/180)*u[1]),
+            -sin((np.pi/180)*u[0])*cos((np.pi/180)*u[1]),
+            cos((np.pi/180)*u[0])*cos((np.pi/180)*u[1])
         )
 
         roll_moment = ca.vertcat(0, 0, M)
