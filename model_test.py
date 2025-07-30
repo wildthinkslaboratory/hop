@@ -50,6 +50,8 @@ for test in tests:
 
 
         state_data[k] = np.reshape(x0, (13,))
+        # u0[0] = u0[0] * 180 / np.pi
+        # u0[1] = u0[1] * 180 / np.pi
         control_data[k] = np.reshape(u0, (4,))
         time_data.append(step_time)
 

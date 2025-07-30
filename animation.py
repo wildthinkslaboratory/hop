@@ -23,7 +23,7 @@ class RocketAnimation:
         rocket_radius = 0.1
         self.rocket_length = 1.0
         self.nose_length = 0.2
-        self.thrust_length = 0.5
+        self.thrust_length = 0.05
 
         self.body = cylinder(pos=vec(0, 0.01, 0), axis=vec(0, self.rocket_length, 0), radius=rocket_radius, color=color.red)
         self.nose = cone(pos=self.body.pos + self.body.axis, axis=vec(0, self.nose_length, 0), radius=rocket_radius, color=color.orange)
@@ -37,7 +37,6 @@ class RocketAnimation:
             curve(vec(-half_extent, y_level, z), vec(half_extent, y_level, z), color=col, radius=r)
 
     def animate(self, tspan, x_hist, u_hist):
-
         # ------------------------------------------------------------------
         # animation loop
         dt_vis = tspan[1] - tspan[0]
@@ -45,7 +44,8 @@ class RocketAnimation:
             rate(1 / dt_vis)
             pos = x_hist[k, 0:3]
             qv = x_hist[k, 6:10]
-            self.apply_pose(pos, qv)
+            control = u_hist[k]
+            self.apply_pose(pos, qv, control)
             self.scene.center = self.body.pos + vector(0, 0.3, 0)
 
 
@@ -60,7 +60,7 @@ class RocketAnimation:
             [2 * (xz - wy), 2 * (yz + wx), 1 - 2 * (xx + yy)]
         ])
 
-    def apply_pose(self, pos_model, q_vec):
+    def apply_pose(self, pos_model, q_vec, control):
         vp_pos = vector(pos_model[0], pos_model[2], -pos_model[1])
         self.body.pos = vp_pos
 
@@ -71,7 +71,7 @@ class RocketAnimation:
         self.nose.pos = self.body.pos + self.body.axis
         self.nose.axis = vp_axis * self.nose_length
         self.thrust.pos = self.body.pos
-        self.thrust.axis = -vp_axis.norm() * self.thrust_length
+        self.thrust.axis = -vp_axis.norm() * self.thrust_length * control[2]
 
 
 
