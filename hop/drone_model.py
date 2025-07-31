@@ -18,7 +18,7 @@ class DroneModel:
         state = ca.vertcat(p,v,q,w)
         u = self.model.set_variable(var_type='_u', var_name='u', shape=(4,1))
         I_mat = ca.diag(mc.I_diag)
-        F = mc.a * u[2]**2 + mc.b * u[2] + mc.c
+        F = mc.a * u[2]**2 + mc.b * u[2] + mc.c 
         M = mc.d * mc.Izz * u[3]
 
         F_vector = F * ca.vertcat(
