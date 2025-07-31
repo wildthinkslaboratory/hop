@@ -48,10 +48,14 @@ for test in tests:
         y_next = sim.make_step(u0)
         x0 = estimator.make_step(y_next)
 
+        # x0[0] = 0.0
+        # x0[1] = 0.0
+        # x0[2] = 0.0
+        # x0[3] = 0.0
+        # x0[4] = 0.0
+        # x0[5] = 0.0
 
         state_data[k] = np.reshape(x0, (13,))
-        # u0[0] = u0[0] * 180 / np.pi
-        # u0[1] = u0[1] * 180 / np.pi
         control_data[k] = np.reshape(u0, (4,))
         time_data.append(step_time)
 
@@ -64,9 +68,10 @@ for test in tests:
             print('mpc timestep exceeded:',t)
     print('average time for mpc step: ', cum_time / num_iterations)
 
-    plot_state(tspan, state_data)
-    plot_control(tspan, control_data)
+    if plot:
+        plot_state(tspan, state_data)
+        plot_control(tspan, control_data)
     
     if run_animation:
-        rc = RocketAnimation()
+        rc = RocketAnimation(test['animation_forward'], test['animation_up'])
         rc.animate(tspan, state_data, control_data)

@@ -1,13 +1,15 @@
 from vpython import canvas, curve, vec, vector, color, label, arrow, cylinder, cone, rate
 import numpy as np
 from time import perf_counter
-from math import sqrt
+from math import sqrt, cos, sin
+import quaternion
+
 
 class RocketAnimation:
-    def __init__(self):
+    def __init__(self, forward = [1,1,1], up = [0,1,0]):
         self.scene = canvas(title="3D Rocket Visualization", background=color.white, width=1600, height=1200)
-        self.scene.forward = vector(-1, -1, -1)
-        self.scene.up = vector(0, 1, 0)
+        self.scene.forward = vector(forward[0], forward[1], forward[2])
+        self.scene.up = vector(up[0], up[1], up[2])
         self.scene.range = 2.5
 
         self.draw_grid()
@@ -41,7 +43,8 @@ class RocketAnimation:
         # animation loop
         dt_vis = tspan[1] - tspan[0]
         for k in range(len(tspan)):
-            rate(1 / dt_vis)
+            # rate(1 / dt_vis)
+            rate(2)
             pos = x_hist[k, 0:3]
             qv = x_hist[k, 6:10]
             control = u_hist[k]
@@ -70,8 +73,21 @@ class RocketAnimation:
         self.body.axis = vp_axis * self.rocket_length
         self.nose.pos = self.body.pos + self.body.axis
         self.nose.axis = vp_axis * self.nose_length
+
+        theta_1 = 10 * control[0] * np.pi / 180 # convert angles to radian
+        theta_2 = 10 * control[1] * np.pi / 180
+
+        q_0 = np.quaternion(q_vec[3], q_vec[0], q_vec[1], q_vec[2])
+        q_1 = np.quaternion(cos(theta_1 / 2), sin(theta_1 / 2), 0, 0) # rotate first gimbal
+        q_2 = np.quaternion(cos(theta_2 / 2), 0, sin(theta_2 / 2), 0) # rotate second gimbal
+        q = q_2 * q_1 * q_0
+
+        R_thrust = self.quat_to_rot([q.x, q.y, q.z, q.w])
+        axis_thrust = R_thrust[:,2]
+        vpt_axis = vector(axis_thrust[0], axis_thrust[2], -axis_thrust[1])
         self.thrust.pos = self.body.pos
-        self.thrust.axis = -vp_axis.norm() * self.thrust_length * control[2]
+        self.thrust.axis = -vpt_axis.norm() * self.thrust_length  * control[2]
+        # self.thrust.axis = -vp_axis.norm() * self.thrust_length * control[2]
 
 
 
