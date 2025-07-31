@@ -19,9 +19,9 @@ class Constants:
         self.timelimit = 1 # in seconds
 
         self.a = 0
-        self.b = 1
-        self.c = 0
-        self.d = 1
+        self.b = 2.5
+        self.c = 0.1
+        self.d = 0.1
 
         self.outer_gimbal_range = [-15,15]
         self.inner_gimbal_range = [-15,15]
