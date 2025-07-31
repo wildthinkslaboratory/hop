@@ -10,11 +10,11 @@ class Constants:
         self.gx = 0
         self.gy = 0
         self.gz = -9.81
-        self.m = 1
-        self.l = 2          
-        self.Ixx = 1
-        self.Iyy = 1
-        self.Izz = 1
+        self.m = 1.5
+        self.l = 1        
+        self.Ixx = 0.06
+        self.Iyy = 0.06
+        self.Izz = 0.012
         self.dt = 0.1
         self.timelimit = 1 # in seconds
 

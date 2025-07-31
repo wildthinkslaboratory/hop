@@ -127,22 +127,34 @@ class OffBoardNode(Node):
     # recieve vehicle odometry message
     def state_callback(self, msg):
         state = [0.0] * 13
-        # pos = np.array(msg.position)
-        pos = np.array([0,0,0])
-        # vel = np.array(msg.velocity)
-        vel = np.array([0,0,0])
-        ang_vel = np.array([0,0,0])
 
+        # pos = np.array([0,0,0])
+        # vel = np.array([0,0,0])
+        # ang_vel = np.array([0,0,0])
+
+        # px4 stores position in NED (North, East, Down)
+        # it is converted to ENU (East, North, Up)
+        pos = np.array(msg.position)
+        vel = np.array(msg.velocity)
+        state[0:3] = [pos[1], pos[0], -pos[2]]
+        state[3:6] = [vel[1], vel[0], -vel[2]]
+    
+
+        # px4 quaternion (w, i, j, k) gives rotation from body frame FRD (front, right, down) 
+        # convert them to body frame FLU (front, left, up)
         q_full = np.array(msg.q)
-        # ang_vel = msg.angular_velocity
         norm = np.linalg.norm(q_full)
         if norm > 0:
             q_full /= norm
-        state[0:3] = [pos[1], pos[0], -pos[2]]
-        state[3:6] = [vel[1], vel[0], -vel[2]]
         state[6:10] = np.array([q_full[1],q_full[2],q_full[3],q_full[0]])
-        state[10:13] = [ang_vel[1], ang_vel[0], -ang_vel[2]]
+               
+        # px4 angular velocity is in body frame FRD (front, right, down)
+        # convert to body frame FLU (front, left, up)
+        ang_vel = msg.angular_velocity
+        state[10:13] = [ang_vel[0], -ang_vel[1], -ang_vel[2]]
+
         self.state = DM(state)
+
         if self.logging_on:
             self.get_logger().info(
                 f"""\n=== NMPC Step ===

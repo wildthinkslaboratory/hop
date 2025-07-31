@@ -30,7 +30,6 @@ class DroneModel:
         roll_moment = ca.vertcat(0, 0, M)
         M_vector = ca.cross(mc.moment_arm, F_vector) + roll_moment
         angular_momentum = I_mat @ w
-        qw = (1 - (state[6])**2 - (state[7])**2 - (state[8])**2)**(0.5)
 
         r_b2w = ca.vertcat(
             ca.horzcat(1 - 2*(state[7]**2 + state[8]**2), 2*(state[6]*state[7] - state[8]*state[9]), 2*(state[6]*state[8] + state[7]*state[9])),
