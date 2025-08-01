@@ -3,11 +3,11 @@ from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDur
 from px4_msgs.msg import ActuatorMotors, ActuatorServos, OffboardControlMode, VehicleStatus, VehicleCommand, VehicleOdometry
 from rclpy.qos import qos_profile_sensor_data
 
+from casadi import DM
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 from hop.constants import Constants
-from casadi import DM
-from hop.utilities import output_data
+from hop.utilities import output_data, quaternion_multiply
 from datetime import datetime
 from math import sqrt
 mc = Constants()
@@ -132,26 +132,40 @@ class OffBoardNode(Node):
         # vel = np.array([0,0,0])
         # ang_vel = np.array([0,0,0])
 
-        # px4 stores position in NED (North, East, Down)
-        # it is converted to ENU (East, North, Up)
+        # px4 uses NED (North, East, Down) for position, 
+        #  quaternion (w, i, j, k) gives rotation from body frame FRD (front, right, down) 
+        # to NED and angular volocity in body FRD.
+        # 
+        # The drone body frame is in a FLU (front, left, up) orientation 
+        # and is rotated 90 degrees clockwise looking down the up z axis
+        # from the px4 body frame. 
+        # 
+
+        # position is translated from NED to ENU
         pos = np.array(msg.position)
         vel = np.array(msg.velocity)
         state[0:3] = [pos[1], pos[0], -pos[2]]
         state[3:6] = [vel[1], vel[0], -vel[2]]
     
+        # Front Left Up to Front Right Down translation (w, x, y, z)
+        FLU_FRD = np.array([0, sqrt(2)/2, sqrt(2)/2, 0])
 
-        # px4 quaternion (w, i, j, k) gives rotation from body frame FRD (front, right, down) 
-        # convert them to body frame FLU (front, left, up)
-        q_full = np.array(msg.q)
-        norm = np.linalg.norm(q_full)
+        # North East Down to East North Up translation (w, x, y, z)
+        NED_ENU = np.array([0, -sqrt(2)/2, -sqrt(2)/2, 0])
+        
+        q = np.array(msg.q) # incoming px4 quaternion is in body FRU to world NED
+
+        # build quaternion FLU_FRD * FRD_NED * NED_ENU = FLU_ENU
+        q_FLU_ENU = quaternion_multiply(FLU_FRD, quaternion_multiply(q, NED_ENU))
+
+        # renorm and translate from (w, i, j, k) to (i, j, k, w) form.
+        norm = np.linalg.norm(q_FLU_ENU)
         if norm > 0:
-            q_full /= norm
-        state[6:10] = np.array([q_full[1],q_full[2],q_full[3],q_full[0]])
+            q_FLU_ENU /= norm
+        state[6:10] = np.array([q_FLU_ENU[1], q_FLU_ENU[2], q_FLU_ENU[3], q_FLU_ENU[0]])
                
-        # px4 angular velocity is in body frame FRD (front, right, down)
-        # convert to body frame FLU (front, left, up)
         ang_vel = msg.angular_velocity
-        state[10:13] = [ang_vel[0], -ang_vel[1], -ang_vel[2]]
+        state[10:13] = [ang_vel[1], ang_vel[0], -ang_vel[2]]
 
         self.state = DM(state)
 
