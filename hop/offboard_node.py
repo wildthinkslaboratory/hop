@@ -128,9 +128,9 @@ class OffBoardNode(Node):
     def state_callback(self, msg):
         state = [0.0] * 13
 
-        # pos = np.array([0,0,0])
-        # vel = np.array([0,0,0])
-        # ang_vel = np.array([0,0,0])
+        pos = np.array([0,0,0])
+        vel = np.array([0,0,0])
+        ang_vel = np.array([0,0,0])
 
         # px4 uses NED (North, East, Down) for position, 
         #  quaternion (w, i, j, k) gives rotation from body frame FRD (front, right, down) 
@@ -142,8 +142,8 @@ class OffBoardNode(Node):
         # 
 
         # position is translated from NED to ENU
-        pos = np.array(msg.position)
-        vel = np.array(msg.velocity)
+        # pos = np.array(msg.position)
+        # vel = np.array(msg.velocity)
         state[0:3] = [pos[1], pos[0], -pos[2]]
         state[3:6] = [vel[1], vel[0], -vel[2]]
     
@@ -164,7 +164,7 @@ class OffBoardNode(Node):
             q_FLU_ENU /= norm
         state[6:10] = np.array([q_FLU_ENU[1], q_FLU_ENU[2], q_FLU_ENU[3], q_FLU_ENU[0]])
                
-        ang_vel = msg.angular_velocity
+        # ang_vel = msg.angular_velocity
         state[10:13] = [ang_vel[1], ang_vel[0], -ang_vel[2]]
 
         self.state = DM(state)
@@ -234,7 +234,7 @@ class OffBoardNode(Node):
         t = self.get_clock().now().nanoseconds // 1000
         servo_command.timestamp_sample = t
         servo_command.timestamp = t
-        servo_command.control = [self.pwm_servos[0], self.pwm_servos[1], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]   # 4 motors + 4 unused
+        servo_command.control = [-self.pwm_servos[0], -self.pwm_servos[1], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]   # 4 motors + 4 unused
         self.publisher_servos.publish(servo_command)
         if self.logging_on:
             self.get_logger().info('Publishing servo pwm ' + str(self.pwm_servos))
