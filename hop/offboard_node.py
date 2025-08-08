@@ -234,7 +234,7 @@ class OffBoardNode(Node):
         t = self.get_clock().now().nanoseconds // 1000
         servo_command.timestamp_sample = t
         servo_command.timestamp = t
-        servo_command.control = [self.pwm_servos[0], self.pwm_servos[1], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]   # 4 motors + 4 unused
+        servo_command.control = [-self.pwm_servos[0], -self.pwm_servos[1], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]   # 4 motors + 4 unused
         self.publisher_servos.publish(servo_command)
         if self.logging_on:
             self.get_logger().info('Publishing servo pwm ' + str(self.pwm_servos))

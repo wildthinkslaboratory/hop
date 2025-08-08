@@ -35,25 +35,18 @@ class DroneMPC:
             np.inf,
             mc.diff_thrust_constraint[1]
         ]
-        # du = mpc.model._u - mpc.model._u_prev
-        # mpc.set_nl_cons('du_rate_limit', du, lb=-du_bounds, ub=du_bounds)
 
         self.mpc.bounds['lower', '_x', 'p'] = [-ca.inf, -ca.inf, 0]
         self.mpc.bounds['upper', '_x', 'p'] = [ ca.inf,  ca.inf,  ca.inf]
 
 
-        # P_avg = self.model.u[2]
-        # P_diff = self.model.u[3]
-
-        # P_upper = P_avg + P_diff / 2
-        # P_lower = P_avg - P_diff / 2
-
-        # pmin, pmax = mc.prop_thrust_constraint
-
-        # self.mpc.set_nl_cons('upper_pwm_max', P_upper, ub=pmax)
-        # self.mpc.set_nl_cons('upper_pwm_min', P_upper, lb=pmin)
-        # self.mpc.set_nl_cons('lower_pwm_max', P_lower, ub=pmax)
-        # self.mpc.set_nl_cons('lower_pwm_min', P_lower, lb=pmin)
+        # set max limit on each thrust motor
+        control = self.model.u['u']
+        P_upper = control[2] + control[3] / 2
+        P_lower = control[2] + control[3] / 2
+        thrust_limit = mc.prop_thrust_constraint
+        self.mpc.set_nl_cons('upper_pwm_max', P_upper, ub=thrust_limit)
+        self.mpc.set_nl_cons('lower_pwm_max', P_lower, ub=thrust_limit)
 
         self.mpc.settings.supress_ipopt_output()
         
@@ -70,4 +63,31 @@ class DroneMPC:
         lterm = error.T @ Q @ error
         self.mpc.set_objective(lterm=lterm, mterm=lterm)
         self.mpc.set_rterm(u=np.array([1, 1, 1, 1], dtype=float))
-        self.mpc.setup()
+
+        self.mpc.prepare_nlp()
+
+        # this creates bounds on the rate of change of the servos
+        ulist = self.mpc.opt_x['_u']
+        for i in range(len(ulist)):
+            if not i == 0:
+                rate_constraint = self.mpc.opt_x['_u', i, 0][:2] - self.mpc.opt_x['_u', i-1, 0][:2]
+                self.mpc.nlp_cons.append(rate_constraint)
+                shape = rate_constraint.shape
+                self.mpc.nlp_cons_lb.append(-np.array([mc.theta_dot_constraint]*shape[0]).reshape(shape))
+                self.mpc.nlp_cons_ub.append(np.array([mc.theta_dot_constraint]*shape[0]).reshape(shape))
+
+        # P_avg = self.model.u[2]
+        # P_diff = self.model.u[3]
+
+        # P_upper = P_avg + P_diff / 2
+        # P_lower = P_avg - P_diff / 2
+
+        # pmin, pmax = mc.prop_thrust_constraint
+
+        # self.mpc.set_nl_cons('upper_pwm_max', P_upper, ub=pmax)
+        # self.mpc.set_nl_cons('upper_pwm_min', P_upper, lb=pmin)
+        # self.mpc.set_nl_cons('lower_pwm_max', P_lower, ub=pmax)
+        # self.mpc.set_nl_cons('lower_pwm_min', P_lower, lb=pmin)
+
+        self.mpc.create_nlp()
+
