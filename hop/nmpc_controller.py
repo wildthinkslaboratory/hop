@@ -34,19 +34,22 @@ class NMPC(OffBoardNode):
     
     
     def get_angle_pwm(self, gimbal_angles):
+        gimbal_angles[0] = gimbal_angles[0]       # gimbal offset
         gimbal_angles[0] = np.clip(gimbal_angles[0], mc.outer_gimbal_range[0], mc.outer_gimbal_range[1])
         gimbal_angles[1] = np.clip(gimbal_angles[1],  mc.inner_gimbal_range[0], mc.inner_gimbal_range[1])
 
-        outer_angle_pwm = gimbal_angles[0] / 3
+        outer_angle_pwm = gimbal_angles[0] / 1
 
-        inner_angle_pwm = gimbal_angles[1] / 3
+        inner_angle_pwm = gimbal_angles[1] / 1
         return outer_angle_pwm, inner_angle_pwm
     
     def get_thrust_pwm(self, thrust_values):
-        top_prop_pwm = thrust_values[0] + thrust_values[1]/2
-        bottom_prop_pwm = thrust_values[0] - thrust_values[1]
-        top_prop_pwm = np.clip(top_prop_pwm, mc.prop_thrust_constraint[0], mc.prop_thrust_constraint[1])
-        bottom_prop_pwm = np.clip(bottom_prop_pwm, mc.prop_thrust_constraint[0], mc.prop_thrust_constraint[1])
+        top_prop_thrust = thrust_values[0] + thrust_values[1]/2
+        bottom_prop_thrust = thrust_values[0] - thrust_values[1]/2
+        top_prop_pwm = top_prop_thrust / mc.prop_thrust_constraint
+        bottom_prop_pwm = bottom_prop_thrust / mc.prop_thrust_constraint
+        top_prop_pwm = np.clip(top_prop_pwm, 0, 1)
+        bottom_prop_pwm = np.clip(bottom_prop_pwm, 0, 1)
         return top_prop_pwm, bottom_prop_pwm
 
     def control_translator(self):
@@ -57,9 +60,6 @@ class NMPC(OffBoardNode):
         self.pwm_servos =  [outer_angle, inner_angle]
         self.pwm_motors =  [top_prop_pwm, bottom_prop_pwm]
         
-
-
-
 
 def main(args=None):
     rclpy.init(args=args)

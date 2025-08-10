@@ -23,11 +23,11 @@ class Constants:
         self.c = 0.1
         self.d = 0.1
 
-        self.outer_gimbal_range = [-15,15]
-        self.inner_gimbal_range = [-15,15]
+        self.outer_gimbal_range = [-30,30]
+        self.inner_gimbal_range = [-13.5,13.5]
         self.theta_dot_constraint = 6.16
 
-        self.prop_thrust_constraint = 15.0
+        self.prop_thrust_constraint = 22.0
         self.diff_thrust_constraint = [-0.8,0.8]
 
         self.g = np.array([

@@ -169,16 +169,16 @@ class OffBoardNode(Node):
 
         self.state = DM(state)
 
-        if self.logging_on:
-            self.get_logger().info(
-                f"""\n=== NMPC Step ===
-                State:
-                p: {state[0:3]}
-                v: {state[3:6]}
-                q: {state[6:10]}
-                w: {state[10:13]}
-                """
-            )
+        # if self.logging_on:
+        #     self.get_logger().info(
+        #         f"""\n=== NMPC Step ===
+        #         State:
+        #         p: {state[0:3]}
+        #         v: {state[3:6]}
+        #         q: {state[6:10]}
+        #         w: {state[10:13]}
+        #         """
+        #     )
 
     # receive keyboard strokes
     def keyboard_callback(self):    
@@ -224,6 +224,8 @@ class OffBoardNode(Node):
         motor_command.timestamp_sample = t
         motor_command.timestamp = t
         motor_command.control = [self.pwm_motors[0], self.pwm_motors[1], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]   # 4 motors + 8 unused
+        
+
         self.publisher_motors.publish(motor_command)
         if self.logging_on:
             self.get_logger().info('Publishing motor pwm ' + str(self.pwm_motors))
@@ -235,6 +237,7 @@ class OffBoardNode(Node):
         servo_command.timestamp_sample = t
         servo_command.timestamp = t
         servo_command.control = [-self.pwm_servos[0], -self.pwm_servos[1], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]   # 4 motors + 4 unused
+
         self.publisher_servos.publish(servo_command)
         if self.logging_on:
             self.get_logger().info('Publishing servo pwm ' + str(self.pwm_servos))
