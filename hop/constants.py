@@ -15,7 +15,10 @@ class Constants:
         self.Ixx = 0.06
         self.Iyy = 0.06
         self.Izz = 0.012
-        self.dt = 0.1
+
+        self.dt = 0.02 # 50 Hz like in paper
+        self.mpc_N = 100 # number of timesteps for nmpc to consider
+
         self.timelimit = 1 # in seconds
 
         self.a = 0
