@@ -6,11 +6,12 @@ import quaternion
 
 
 class RocketAnimation:
-    def __init__(self, forward = [1,1,1], up = [0,1,0]):
-        self.scene = canvas(title="3D Rocket Visualization", background=color.white, width=1600, height=1200)
+    def __init__(self, forward = [1,1,1], up = [0,1,0], frame_rate = 1):
+        self.scene = canvas(background=color.white, width=1200, height=800)
         self.scene.forward = vector(forward[0], forward[1], forward[2])
         self.scene.up = vector(up[0], up[1], up[2])
         self.scene.range = 2.5
+        self.frame_rate = frame_rate
 
         self.draw_grid()
 
@@ -31,6 +32,9 @@ class RocketAnimation:
         self.nose = cone(pos=self.body.pos + self.body.axis, axis=vec(0, self.nose_length, 0), radius=rocket_radius, color=color.orange)
         self.thrust = arrow(pos=self.body.pos, axis=vec(0, -self.thrust_length, 0), shaftwidth=0.05, headwidth=0.08, headlength=0.1, color=color.blue)
 
+    def __del__(self):
+        self.scene.delete()
+
     def draw_grid(self, half_extent=10, spacing=1, y_level=0, col=color.gray(0.9)):
         r = 0.002
         for x in range(-half_extent, half_extent + 1, spacing):
@@ -43,8 +47,8 @@ class RocketAnimation:
         # animation loop
         dt_vis = tspan[1] - tspan[0]
         for k in range(len(tspan)):
-            # rate(1 / dt_vis)
-            rate(2)
+            rate(int(self.frame_rate / dt_vis))
+
             pos = x_hist[k, 0:3]
             qv = x_hist[k, 6:10]
             control = u_hist[k]
@@ -74,8 +78,8 @@ class RocketAnimation:
         self.nose.pos = self.body.pos + self.body.axis
         self.nose.axis = vp_axis * self.nose_length
 
-        theta_1 = 10 * control[0] * np.pi / 180 # convert angles to radian
-        theta_2 = 10 * control[1] * np.pi / 180
+        theta_1 = control[0] * np.pi / 180 # convert angles to radian
+        theta_2 = control[1] * np.pi / 180
 
         q_0 = np.quaternion(q_vec[3], q_vec[0], q_vec[1], q_vec[2])
         q_1 = np.quaternion(cos(theta_1 / 2), sin(theta_1 / 2), 0, 0) # rotate first gimbal

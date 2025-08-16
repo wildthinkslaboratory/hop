@@ -12,7 +12,7 @@ class DroneMPC:
         self.model = model
         self.mpc = do_mpc.controller.MPC(self.model)
         
-        self.mpc.settings.n_horizon = 10
+        self.mpc.settings.n_horizon = mc.mpc_N
         self.mpc.settings.n_robust = 1
         self.mpc.settings.open_loop = 0
         self.mpc.settings.t_step = self.dt

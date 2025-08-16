@@ -14,7 +14,6 @@ from plots import plot_state, plot_control
 
 mc = Constants()
 
-num_iterations = 200
 plot = True
 run_animation = True
 
@@ -29,6 +28,7 @@ for test in tests:
     sim.setup()
 
     # initial state
+    num_iterations = test['num_iterations']
     x0 = ca.DM(test['x0'])
     xr = ca.DM(test['xr'])
     mpc.set_goal_state(xr)
@@ -73,5 +73,6 @@ for test in tests:
         plot_control(tspan, control_data)
     
     if run_animation:
-        rc = RocketAnimation(test['animation_forward'], test['animation_up'])
+        rc = RocketAnimation(test['animation_forward'], test['animation_up'], test['animation_frame_rate'])
         rc.animate(tspan, state_data, control_data)
+    print("VPython scene deleted, back in Python!")
