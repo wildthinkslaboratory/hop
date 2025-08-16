@@ -7,7 +7,7 @@ class ServoTest(OffBoardNode):
         super().__init__('ServoTestNode', timelimit=100)
 
     def timer_callback(self):
-        self.pwm_servos = [((9.9)/45), 0]
+        self.pwm_servos = [1, 1]
 
         # quit if someone pressed a key
         if not self.key == '':

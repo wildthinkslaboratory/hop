@@ -24,6 +24,7 @@ class OffBoardNode(Node):
     def __init__(self, name, timelimit = None, dt = mc.dt):
         super().__init__(name)
 
+        self.logging_on = False
         self.timelimit = timelimit
         self.dt = dt
         qos_pub = QoSProfile(
@@ -96,7 +97,7 @@ class OffBoardNode(Node):
         self.log_rows = []
         self.timer = self.create_timer(self.dt, self.timer_callback)
         self.count = 0
-        self.logging_on = True
+
 
 
 
@@ -169,16 +170,16 @@ class OffBoardNode(Node):
 
         self.state = DM(state)
 
-        # if self.logging_on:
-        #     self.get_logger().info(
-        #         f"""\n=== NMPC Step ===
-        #         State:
-        #         p: {state[0:3]}
-        #         v: {state[3:6]}
-        #         q: {state[6:10]}
-        #         w: {state[10:13]}
-        #         """
-        #     )
+        if self.logging_on:
+            self.get_logger().info(
+                f"""\n=== NMPC Step ===
+                State:
+                p: {state[0:3]}
+                v: {state[3:6]}
+                q: {state[6:10]}
+                w: {state[10:13]}
+                """
+            )
 
     # receive keyboard strokes
     def keyboard_callback(self):    
