@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 from hop.drone_model import DroneModel
 from hop.drone_mpc import DroneMPC
 from hop.constants import Constants
@@ -9,13 +8,21 @@ from do_mpc.estimator import StateFeedback
 import numpy as np
 from hop.utilities import import_data
 from time import perf_counter
-from animation import RocketAnimation
-from plots import plot_state, plot_control
+
 
 mc = Constants()
 
-plot = True
-run_animation = True
+plot = False
+run_animation = False
+
+# we don't want to import these things if we're on th pi
+# needed libs aren't installed there.
+if run_animation:
+    from animation import RocketAnimation
+
+if plot:
+    import matplotlib.pyplot as plt
+    from plots import plot_state, plot_control
 
 tests = import_data('nmpc_test_cases.json')
 for test in tests:
