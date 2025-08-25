@@ -12,7 +12,7 @@ class DroneMPC:
         self.model = model
         self.mpc = do_mpc.controller.MPC(self.model)
         
-        self.mpc.settings.n_horizon = mc.mpc_N
+        self.mpc.settings.n_horizon = mc.mpc_horizon
         self.mpc.settings.n_robust = 1
         self.mpc.settings.open_loop = 0
         self.mpc.settings.t_step = self.dt
@@ -21,6 +21,32 @@ class DroneMPC:
         self.mpc.settings.collocation_deg = 2
         self.mpc.settings.collocation_ni = 1
         self.mpc.settings.store_full_solution = True
+        self.mpc.settings.nlpsol_opts = {
+            "ipopt.max_iter": 50,                   # keep small; rely on warm starts
+            "ipopt.tol": 1e-3,                      # relax accuracy
+            "ipopt.acceptable_tol": 3e-2,
+            "ipopt.acceptable_constr_viol_tol": 1e-3,
+            "ipopt.mu_strategy": "adaptive",
+            "ipopt.linear_solver": "ma27",    
+
+            "ipopt.warm_start_init_point": "yes",
+            "ipopt.warm_start_bound_push": 1e-8,
+            "ipopt.warm_start_mult_bound_push": 1e-8,
+            "ipopt.warm_start_slack_bound_push": 1e-8,
+
+            # "ipopt.hessian_approximation": "limited-memory",   # these don't seem to help
+            # "ipopt.limited_memory_max_history":  20,   # try 10–50
+
+            # "ipopt.max_cpu_time": 0.03,  # this seems to make solution worse with no speedup
+
+            # "ipopt.linear_solver": "ma57",  # for example
+            # 'ipopt.hsllib': '/Users/heididixon/src/ipopt-hsl/coinbrew/dist/lib/libma57.dylib',  # e.g. libhsl_ma57.dylib
+            #   # good starting point for stability vs speed:
+            # "ipopt.ma57_automatic_scaling": "yes",
+            # "ipopt.ma57_pivtol": 1e-8,         # try 1e-8 … 1e-6
+            # "ipopt.ma57_pivtolmax": 1e-4,      # cap on pivot tolerance increase
+   
+        }
 
         self.mpc.bounds['lower', '_u', 'u'] = [
             mc.outer_gimbal_range[0],
@@ -76,18 +102,6 @@ class DroneMPC:
                 self.mpc.nlp_cons_lb.append(-np.array([mc.theta_dot_constraint]*shape[0]).reshape(shape))
                 self.mpc.nlp_cons_ub.append(np.array([mc.theta_dot_constraint]*shape[0]).reshape(shape))
 
-        # P_avg = self.model.u[2]
-        # P_diff = self.model.u[3]
-
-        # P_upper = P_avg + P_diff / 2
-        # P_lower = P_avg - P_diff / 2
-
-        # pmin, pmax = mc.prop_thrust_constraint
-
-        # self.mpc.set_nl_cons('upper_pwm_max', P_upper, ub=pmax)
-        # self.mpc.set_nl_cons('upper_pwm_min', P_upper, lb=pmin)
-        # self.mpc.set_nl_cons('lower_pwm_max', P_lower, ub=pmax)
-        # self.mpc.set_nl_cons('lower_pwm_min', P_lower, lb=pmin)
 
         self.mpc.create_nlp()
 

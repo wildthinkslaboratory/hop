@@ -10,19 +10,26 @@ from hop.utilities import import_data
 from time import perf_counter
 
 
+
 mc = Constants()
 
-plot = False
-run_animation = False
+plot = True
 
 # we don't want to import these things if we're on th pi
 # needed libs aren't installed there.
-if run_animation:
-    from animation import RocketAnimation
-
 if plot:
+    from animation import RocketAnimation
     import matplotlib.pyplot as plt
-    from plots import plot_state, plot_control
+    from plots import plot_state, plot_control, plot_state_control
+
+plt.rcParams['ytick.labelsize'] = 4 
+plt.rcParams['xtick.labelsize'] = 4
+fig, axs = plt.subplots(7)
+fig.set_figheight(8.5)
+fig.set_figwidth(5)
+plt.xlabel('Time')
+plt.ion()
+plt.show()
 
 tests = import_data('nmpc_test_cases.json')
 for test in tests:
@@ -55,16 +62,10 @@ for test in tests:
         y_next = sim.make_step(u0)
         x0 = estimator.make_step(y_next)
 
-        # x0[0] = 0.0
-        # x0[1] = 0.0
-        # x0[2] = 0.0
-        # x0[3] = 0.0
-        # x0[4] = 0.0
-        # x0[5] = 0.0
-
         state_data[k] = np.reshape(x0, (13,))
         control_data[k] = np.reshape(u0, (4,))
         time_data.append(step_time)
+        
 
     # now we analyze the data
     cum_time = 0.0
@@ -76,10 +77,18 @@ for test in tests:
     print('average time for mpc step: ', cum_time / num_iterations)
 
     if plot:
-        plot_state(tspan, state_data)
-        plot_control(tspan, control_data)
-    
-    if run_animation:
+        for ax in axs:
+            ax.clear()
+
+        fig.suptitle(test["title"])
+        plot_state_control(axs, tspan, state_data, control_data)
+
+        plt.draw()
+        plt.pause(0.001)
+        input("Press [enter] to continue.")
         rc = RocketAnimation(test['animation_forward'], test['animation_up'], test['animation_frame_rate'])
         rc.animate(tspan, state_data, control_data)
-    print("VPython scene deleted, back in Python!")
+
+
+
+    

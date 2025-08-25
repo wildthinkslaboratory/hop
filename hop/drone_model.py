@@ -15,6 +15,7 @@ class DroneModel:
         v = self.model.set_variable(var_type='_x', var_name='v', shape=(3,1))
         q = self.model.set_variable(var_type='_x', var_name='q', shape=(4,1))
         w = self.model.set_variable(var_type='_x', var_name='w', shape=(3,1))
+
         state = ca.vertcat(p,v,q,w)
         u = self.model.set_variable(var_type='_u', var_name='u', shape=(4,1))
 
