@@ -84,44 +84,6 @@ class DroneNMPCCasadi:
         # we make a copy of the control variables for each N time steps
         U = ca.SX.sym('U', self.size_u(), self.N)       
 
-        # here we build up the cost function by summing up the squared
-        # error from the goal state over each time step
-        cost = 0.0
-        for k in range(self.N):
-            x_k = X[:, k]    # state at time step k
-            u_k = U[:, k]  # control at time step k
-
-            # build up the cost function
-            state_error_cost = (x_k - self.x_goal).T @ Q @ (x_k - self.x_goal)
-            control_cost = u_k.T @ R @ u_k
-            cost = cost + state_error_cost + control_cost
-
-        # g will hold the 'equality' constraints. 
-        # the right hand side is required to equal 0
-        # this is the initial value constraint
-        g = X[:, 0] - X0  
-
-        # here we create the constraints that require the solution
-        # to obey our system dynamics. We use Runge Kutta integration
-        # and for each time step, we create a constraint that requires
-        # the state at time k+1 to equal the system dynamics applied to the 
-        # the state at time k.
-        for k in range(self.N):
-            x_k = X[:, k]    # state at time step k
-            u_k = U[:, k]  # control at time step k
-
-            # now we build up the discrete constraints for the state
-            # with the runge kutta method
-            next_state = X[:, k+1]
-            k1 = self.f(x_k, u_k)
-            k2 = self.f(x_k + mc.dt/2*k1, u_k)
-            k3 = self.f(x_k + mc.dt/2*k2, u_k)
-            k4 = self.f(x_k + mc.dt * k3, u_k)
-            next_state_RK4 = x_k + (mc.dt / 6) * (k1 + 2 * k2 + 2 * k3 + k4)
-            g = ca.vertcat(g, next_state - next_state_RK4)
-
-        # We could add a terminal cost here, but we won't just yet
-
         # We make one long list of all the optimization variables
         # all the state variables preceed all the control variables.
         opt_vars = ca.vertcat(ca.reshape(X, -1, 1), ca.reshape(U, -1, 1))
@@ -142,35 +104,79 @@ class DroneNMPCCasadi:
         self.ubx[self.size_x()*(self.N+1)+3: num_vars: 4] = mc.diff_thrust_constraint[1] # delta thrust upper bound
 
 
-            # limit on thrust motors
-            # will add later
-                    # # set max limit on each thrust motor
-                    # control = self.model.u['u']
-                    # P_upper = control[2] + control[3] / 2
-                    # P_lower = control[2] + control[3] / 2
-                    # thrust_limit = mc.prop_thrust_constraint
-                    # self.mpc.set_nl_cons('upper_pwm_max', P_upper, ub=thrust_limit)
-                    # self.mpc.set_nl_cons('lower_pwm_max', P_lower, ub=thrust_limit)
-                
 
-            # bounds on gimbal rate of change
-            # will add later
-                    # # this creates bounds on the rate of change of the servos
-                    # ulist = self.mpc.opt_x['_u']
-                    # for i in range(len(ulist)):
-                    #     if not i == 0:
-                    #         rate_constraint = self.mpc.opt_x['_u', i, 0][:2] - self.mpc.opt_x['_u', i-1, 0][:2]
-                    #         self.mpc.nlp_cons.append(rate_constraint)
-                    #         shape = rate_constraint.shape
-                    #         self.mpc.nlp_cons_lb.append(-np.array([mc.theta_dot_constraint]*shape[0]).reshape(shape))
-                    #         self.mpc.nlp_cons_ub.append(np.array([mc.theta_dot_constraint]*shape[0]).reshape(shape))
+
+
+
+        self.lbg = []
+        self.ubg = []
+
+        # g will hold the 'equality' constraints. 
+        # the right hand side is required to equal 0
+        # this is the initial value constraint
+        g = X[:, 0] - X0  
+        self.lbg += [0.0]*int(g.numel())
+        self.ubg += [0.0]*int(g.numel())
+
+        # here we build up the cost function by summing up the squared
+        # error from the goal state over each time step
+        cost = 0.0
+
+        # here we create the constraints that require the solution
+        # to obey our system dynamics. We use Runge Kutta integration
+        # and for each time step, we create a constraint that requires
+        # the state at time k+1 to equal the system dynamics applied to the 
+        # the state at time k.
+        for k in range(self.N):
+            x_k = X[:, k]    # state at time step k
+            u_k = U[:, k]  # control at time step k
+
+            # build up the cost function
+            state_error_cost = (x_k - self.x_goal).T @ Q @ (x_k - self.x_goal)
+            control_cost = u_k.T @ R @ u_k
+            cost = cost + state_error_cost + control_cost
+
+            # now we build up the discrete constraints for the state
+            # with the runge kutta method
+            next_state = X[:, k+1]
+            k1 = self.f(x_k, u_k)
+            k2 = self.f(x_k + mc.dt/2*k1, u_k)
+            k3 = self.f(x_k + mc.dt/2*k2, u_k)
+            k4 = self.f(x_k + mc.dt * k3, u_k)
+            next_state_RK4 = x_k + (mc.dt / 6) * (k1 + 2 * k2 + 2 * k3 + k4)
+            g = ca.vertcat(g, next_state - next_state_RK4)
+            self.lbg += [0.0]*int(next_state.numel())
+            self.ubg += [0.0]*int(next_state.numel())
+
+            # build up the upper thrust limit constraints       
+            thrust_k = u_k[2] + 0.5*u_k[3] - mc.prop_thrust_constraint         
+            g   = ca.vertcat(g, thrust_k)
+            self.lbg += [-ca.inf]
+            self.ubg += [0.0]
+
+            # build up the lower thrust limit constraints       
+            thrust_k = u_k[2] - 0.5*u_k[3] - mc.prop_thrust_constraint         
+            g   = ca.vertcat(g, thrust_k)
+            self.lbg += [-ca.inf]
+            self.ubg += [0.0]
+
+            # build up rate of change constraints for servos 
+            if k < self.N-1:
+                next_u = U[:, k+1]  
+
+                servo1_k = u_k[0] - next_u[0] - mc.theta_dot_constraint       
+                g   = ca.vertcat(g, servo1_k)
+                self.lbg += [-ca.inf]
+                self.ubg += [0.0]
+
+                servo2_k = u_k[1] - next_u[1] - mc.theta_dot_constraint       
+                g   = ca.vertcat(g, servo2_k)
+                self.lbg += [-ca.inf]
+                self.ubg += [0.0]
+
+
 
         # Now we set up the solver and do all of the options and parameters
-
-        # Define bounds for the constraints (all equality constraints are set to 0)
-        g_bound = np.zeros(int(g.numel()))
-        self.lbg = g_bound
-        self.ubg = g_bound
 
         # dictionary for defining our solver
         nlp_prob = {
