@@ -1,3 +1,9 @@
+#   TODO:
+# - make upper and lower bounds set in options
+# - add incremental gimbal constraints
+# - add min and max thrust constraints
+# - test on full set of problems
+
 import casadi as ca
 from casadi import sin, cos
 import numpy as np
@@ -59,6 +65,7 @@ class DroneNMPCCasadi:
 
         # f is function that returns the change in state for a given state and control values
         self.f = ca.Function('f', [self.x, self.u], [RHS])
+
         
 
      # In this function we build up the NMPC problem instance
@@ -80,12 +87,12 @@ class DroneNMPCCasadi:
         # error from the goal state over each time step
         cost = 0.0
         for k in range(self.N):
-            state_k = X[:, k]    # state at time step k
-            control_k = U[:, k]  # control at time step k
+            x_k = X[:, k]    # state at time step k
+            u_k = U[:, k]  # control at time step k
 
             # build up the cost function
-            state_error_cost = (state_k - self.x_goal).T @ Q @ (state_k - self.x_goal)
-            control_cost = control_k.T @ R @ control_k
+            state_error_cost = (x_k - self.x_goal).T @ Q @ (x_k - self.x_goal)
+            control_cost = u_k.T @ R @ u_k
             cost = cost + state_error_cost + control_cost
 
         # g will hold the 'equality' constraints. 
@@ -94,21 +101,21 @@ class DroneNMPCCasadi:
         g = X[:, 0] - X0  
 
         for k in range(self.N):
-            state_k = X[:, k]    # state at time step k
-            control_k = U[:, k]  # control at time step k
+            x_k = X[:, k]    # state at time step k
+            u_k = U[:, k]  # control at time step k
 
             # now we build up the discrete constraints for the state
             # with the runge kutta method
             next_state = X[:, k+1]
-            k1 = self.f(state_k, control_k)
-            k2 = self.f(state_k + mc.dt/2*k1, control_k)
-            k3 = self.f(state_k + mc.dt/2*k2, control_k)
-            k4 = self.f(state_k + mc.dt * k3, control_k)
-            next_state_RK4 = state_k + (mc.dt / 6) * (k1 + 2 * k2 + 2 * k3 + k4)
+            k1 = self.f(x_k, u_k)
+            k2 = self.f(x_k + mc.dt/2*k1, u_k)
+            k3 = self.f(x_k + mc.dt/2*k2, u_k)
+            k4 = self.f(x_k + mc.dt * k3, u_k)
+            next_state_RK4 = x_k + (mc.dt / 6) * (k1 + 2 * k2 + 2 * k3 + k4)
             g = ca.vertcat(g, next_state - next_state_RK4)
 
         # We could add a terminal cost here, but we won't just yet
-# -------------------------------------------------------------------------------------------------------
+
         # We make one long list of all the optimization variables
         opt_vars = ca.vertcat(ca.reshape(X, -1, 1), ca.reshape(U, -1, 1))
         num_vars = opt_vars.numel()
@@ -151,7 +158,6 @@ class DroneNMPCCasadi:
                     #         self.mpc.nlp_cons_lb.append(-np.array([mc.theta_dot_constraint]*shape[0]).reshape(shape))
                     #         self.mpc.nlp_cons_ub.append(np.array([mc.theta_dot_constraint]*shape[0]).reshape(shape))
 
-# -----------------------------------------------------------------------------------------------------------------------
         # Now we set up the solver and do all of the options and parameters
 
         # Define bounds for the constraints (all equality constraints are set to 0)
@@ -169,24 +175,60 @@ class DroneNMPCCasadi:
 
         # dictionary for our solver options
         opts = {
-            'ipopt.max_iter': 2000,
-            'ipopt.print_level': 0,
+            'ipopt.max_iter': 200,
             'ipopt.acceptable_tol': 1e-8,
-            'ipopt.acceptable_obj_change_tol': 1e-6
-        }
-        opts = {
+            'ipopt.acceptable_obj_change_tol': 1e-6,
             'ipopt.print_level': 0,
             'ipopt.sb': 'yes',
             'print_time': 0
         }
 
         self.solver = ca.nlpsol('solver', 'ipopt', nlp_prob, opts)
+                # We'll use the start state to help create our initial guess
+        x_initial_guess = ca.DM([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
 
-    def make_step(self, init_guess, x):
-        return self.solver(x0=init_guess, lbx=self.lbx, ubx=self.ubx, lbg=self.lbg, ubg=self.ubg, p=x)
+        # Initial guess for the decision variables
+        # repeat x_initial_guess across the horizon
+        X_init = np.tile(np.array(x_initial_guess).reshape(-1,1), (1, solver.N+1))
+        U_init = np.zeros((solver.size_u(), solver.N))
+
+        self.init_guess = np.concatenate([X_init.reshape(-1, order='F'),
+                                    U_init.reshape(-1, order='F')])
+        
+        
+        self.sol_x = np.zeros(solver.size_x() * (solver.N+1))
+        self.sol_u = np.zeros(solver.size_u() * solver.N)
+        self.first_iteration = True
+
+
+    def make_step(self, x):
+
+        # if it's not the first iteration, use a warm start from previous solution.
+        # we shift the trajectory forward by on time step and then just repeat
+        # the last timestep twice
+        if self.first_iteration:
+            self.first_iteration = False
+        else:
+            x_traj = np.concatenate([self.sol_x[self.size_x():], self.sol_x[self.size_x() * self.N:]])
+            u_traj = np.concatenate([self.sol_u[self.size_u():], self.sol_u[self.size_u() * (self.N -1):]])
+            self.init_guess = np.concatenate([x_traj, u_traj])
+
+        sol = self.solver(x0=self.init_guess, lbx=self.lbx, ubx=self.ubx, lbg=self.lbg, ubg=self.ubg, p=x)
+        sol_opt = sol['x'].full().flatten()
+
+        # save the solution for warm starts
+        self.sol_x = sol_opt[:self.size_x() *(self.N+1)]
+        self.sol_u = sol_opt[self.size_x() *(self.N+1):]
+
+        return self.sol_u[:self.size_u()] # return the first control step
+
+
+
+
 
     def set_start_state(self, x0):
         self.x0 = x0
+
 
     def size_u(self):
         return self.u.size1()
@@ -194,7 +236,8 @@ class DroneNMPCCasadi:
     def size_x(self):
         return self.x.size1()
 
-        
+
+
 solver = DroneNMPCCasadi()
 
 sim_time = 10.0               # total simulation time (seconds)
@@ -203,15 +246,6 @@ tspan = np.arange(0, n_sim_steps * mc.dt, mc.dt)
 
 # The starting state
 x_current = ca.DM([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0]) 
-x_initial_guess = ca.DM([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
-
-# Initial guess for the decision variables
-# repeat x_0 across the horizon
-X_init = np.tile(np.array(x_initial_guess).reshape(-1,1), (1, solver.N+1))
-U_init = np.zeros((solver.size_u(), solver.N))
-
-init_guess = np.concatenate([X_init.reshape(-1, order='F'),
-                             U_init.reshape(-1, order='F')])
 
 state_data = np.empty([n_sim_steps,13])
 control_data = np.empty([n_sim_steps,4])
@@ -222,19 +256,14 @@ solver.set_goal_state(state_goal)
 for i in range(n_sim_steps):
 
     # Solve the NMPC for the current state x_current
-    sol = solver.make_step(init_guess, x_current)
-
-    sol_opt = sol['x'].full().flatten()
-    
-    # Extract the control sequence from the solution. The state trajectory is first,
-    # so the first control is located at index = n_states*(N+1)
-    u_current = sol_opt[solver.size_x() *(solver.N+1): solver.size_x()*(solver.N+1)+solver.size_u()]
+    u_current = solver.make_step(x_current)
     
     # Propagate the system using the discrete dynamics f (Euler forward integration)
     x_current = x_current + mc.dt* solver.f(x_current,u_current)
     
     state_data[i] = np.reshape(x_current, (13,))
     control_data[i] = np.reshape(u_current, (4,))
+
 
     
 
