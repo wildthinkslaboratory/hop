@@ -1,13 +1,12 @@
 from vpython import canvas, curve, vec, vector, color, label, arrow, cylinder, cone, rate
 import numpy as np
-from time import perf_counter
-from math import sqrt, cos, sin
+from math import cos, sin
 import quaternion
 
 
 class RocketAnimation:
     def __init__(self, forward = [1,1,1], up = [0,1,0], frame_rate = 1):
-        self.scene = canvas(background=color.white, width=1200, height=800)
+        self.scene = canvas(background=color.white, width=1000, height=800)
         self.scene.forward = vector(forward[0], forward[1], forward[2])
         self.scene.up = vector(up[0], up[1], up[2])
         self.scene.range = 2.5
@@ -28,9 +27,12 @@ class RocketAnimation:
         self.nose_length = 0.2
         self.thrust_length = 0.05
 
-        self.body = cylinder(pos=vec(0, 0.01, 0), axis=vec(0, self.rocket_length, 0), radius=rocket_radius, color=color.red)
-        self.nose = cone(pos=self.body.pos + self.body.axis, axis=vec(0, self.nose_length, 0), radius=rocket_radius, color=color.orange)
+        
+        self.body = cylinder(pos=vec(0, 0.01, 0), axis=vec(0, self.rocket_length, 0), radius=rocket_radius, color=vec(0.8, 0.7, 1))
+        self.nose = cone(pos=self.body.pos + self.body.axis, axis=vec(0, self.nose_length, 0), radius=rocket_radius, color=vec(0.9, 0.8, 0))
         self.thrust = arrow(pos=self.body.pos, axis=vec(0, -self.thrust_length, 0), shaftwidth=0.05, headwidth=0.08, headlength=0.1, color=color.blue)
+        self.roll_flag_y = arrow(pos=self.body.pos + self.body.axis / 2, axis=vec(0, 0, -0.2), shaftwidth=0.01, headwidth=0.04, headlength=0.05, color=color.black)
+        self.roll_flag_x = arrow(pos=self.body.pos + self.body.axis / 2, axis=vec(0.2, 0, 0), shaftwidth=0.01, headwidth=0.04, headlength=0.05, color=color.black)
 
     def __del__(self):
         self.scene.delete()
@@ -91,7 +93,17 @@ class RocketAnimation:
         vpt_axis = vector(axis_thrust[0], axis_thrust[2], -axis_thrust[1])
         self.thrust.pos = self.body.pos
         self.thrust.axis = -vpt_axis.norm() * self.thrust_length  * control[2]
-        # self.thrust.axis = -vp_axis.norm() * self.thrust_length * control[2]
+        
+
+        axis_m = R[:, 0]
+        vp_axis = vector(axis_m[0], axis_m[2], -axis_m[1])
+        self.roll_flag_x.axis = vp_axis * 0.2
+        axis_m = R[:, 1]
+        vp_axis = vector(axis_m[0], axis_m[2], -axis_m[1])
+        self.roll_flag_y.axis = vp_axis * 0.2
+
+        self.roll_flag_y.pos = self.body.pos + self.body.axis / 2
+        self.roll_flag_x.pos = self.body.pos + self.body.axis / 2
 
 
 
