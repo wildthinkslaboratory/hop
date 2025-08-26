@@ -69,6 +69,7 @@ class DroneNMPCCasadi:
         
 
      # In this function we build up the NMPC problem instance
+     # we can't build it until we know the goal state
     def set_goal_state(self, x_goal):
 
         self.x_goal = x_goal
@@ -100,6 +101,11 @@ class DroneNMPCCasadi:
         # this is the initial value constraint
         g = X[:, 0] - X0  
 
+        # here we create the constraints that require the solution
+        # to obey our system dynamics. We use Runge Kutta integration
+        # and for each time step, we create a constraint that requires
+        # the state at time k+1 to equal the system dynamics applied to the 
+        # the state at time k.
         for k in range(self.N):
             x_k = X[:, k]    # state at time step k
             u_k = U[:, k]  # control at time step k
@@ -117,6 +123,7 @@ class DroneNMPCCasadi:
         # We could add a terminal cost here, but we won't just yet
 
         # We make one long list of all the optimization variables
+        # all the state variables preceed all the control variables.
         opt_vars = ca.vertcat(ca.reshape(X, -1, 1), ca.reshape(U, -1, 1))
         num_vars = opt_vars.numel()
 
@@ -184,18 +191,22 @@ class DroneNMPCCasadi:
         }
 
         self.solver = ca.nlpsol('solver', 'ipopt', nlp_prob, opts)
-                # We'll use the start state to help create our initial guess
-        x_initial_guess = ca.DM([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
-
-        # Initial guess for the decision variables
+        
+        
+        
+        # We create our initial guess for a solution.
+        # Later we'll use the previous solution as our new solution guess.
         # repeat x_initial_guess across the horizon
+        x_initial_guess = ca.DM([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
         X_init = np.tile(np.array(x_initial_guess).reshape(-1,1), (1, solver.N+1))
+        # initial guess for controls is zero
         U_init = np.zeros((solver.size_u(), solver.N))
 
+        # glue this all together to make our initial guess
         self.init_guess = np.concatenate([X_init.reshape(-1, order='F'),
                                     U_init.reshape(-1, order='F')])
         
-        
+        # Here we initialize our stored solution to zeros
         self.sol_x = np.zeros(solver.size_x() * (solver.N+1))
         self.sol_u = np.zeros(solver.size_u() * solver.N)
         self.first_iteration = True
@@ -213,6 +224,7 @@ class DroneNMPCCasadi:
             u_traj = np.concatenate([self.sol_u[self.size_u():], self.sol_u[self.size_u() * (self.N -1):]])
             self.init_guess = np.concatenate([x_traj, u_traj])
 
+        # Call the NMPC solver 
         sol = self.solver(x0=self.init_guess, lbx=self.lbx, ubx=self.ubx, lbg=self.lbg, ubg=self.ubg, p=x)
         sol_opt = sol['x'].full().flatten()
 
@@ -221,8 +233,6 @@ class DroneNMPCCasadi:
         self.sol_u = sol_opt[self.size_x() *(self.N+1):]
 
         return self.sol_u[:self.size_u()] # return the first control step
-
-
 
 
 
