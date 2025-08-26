@@ -198,17 +198,17 @@ class DroneNMPCCasadi:
         # Later we'll use the previous solution as our new solution guess.
         # repeat x_initial_guess across the horizon
         x_initial_guess = ca.DM([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
-        X_init = np.tile(np.array(x_initial_guess).reshape(-1,1), (1, solver.N+1))
+        X_init = np.tile(np.array(x_initial_guess).reshape(-1,1), (1, self.N+1))
         # initial guess for controls is zero
-        U_init = np.zeros((solver.size_u(), solver.N))
+        U_init = np.zeros((self.size_u(), self.N))
 
         # glue this all together to make our initial guess
         self.init_guess = np.concatenate([X_init.reshape(-1, order='F'),
                                     U_init.reshape(-1, order='F')])
         
         # Here we initialize our stored solution to zeros
-        self.sol_x = np.zeros(solver.size_x() * (solver.N+1))
-        self.sol_u = np.zeros(solver.size_u() * solver.N)
+        self.sol_x = np.zeros(self.size_x() * (self.N+1))
+        self.sol_u = np.zeros(self.size_u() * self.N)
         self.first_iteration = True
 
 
@@ -248,43 +248,43 @@ class DroneNMPCCasadi:
 
 
 
-solver = DroneNMPCCasadi()
+# solver = DroneNMPCCasadi()
 
-sim_time = 10.0               # total simulation time (seconds)
-n_sim_steps = int(sim_time/mc.dt)
-tspan = np.arange(0, n_sim_steps * mc.dt, mc.dt)
+# sim_time = 10.0               # total simulation time (seconds)
+# n_sim_steps = int(sim_time/mc.dt)
+# tspan = np.arange(0, n_sim_steps * mc.dt, mc.dt)
 
-# The starting state
-x_current = ca.DM([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0]) 
+# # The starting state
+# x_current = ca.DM([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0]) 
 
-state_data = np.empty([n_sim_steps,13])
-control_data = np.empty([n_sim_steps,4])
+# state_data = np.empty([n_sim_steps,13])
+# control_data = np.empty([n_sim_steps,4])
 
-state_goal = ca.DM([0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
-solver.set_goal_state(state_goal)
+# state_goal = ca.DM([0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
+# solver.set_goal_state(state_goal)
 
-for i in range(n_sim_steps):
+# for i in range(n_sim_steps):
 
-    # Solve the NMPC for the current state x_current
-    u_current = solver.make_step(x_current)
+#     # Solve the NMPC for the current state x_current
+#     u_current = solver.make_step(x_current)
     
-    # Propagate the system using the discrete dynamics f (Euler forward integration)
-    x_current = x_current + mc.dt* solver.f(x_current,u_current)
+#     # Propagate the system using the discrete dynamics f (Euler forward integration)
+#     x_current = x_current + mc.dt* solver.f(x_current,u_current)
     
-    state_data[i] = np.reshape(x_current, (13,))
-    control_data[i] = np.reshape(u_current, (4,))
+#     state_data[i] = np.reshape(x_current, (13,))
+#     control_data[i] = np.reshape(u_current, (4,))
 
 
     
 
 
-import sys
-sys.path.append('..')
-from plots import plot_state, plot_control
-# first we print out the state in one plot
-plot_state(tspan, state_data)
-plot_control(tspan, control_data)
-from animation import RocketAnimation
-rc = RocketAnimation([-1, -0.1, -0.2], [0,1,0], 0.4)
-rc.animate(tspan, state_data, control_data)
+# import sys
+# sys.path.append('..')
+# from plots import plot_state, plot_control
+# # first we print out the state in one plot
+# plot_state(tspan, state_data)
+# plot_control(tspan, control_data)
+# from animation import RocketAnimation
+# rc = RocketAnimation([-1, -0.1, -0.2], [0,1,0], 0.4)
+# rc.animate(tspan, state_data, control_data)
     
