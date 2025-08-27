@@ -27,7 +27,7 @@ class DroneMPC:
             "ipopt.acceptable_tol": 3e-2,
             "ipopt.acceptable_constr_viol_tol": 1e-3,
             "ipopt.mu_strategy": "adaptive",
-            "ipopt.linear_solver": "ma27",    
+            "ipopt.linear_solver": "mumps",    
 
             "ipopt.warm_start_init_point": "yes",
             "ipopt.warm_start_bound_push": 1e-8,

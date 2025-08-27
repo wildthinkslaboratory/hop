@@ -6,7 +6,7 @@ import casadi as ca
 from casadi import sin, cos
 import numpy as np
 
-from hop.constants import Constants
+from constants import Constants
 mc = Constants()
 
 class DroneNMPCCasadi:
