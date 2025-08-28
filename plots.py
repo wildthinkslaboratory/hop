@@ -22,6 +22,67 @@ def plot_state(tspan, data):
     plt.xlabel('Time')
     plt.show()
 
+def plot_state_for_comparison(tspan, data, title, plot_no):
+
+    plt.figure(figsize=(5,6))
+    plt.rcParams['ytick.labelsize'] = 4 
+    plt.rcParams['xtick.labelsize'] = 4
+
+    plt.figure(plot_no)
+    plt.title(title)
+    plt.subplot(4, 1, 1)
+    for i in range(3):
+        plt.plot(tspan, data[:,i])
+    plt.ylabel('$x$')
+
+    plt.subplot(4, 1, 2)
+    for i in range(3):
+        plt.plot(tspan, data[:,i+3])
+    plt.ylabel('$v$')
+
+    plt.subplot(4, 1, 3)
+    for i in range(4):
+        plt.plot(tspan, data[:,i+6])
+    plt.ylabel('$q$')
+
+    plt.subplot(4, 1, 4)
+    for i in range(3):
+        plt.plot(tspan, data[:,i+10])
+    plt.ylabel('$w$')
+
+    plt.xlabel('Time')
+
+
+def plot_control_for_comparison(tspan, control, title, plot_no):
+
+    plt.figure(figsize=(5,6))
+    plt.rcParams['ytick.labelsize'] = 4 
+    plt.rcParams['xtick.labelsize'] = 4
+
+    plt.figure(plot_no)
+
+    plt.title(title)
+    
+
+    # gimbal angles
+    plt.subplot(3, 1, 1)
+    for i in range(2):
+        plt.plot(tspan, control[:,i])
+    plt.ylabel('$\\theta$')
+
+    plt.subplot(3, 1, 2)
+    # average thrust
+    plt.plot(tspan, control[:,2])
+    plt.ylabel('$\\overline{P}$')
+
+    plt.subplot(3, 1, 3)
+    # delta thrust
+    plt.plot(tspan, control[:,3])
+    plt.ylabel('$\\Delta P$')
+
+    plt.xlabel('Time')
+
+
 
 def plot_control(tspan, control):
     plt.rcParams['ytick.labelsize'] = 8 

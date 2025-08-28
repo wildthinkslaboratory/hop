@@ -1,14 +1,15 @@
 #   TODO:
-# - make upper and lower bounds set in options
-# - add incremental gimbal constraints
-# - add min and max thrust constraints
-# - test on full set of problems
+# - there should be constraint that z > 0? Or z > ground?
+# - starting gimbal angles of 0
+# - add quaternion constraints
+# - there shouldn't be a cost for gimbal angles just thrust
+
 
 import casadi as ca
 from casadi import sin, cos
 import numpy as np
 
-from constants import Constants
+from hop.constants import Constants
 mc = Constants()
 
 class DroneNMPCCasadi:
@@ -84,44 +85,6 @@ class DroneNMPCCasadi:
         # we make a copy of the control variables for each N time steps
         U = ca.SX.sym('U', self.size_u(), self.N)       
 
-        # here we build up the cost function by summing up the squared
-        # error from the goal state over each time step
-        cost = 0.0
-        for k in range(self.N):
-            x_k = X[:, k]    # state at time step k
-            u_k = U[:, k]  # control at time step k
-
-            # build up the cost function
-            state_error_cost = (x_k - self.x_goal).T @ Q @ (x_k - self.x_goal)
-            control_cost = u_k.T @ R @ u_k
-            cost = cost + state_error_cost + control_cost
-
-        # g will hold the 'equality' constraints. 
-        # the right hand side is required to equal 0
-        # this is the initial value constraint
-        g = X[:, 0] - X0  
-
-        # here we create the constraints that require the solution
-        # to obey our system dynamics. We use Runge Kutta integration
-        # and for each time step, we create a constraint that requires
-        # the state at time k+1 to equal the system dynamics applied to the 
-        # the state at time k.
-        for k in range(self.N):
-            x_k = X[:, k]    # state at time step k
-            u_k = U[:, k]  # control at time step k
-
-            # now we build up the discrete constraints for the state
-            # with the runge kutta method
-            next_state = X[:, k+1]
-            k1 = self.f(x_k, u_k)
-            k2 = self.f(x_k + mc.dt/2*k1, u_k)
-            k3 = self.f(x_k + mc.dt/2*k2, u_k)
-            k4 = self.f(x_k + mc.dt * k3, u_k)
-            next_state_RK4 = x_k + (mc.dt / 6) * (k1 + 2 * k2 + 2 * k3 + k4)
-            g = ca.vertcat(g, next_state - next_state_RK4)
-
-        # We could add a terminal cost here, but we won't just yet
-
         # We make one long list of all the optimization variables
         # all the state variables preceed all the control variables.
         opt_vars = ca.vertcat(ca.reshape(X, -1, 1), ca.reshape(U, -1, 1))
@@ -142,35 +105,58 @@ class DroneNMPCCasadi:
         self.ubx[self.size_x()*(self.N+1)+3: num_vars: 4] = mc.diff_thrust_constraint[1] # delta thrust upper bound
 
 
-            # limit on thrust motors
-            # will add later
-                    # # set max limit on each thrust motor
-                    # control = self.model.u['u']
-                    # P_upper = control[2] + control[3] / 2
-                    # P_lower = control[2] + control[3] / 2
-                    # thrust_limit = mc.prop_thrust_constraint
-                    # self.mpc.set_nl_cons('upper_pwm_max', P_upper, ub=thrust_limit)
-                    # self.mpc.set_nl_cons('lower_pwm_max', P_lower, ub=thrust_limit)
-                
+        # g constraints contain an expression that is constrained by an upper and lower bound
+        self.lbg = []   # will hold lower bounds for g constraints
+        self.ubg = []   # will hold upper bounds for g constraints
 
-            # bounds on gimbal rate of change
-            # will add later
-                    # # this creates bounds on the rate of change of the servos
-                    # ulist = self.mpc.opt_x['_u']
-                    # for i in range(len(ulist)):
-                    #     if not i == 0:
-                    #         rate_constraint = self.mpc.opt_x['_u', i, 0][:2] - self.mpc.opt_x['_u', i-1, 0][:2]
-                    #         self.mpc.nlp_cons.append(rate_constraint)
-                    #         shape = rate_constraint.shape
-                    #         self.mpc.nlp_cons_lb.append(-np.array([mc.theta_dot_constraint]*shape[0]).reshape(shape))
-                    #         self.mpc.nlp_cons_ub.append(np.array([mc.theta_dot_constraint]*shape[0]).reshape(shape))
+        g = X[:, 0] - X0  
+        self.lbg += [0.0]*int(g.numel())
+        self.ubg += [0.0]*int(g.numel())
+
+
+        cost = 0.0
+        for k in range(self.N):
+            x_k = X[:, k]    # state at time step k
+            u_k = U[:, k]  # control at time step k
+
+            # here we build up the cost function by summing up the squared
+            # error from the goal state over each time step
+            state_error_cost = (x_k - self.x_goal).T @ Q @ (x_k - self.x_goal)
+            control_cost = u_k.T @ R @ u_k
+            cost = cost + state_error_cost + control_cost
+
+            # here we create the constraints that require the solution
+            # to obey our system dynamics. We use Runge Kutta integration
+            # and for each time step, we create a constraint that requires
+            # the state at time k+1 to equal the system dynamics applied to the 
+            # the state at time k.
+            next_state = X[:, k+1]
+            k1 = self.f(x_k, u_k)
+            k2 = self.f(x_k + mc.dt/2*k1, u_k)
+            k3 = self.f(x_k + mc.dt/2*k2, u_k)
+            k4 = self.f(x_k + mc.dt * k3, u_k)
+            next_state_RK4 = x_k + (mc.dt / 6) * (k1 + 2 * k2 + 2 * k3 + k4)
+            g = ca.vertcat(g, next_state - next_state_RK4)
+            self.lbg += [0.0]*int(next_state.numel())
+            self.ubg += [0.0]*int(next_state.numel())
+
+            # build up the upper thrust limit constraints         
+            g   = ca.vertcat(g, u_k[2] + 0.5*u_k[3] - mc.prop_thrust_constraint)
+            g   = ca.vertcat(g, u_k[2] - 0.5*u_k[3] - mc.prop_thrust_constraint)
+            self.lbg += [-ca.inf]*2
+            self.ubg += [0.0]*2
+
+            # build up rate of change constraints for servos 
+            if k < self.N-1:
+                next_u = U[:, k+1]  
+                g   = ca.vertcat(g, u_k[0] - next_u[0] - mc.theta_dot_constraint)
+                g   = ca.vertcat(g, u_k[1] - next_u[1] - mc.theta_dot_constraint)
+                self.lbg += [-ca.inf]*2
+                self.ubg += [0.0]*2
+
+
 
         # Now we set up the solver and do all of the options and parameters
-
-        # Define bounds for the constraints (all equality constraints are set to 0)
-        g_bound = np.zeros(int(g.numel()))
-        self.lbg = g_bound
-        self.ubg = g_bound
 
         # dictionary for defining our solver
         nlp_prob = {
@@ -198,17 +184,17 @@ class DroneNMPCCasadi:
         # Later we'll use the previous solution as our new solution guess.
         # repeat x_initial_guess across the horizon
         x_initial_guess = ca.DM([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
-        X_init = np.tile(np.array(x_initial_guess).reshape(-1,1), (1, solver.N+1))
+        X_init = np.tile(np.array(x_initial_guess).reshape(-1,1), (1, self.N+1))
         # initial guess for controls is zero
-        U_init = np.zeros((solver.size_u(), solver.N))
+        U_init = np.zeros((self.size_u(), self.N))
 
         # glue this all together to make our initial guess
         self.init_guess = np.concatenate([X_init.reshape(-1, order='F'),
                                     U_init.reshape(-1, order='F')])
         
         # Here we initialize our stored solution to zeros
-        self.sol_x = np.zeros(solver.size_x() * (solver.N+1))
-        self.sol_u = np.zeros(solver.size_u() * solver.N)
+        self.sol_x = np.zeros(self.size_x() * (self.N+1))
+        self.sol_u = np.zeros(self.size_u() * self.N)
         self.first_iteration = True
 
 
@@ -232,6 +218,11 @@ class DroneNMPCCasadi:
         self.sol_x = sol_opt[:self.size_x() *(self.N+1)]
         self.sol_u = sol_opt[self.size_x() *(self.N+1):]
 
+        print('theta1', self.sol_u[0: self.size_u() * self.N : 4])
+        print('theta2', self.sol_u[1: self.size_u() * self.N: 4])
+        print('avg thrust', self.sol_u[2: self.size_u() * self.N: 4])
+        print('delta thrust', self.sol_u[3: self.size_u() * self.N: 4])
+        quit()
         return self.sol_u[:self.size_u()] # return the first control step
 
 
@@ -248,43 +239,43 @@ class DroneNMPCCasadi:
 
 
 
-solver = DroneNMPCCasadi()
+# solver = DroneNMPCCasadi()
 
-sim_time = 10.0               # total simulation time (seconds)
-n_sim_steps = int(sim_time/mc.dt)
-tspan = np.arange(0, n_sim_steps * mc.dt, mc.dt)
+# sim_time = 10.0               # total simulation time (seconds)
+# n_sim_steps = int(sim_time/mc.dt)
+# tspan = np.arange(0, n_sim_steps * mc.dt, mc.dt)
 
-# The starting state
-x_current = ca.DM([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0]) 
+# # The starting state
+# x_current = ca.DM([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0]) 
 
-state_data = np.empty([n_sim_steps,13])
-control_data = np.empty([n_sim_steps,4])
+# state_data = np.empty([n_sim_steps,13])
+# control_data = np.empty([n_sim_steps,4])
 
-state_goal = ca.DM([0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
-solver.set_goal_state(state_goal)
+# state_goal = ca.DM([0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
+# solver.set_goal_state(state_goal)
 
-for i in range(n_sim_steps):
+# for i in range(n_sim_steps):
 
-    # Solve the NMPC for the current state x_current
-    u_current = solver.make_step(x_current)
+#     # Solve the NMPC for the current state x_current
+#     u_current = solver.make_step(x_current)
     
-    # Propagate the system using the discrete dynamics f (Euler forward integration)
-    x_current = x_current + mc.dt* solver.f(x_current,u_current)
+#     # Propagate the system using the discrete dynamics f (Euler forward integration)
+#     x_current = x_current + mc.dt* solver.f(x_current,u_current)
     
-    state_data[i] = np.reshape(x_current, (13,))
-    control_data[i] = np.reshape(u_current, (4,))
+#     state_data[i] = np.reshape(x_current, (13,))
+#     control_data[i] = np.reshape(u_current, (4,))
 
 
     
 
 
-import sys
-sys.path.append('..')
-from plots import plot_state, plot_control
-# first we print out the state in one plot
-plot_state(tspan, state_data)
-plot_control(tspan, control_data)
-from animation import RocketAnimation
-rc = RocketAnimation([-1, -0.1, -0.2], [0,1,0], 0.4)
-rc.animate(tspan, state_data, control_data)
+# import sys
+# sys.path.append('..')
+# from plots import plot_state, plot_control
+# # first we print out the state in one plot
+# plot_state(tspan, state_data)
+# plot_control(tspan, control_data)
+# from animation import RocketAnimation
+# rc = RocketAnimation([-1, -0.1, -0.2], [0,1,0], 0.4)
+# rc.animate(tspan, state_data, control_data)
     
