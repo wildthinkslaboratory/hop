@@ -1,12 +1,15 @@
 #   TODO:
 # - there should be constraint that z > 0? Or z > ground?
 # - starting gimbal angles of 0
+# - add quaternion constraints
+# - there shouldn't be a cost for gimbal angles just thrust
+
 
 import casadi as ca
 from casadi import sin, cos
 import numpy as np
 
-from constants import Constants
+from hop.constants import Constants
 mc = Constants()
 
 class DroneNMPCCasadi:
@@ -215,6 +218,11 @@ class DroneNMPCCasadi:
         self.sol_x = sol_opt[:self.size_x() *(self.N+1)]
         self.sol_u = sol_opt[self.size_x() *(self.N+1):]
 
+        print('theta1', self.sol_u[0: self.size_u() * self.N : 4])
+        print('theta2', self.sol_u[1: self.size_u() * self.N: 4])
+        print('avg thrust', self.sol_u[2: self.size_u() * self.N: 4])
+        print('delta thrust', self.sol_u[3: self.size_u() * self.N: 4])
+        quit()
         return self.sol_u[:self.size_u()] # return the first control step
 
 

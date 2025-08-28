@@ -7,7 +7,8 @@ from do_mpc.estimator import StateFeedback
 import numpy as np
 from hop.utilities import import_data
 from time import perf_counter
-from hop.drone_mpc_casadi import DroneNMPCCasadi
+# from hop.drone_mpc_casadi import DroneNMPCCasadi
+from hop.drone_mpc_spectral import DroneNMPCCasadi
 from animation import RocketAnimation
 import matplotlib.pyplot as plt
 from plots import plot_state_for_comparison, plot_control_for_comparison
@@ -15,7 +16,7 @@ from plots import plot_state_for_comparison, plot_control_for_comparison
 mc = Constants()
 
 tests = [
-  {
+    {
     "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
     "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
     "animation_forward": [0.0, -0.2, -1],
@@ -23,6 +24,15 @@ tests = [
     "animation_frame_rate": 0.8,
     "num_iterations": 200,
     "title": "hover"
+    },
+    {
+    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [-1, -0.1, -0.2],
+    "animation_up": [0, 1, 0],
+    "animation_frame_rate": 0.4,
+    "num_iterations": 250,
+    "title": "starting 15 deg around x"
   },
   {
     "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
@@ -111,7 +121,7 @@ for test in tests:
     newmpc_time_data = []
     x0 = x_init
 
-    print('running new mpc solver')
+    print('running spectral mpc solver')
     for k in range(num_iterations):
 
         # Solve the NMPC for the current state x_current

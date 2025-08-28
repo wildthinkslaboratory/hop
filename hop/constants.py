@@ -17,7 +17,7 @@ class Constants:
         self.Izz = 0.012
 
         self.dt = 0.02 # 50 Hz like in paper
-        self.mpc_horizon = 50 # number of timesteps for nmpc to consider
+        self.mpc_horizon = 100 # number of timesteps for nmpc to consider
 
         self.spectral_order = 6
 

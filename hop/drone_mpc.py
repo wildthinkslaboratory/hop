@@ -22,7 +22,7 @@ class DroneMPC:
         self.mpc.settings.collocation_ni = 1
         self.mpc.settings.store_full_solution = True
         self.mpc.settings.nlpsol_opts = {
-            "ipopt.max_iter": 50,                   # keep small; rely on warm starts
+            "ipopt.max_iter": 200,                   # keep small; rely on warm starts
             "ipopt.tol": 1e-3,                      # relax accuracy
             "ipopt.acceptable_tol": 3e-2,
             "ipopt.acceptable_constr_viol_tol": 1e-3,
