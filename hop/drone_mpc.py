@@ -69,7 +69,7 @@ class DroneMPC:
         # set max limit on each thrust motor
         control = self.model.u['u']
         P_upper = control[2] + control[3] / 2
-        P_lower = control[2] + control[3] / 2
+        P_lower = control[2] - control[3] / 2
         thrust_limit = mc.prop_thrust_constraint
         self.mpc.set_nl_cons('upper_pwm_max', P_upper, ub=thrust_limit)
         self.mpc.set_nl_cons('lower_pwm_max', P_lower, ub=thrust_limit)
@@ -92,15 +92,15 @@ class DroneMPC:
 
         self.mpc.prepare_nlp()
 
-        # this creates bounds on the rate of change of the servos
-        ulist = self.mpc.opt_x['_u']
-        for i in range(len(ulist)):
-            if not i == 0:
-                rate_constraint = self.mpc.opt_x['_u', i, 0][:2] - self.mpc.opt_x['_u', i-1, 0][:2]
-                self.mpc.nlp_cons.append(rate_constraint)
-                shape = rate_constraint.shape
-                self.mpc.nlp_cons_lb.append(-np.array([mc.theta_dot_constraint]*shape[0]).reshape(shape))
-                self.mpc.nlp_cons_ub.append(np.array([mc.theta_dot_constraint]*shape[0]).reshape(shape))
+        # # this creates bounds on the rate of change of the servos
+        # ulist = self.mpc.opt_x['_u']
+        # for i in range(len(ulist)):
+        #     if not i == 0:
+        #         rate_constraint = self.mpc.opt_x['_u', i, 0][:2] - self.mpc.opt_x['_u', i-1, 0][:2]
+        #         self.mpc.nlp_cons.append(rate_constraint)
+        #         shape = rate_constraint.shape
+        #         self.mpc.nlp_cons_lb.append(-np.array([mc.theta_dot_constraint]*shape[0]).reshape(shape))
+        #         self.mpc.nlp_cons_ub.append(np.array([mc.theta_dot_constraint]*shape[0]).reshape(shape))
 
 
         self.mpc.create_nlp()

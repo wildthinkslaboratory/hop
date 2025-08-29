@@ -12,7 +12,7 @@ import numpy as np
 from hop.constants import Constants
 mc = Constants()
 
-class DroneNMPCCasadi:
+class DroneNMPCSingleShoot:
     def __init__(self):
 
         self.N = mc.mpc_horizon
@@ -95,6 +95,8 @@ class DroneNMPCCasadi:
         self.lbx = -np.inf * np.ones(num_vars)
         self.ubx =  np.inf * np.ones(num_vars)
 
+        self.lbx[2: self.size_x()*(self.N+1): self.size_x()] = 0     # keep z position above 0
+        
         # we have specific lower and upper bounds for the gimbals and delta thrust
         self.lbx[self.size_x()*(self.N+1):   num_vars: 4] = mc.outer_gimbal_range[0]     # outer gimbal lower bound
         self.lbx[self.size_x()*(self.N+1)+1: num_vars: 4] = mc.inner_gimbal_range[0]     # inner gimbal lower bound
@@ -146,13 +148,13 @@ class DroneNMPCCasadi:
             self.lbg += [-ca.inf]*2
             self.ubg += [0.0]*2
 
-            # build up rate of change constraints for servos 
-            if k < self.N-1:
-                next_u = U[:, k+1]  
-                g   = ca.vertcat(g, u_k[0] - next_u[0] - mc.theta_dot_constraint)
-                g   = ca.vertcat(g, u_k[1] - next_u[1] - mc.theta_dot_constraint)
-                self.lbg += [-ca.inf]*2
-                self.ubg += [0.0]*2
+            # # build up rate of change constraints for servos 
+            # if k < self.N-1:
+            #     next_u = U[:, k+1]  
+            #     g   = ca.vertcat(g, u_k[0] - next_u[0] - mc.theta_dot_constraint)
+            #     g   = ca.vertcat(g, u_k[1] - next_u[1] - mc.theta_dot_constraint)
+            #     self.lbg += [-ca.inf]*2
+            #     self.ubg += [0.0]*2
 
 
 
@@ -218,11 +220,6 @@ class DroneNMPCCasadi:
         self.sol_x = sol_opt[:self.size_x() *(self.N+1)]
         self.sol_u = sol_opt[self.size_x() *(self.N+1):]
 
-        print('theta1', self.sol_u[0: self.size_u() * self.N : 4])
-        print('theta2', self.sol_u[1: self.size_u() * self.N: 4])
-        print('avg thrust', self.sol_u[2: self.size_u() * self.N: 4])
-        print('delta thrust', self.sol_u[3: self.size_u() * self.N: 4])
-        quit()
         return self.sol_u[:self.size_u()] # return the first control step
 
 
