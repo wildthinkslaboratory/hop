@@ -8,7 +8,7 @@ import casadi as ca
 from casadi import sin, cos
 import numpy as np
 
-from hop.chebyshev import chebyshev_D
+from hop.chebyshev import chebyshev_D, chebyshev_segments
 
 from hop.constants import Constants
 mc = Constants()
@@ -77,9 +77,9 @@ class DroneNMPCSpectral:
 
         self.x_goal = x_goal
 
-        Q = ca.DM.eye(13)           # weights for cost of state errors
-        R = ca.DM.eye(4) * 0.01     # weights for cost of motors
         X0 = ca.SX.sym('X0', self.x.size1())            # initial state
+        U0 = ca.SX.sym('U0', self.size_u())
+        P0 = ca.vertcat(X0, U0)
 
         X = ca.SX.sym('X', self.x.size1(), self.N+1)    
 
@@ -108,8 +108,7 @@ class DroneNMPCSpectral:
 
 
         tau_2_time = (self.T/2)
-
-
+        dt_segs = chebyshev_segments(self.N, self.T)
         theta, D = chebyshev_D(self.N)
         D_ca = ca.DM(-D)
 
@@ -140,6 +139,12 @@ class DroneNMPCSpectral:
         self.lbg += [0.0]*int(g.numel())
         self.ubg += [0.0]*int(g.numel())
 
+        first_u = U[:, 0]  
+        g   = ca.vertcat(g, (first_u[2] + 0.5*first_u[3]) - (U0[2] + 0.5*U0[3]))
+        g   = ca.vertcat(g, (first_u[2] - 0.5*first_u[3]) - (U0[2] - 0.5*U0[3]))
+        self.lbg += [-mc.thrust_dot_limit * mc.dt] * 2
+        self.ubg += [mc.thrust_dot_limit * mc.dt] * 2
+
         # cost function
         cost = 0.0
         for j in range(self.N + 1):
@@ -147,8 +152,8 @@ class DroneNMPCSpectral:
             u_k = U[:, j]
             error = x_k - self.x_goal
 
-            state_cost = (error).T @ Q @ (error)
-            control_cost = u_k.T @ R @ u_k
+            state_cost = (error).T @ mc.Q @ (error)
+            control_cost = u_k.T @ mc.R @ u_k
             running_cost = state_cost + control_cost
             cost = cost + w[j] * running_cost
 
@@ -164,6 +169,14 @@ class DroneNMPCSpectral:
             self.lbg += [-ca.inf]*2
             self.ubg += [0.0]*2
 
+            # build up rate of change constraints for thrust 
+            if k < self.N-1:
+                next_u = U[:, k+1]  
+                g   = ca.vertcat(g, (next_u[2] + 0.5*next_u[3]) - (u_k[2] + 0.5*u_k[3]))
+                g   = ca.vertcat(g, (next_u[2] - 0.5*next_u[3]) - (u_k[2] - 0.5*u_k[3]))
+                self.lbg += [-mc.thrust_dot_limit * dt_segs[k]] * 2
+                self.ubg += [mc.thrust_dot_limit * dt_segs[k]] * 2
+
             # q_j = X[6:10, j]
             # g = ca.vertcat(g, ca.sumsqr(q_j) - 1)
 
@@ -175,7 +188,7 @@ class DroneNMPCSpectral:
             'f': cost,
             'x': opt_vars,
             'g': g,
-            'p': X0
+            'p': P0
         }
 
         opts = {
@@ -204,7 +217,9 @@ class DroneNMPCSpectral:
         self.first_iteration = True
 
 
-    def make_step(self, x):
+    def make_step(self, x, u):
+
+        x = ca.vertcat(x,u)
 
         if self.first_iteration:
             self.first_iteration = False

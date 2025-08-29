@@ -75,9 +75,9 @@ class DroneNMPCSingleShoot:
 
         self.x_goal = x_goal
 
-        Q = ca.DM.eye(13)           # weights for cost of state errors
-        R = ca.DM.eye(4) * 0.01     # weights for cost of motors
-        X0 = ca.SX.sym('X0', self.x.size1())            # these are variables representing our initial state
+        X0 = ca.SX.sym('X0', self.size_x())            # these are variables representing our initial state
+        U0 = ca.SX.sym('U0', self.size_u())
+        P0 = ca.vertcat(X0, U0)
 
         # we make a copy of the state variables for each N+1 time steps
         X = ca.SX.sym('X', self.x.size1(), self.N+1)    
@@ -95,16 +95,21 @@ class DroneNMPCSingleShoot:
         self.lbx = -np.inf * np.ones(num_vars)
         self.ubx =  np.inf * np.ones(num_vars)
 
-        self.lbx[2: self.size_x()*(self.N+1): self.size_x()] = 0     # keep z position above 0
-        
-        # we have specific lower and upper bounds for the gimbals and delta thrust
-        self.lbx[self.size_x()*(self.N+1):   num_vars: 4] = mc.outer_gimbal_range[0]     # outer gimbal lower bound
-        self.lbx[self.size_x()*(self.N+1)+1: num_vars: 4] = mc.inner_gimbal_range[0]     # inner gimbal lower bound
-        self.lbx[self.size_x()*(self.N+1)+3: num_vars: 4] = mc.diff_thrust_constraint[0] # delta thrust lower bound
 
-        self.ubx[self.size_x()*(self.N+1):   num_vars: 4] = mc.outer_gimbal_range[1]     # outer gimbal upper bound
-        self.ubx[self.size_x()*(self.N+1)+1: num_vars: 4] = mc.inner_gimbal_range[1]     # inner gimbal upper bound
-        self.ubx[self.size_x()*(self.N+1)+3: num_vars: 4] = mc.diff_thrust_constraint[1] # delta thrust upper bound
+        n_x_vars = self.size_x() * (self.N+1)
+        # n_u_vars = self.size_u() * (self.N+1)
+
+        self.lbx[2: n_x_vars: self.size_x()] = 0     # keep z position above 0
+        
+
+        self.lbx[n_x_vars:   num_vars: self.size_u()] = mc.outer_gimbal_range[0]     # outer gimbal lower bound
+        self.lbx[n_x_vars+1: num_vars: self.size_u()] = mc.inner_gimbal_range[0]     # inner gimbal lower bound
+        # self.lbx[n_x_vars+2: num_vars: self.size_u()] = 0                            # average thrust lower bound
+        self.lbx[n_x_vars+3: num_vars: self.size_u()] = mc.diff_thrust_constraint[0] # delta thrust lower bound
+
+        self.ubx[n_x_vars:   num_vars: self.size_u()] = mc.outer_gimbal_range[1]     # outer gimbal upper bound
+        self.ubx[n_x_vars+1: num_vars: self.size_u()] = mc.inner_gimbal_range[1]     # inner gimbal upper bound
+        self.ubx[n_x_vars+3: num_vars: self.size_u()] = mc.diff_thrust_constraint[1] # delta thrust upper bound
 
 
         # g constraints contain an expression that is constrained by an upper and lower bound
@@ -115,6 +120,11 @@ class DroneNMPCSingleShoot:
         self.lbg += [0.0]*int(g.numel())
         self.ubg += [0.0]*int(g.numel())
 
+        first_u = U[:, 0]  
+        g   = ca.vertcat(g, (first_u[2] + 0.5*first_u[3]) - (U0[2] + 0.5*U0[3]))
+        g   = ca.vertcat(g, (first_u[2] - 0.5*first_u[3]) - (U0[2] - 0.5*U0[3]))
+        self.lbg += [-mc.thrust_dot_limit * mc.dt] * 2
+        self.ubg += [mc.thrust_dot_limit * mc.dt] * 2
 
         cost = 0.0
         for k in range(self.N):
@@ -123,8 +133,8 @@ class DroneNMPCSingleShoot:
 
             # here we build up the cost function by summing up the squared
             # error from the goal state over each time step
-            state_error_cost = (x_k - self.x_goal).T @ Q @ (x_k - self.x_goal)
-            control_cost = u_k.T @ R @ u_k
+            state_error_cost = (x_k - self.x_goal).T @ mc.Q @ (x_k - self.x_goal)
+            control_cost = u_k.T @ mc.R @ u_k
             cost = cost + state_error_cost + control_cost
 
             # here we create the constraints that require the solution
@@ -148,6 +158,15 @@ class DroneNMPCSingleShoot:
             self.lbg += [-ca.inf]*2
             self.ubg += [0.0]*2
 
+            # build up rate of change constraints for thrust 
+            if k < self.N-1:
+                next_u = U[:, k+1]  
+                g   = ca.vertcat(g, (next_u[2] + 0.5*next_u[3]) - (u_k[2] + 0.5*u_k[3]))
+                g   = ca.vertcat(g, (next_u[2] - 0.5*next_u[3]) - (u_k[2] - 0.5*u_k[3]))
+                self.lbg += [-mc.thrust_dot_limit * mc.dt] * 2
+                self.ubg += [mc.thrust_dot_limit * mc.dt] * 2
+
+
             # # build up rate of change constraints for servos 
             # if k < self.N-1:
             #     next_u = U[:, k+1]  
@@ -165,7 +184,7 @@ class DroneNMPCSingleShoot:
             'f': cost,
             'x': opt_vars,
             'g': g,
-            'p': X0
+            'p': P0
         }
 
         # dictionary for our solver options
@@ -200,8 +219,9 @@ class DroneNMPCSingleShoot:
         self.first_iteration = True
 
 
-    def make_step(self, x):
+    def make_step(self, x, u):
 
+        x = ca.vertcat(x,u)
         # if it's not the first iteration, use a warm start from previous solution.
         # we shift the trajectory forward by on time step and then just repeat
         # the last timestep twice

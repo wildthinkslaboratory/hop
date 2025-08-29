@@ -7,6 +7,22 @@ def chebyshev_points(N):
     return cheb.chebpts2(N+1)
 
 
+
+        # j = np.arange(self.N+1)
+        # tau = np.cos(np.pi * j / self.N)
+        # t = (mc.T/2.0) * (tau + 1.0) + mc.t0
+        # dt_seg = np.diff(t)  # length N
+
+def chebyshev_segments(N, T):
+    nodes = cheb.chebpts2(N+1)
+    diffs = []
+    for i in range(len(nodes) - 1):
+        diffs.append((nodes[i+1] - nodes[i]) * T / 2)
+    return diffs
+
+    
+    
+
 def chebyshev_D(N):
 
     j = np.arange(N+1)
@@ -40,3 +56,5 @@ def clenshaw_curtis(N):
             s += b * np.cos(2*m*j*np.pi/N) / (4*m*m - 1)
         w[j] = (2.0/N) * (1 - s)
     return x, w
+
+

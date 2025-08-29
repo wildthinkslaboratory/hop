@@ -83,12 +83,13 @@ class DroneMPC:
         self.mpc.set_initial_guess()
 
     def set_goal_state(self, x_r):
-        Q = mc.Q
+
         x = ca.vertcat(self.model.x['p'], self.model.x['v'], self.model.x['q'], self.model.x['w'])
-        error = x - x_r
-        lterm = error.T @ Q @ error
+        x_error = x - x_r
+        lterm = x_error.T @ mc.Q @ x_error 
         self.mpc.set_objective(lterm=lterm, mterm=lterm)
         self.mpc.set_rterm(u=np.array([1, 1, 1, 1], dtype=float))
+
 
         self.mpc.prepare_nlp()
 
