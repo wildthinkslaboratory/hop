@@ -5,10 +5,11 @@ from do_mpc.simulator import Simulator
 import casadi as ca
 from do_mpc.estimator import StateFeedback
 import numpy as np
+import statistics as stats
 from hop.utilities import import_data
 from time import perf_counter
-# from hop.drone_mpc_casadi import DroneNMPCCasadi
-from hop.drone_mpc_spectral import DroneNMPCCasadi
+from hop.drone_mpc_casadi import DroneNMPCSingleShoot
+from hop.drone_mpc_spectral import DroneNMPCSpectral
 from animation import RocketAnimation
 import matplotlib.pyplot as plt
 from plots import plot_state_for_comparison, plot_control_for_comparison
@@ -113,7 +114,7 @@ for test in tests:
         dompc_time_data.append(step_time)
         
 
-    specmpc = DroneNMPCCasadi()
+    specmpc = DroneNMPCSpectral()
     specmpc.set_goal_state(xr)
     specmpc.set_start_state(x_init)
     specmpc_state_data = np.empty([num_iterations,13])
@@ -136,26 +137,44 @@ for test in tests:
         specmpc_control_data[k] = np.reshape(u0, (4,))
         specmpc_time_data.append(step_time)
 
+    ssmpc = DroneNMPCSingleShoot()
+    ssmpc.set_goal_state(xr)
+    ssmpc.set_start_state(x_init)
+    ssmpc_state_data = np.empty([num_iterations,13])
+    ssmpc_control_data = np.empty([num_iterations,4])
+    ssmpc_time_data = []
+    x0 = x_init
 
-    cum_time = 0.0
-    for t in dompc_time_data:
-        cum_time += t
-        # if (t > mc.dt):
-        #     print('mpc timestep exceeded:',t)
-    print('average time for dompc step: ', cum_time / num_iterations)
+    print('running single shoot mpc solver')
+    for k in range(num_iterations):
 
-    cum_time = 0.0
-    for t in specmpc_time_data:
-        cum_time += t
-        # if (t > mc.dt):
-        #     print('mpc timestep exceeded:',t)
-    print('average time for specmpc step: ', cum_time / num_iterations)
+        start_time = perf_counter()
+        # Solve the NMPC for the current state x_current
+        u0 = ssmpc.make_step(x0)
+        step_time = perf_counter() - start_time
+
+        # Propagate the system using the discrete dynamics f (Euler forward integration)
+        x0 = x0 + mc.dt* ssmpc.f(x0,u0)
+        
+        ssmpc_state_data[k] = np.reshape(x0, (13,))
+        ssmpc_control_data[k] = np.reshape(u0, (4,))
+        ssmpc_time_data.append(step_time)
+
+    mean_time = [round(t,3) for t in [stats.mean(dompc_time_data), stats.mean(specmpc_time_data), stats.mean(ssmpc_time_data)]]
+    max_time = [round(t,3) for t in [max(dompc_time_data), max(specmpc_time_data),  max(ssmpc_time_data)]]
+    
+    print("     {: >20} {: >20} {: >20}".format('do-mpc', 'spectral', 'sing shoot'))
+    print("-----------------------------------------------------------------------------------------")
+    print("mean {: >20} {: >20} {: >20}".format(*mean_time))
+    print("max  {: >20} {: >20} {: >20}".format(*max_time))
 
     plot_state_for_comparison(tspan, dompc_state_data, test["title"] + ' dompc', 1)
     plot_state_for_comparison(tspan, specmpc_state_data, test["title"] + ' specmpc', 2)
+    plot_state_for_comparison(tspan, ssmpc_state_data, test["title"] + ' ssmpc', 3)
 
-    plot_control_for_comparison(tspan, dompc_control_data, test["title"] + ' dompc', 3)
-    plot_control_for_comparison(tspan, specmpc_control_data, test["title"] + ' specmpc', 4)
+    plot_control_for_comparison(tspan, dompc_control_data, test["title"] + ' dompc', 4)
+    plot_control_for_comparison(tspan, specmpc_control_data, test["title"] + ' specmpc', 5)
+    plot_control_for_comparison(tspan, ssmpc_control_data, test["title"] + ' ssmpc', 6)
 
     plt.show()
 

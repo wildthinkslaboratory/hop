@@ -13,7 +13,7 @@ from hop.chebyshev import chebyshev_D
 from hop.constants import Constants
 mc = Constants()
 
-class DroneNMPCCasadi:
+class DroneNMPCSpectral:
     def __init__(self):
 
         self.T = mc.mpc_horizon * mc.dt
@@ -91,21 +91,27 @@ class DroneNMPCCasadi:
         self.lbx = -np.inf * np.ones(num_vars)
         self.ubx =  np.inf * np.ones(num_vars)
 
-        self.lbx[self.size_x()*(self.N+1):   num_vars: 4] = mc.outer_gimbal_range[0]     # outer gimbal lower bound
-        self.lbx[self.size_x()*(self.N+1)+1: num_vars: 4] = mc.inner_gimbal_range[0]     # inner gimbal lower bound
-        self.lbx[self.size_x()*(self.N+1)+2: num_vars: 4] = 0                            # average thrust lower bound
-        self.lbx[self.size_x()*(self.N+1)+3: num_vars: 4] = mc.diff_thrust_constraint[0] # delta thrust lower bound
+        n_x_vars = self.size_x() * (self.N+1)
+        n_u_vars = self.size_u() * (self.N+1)
 
-        self.ubx[self.size_x()*(self.N+1):   num_vars: 4] = mc.outer_gimbal_range[1]     # outer gimbal upper bound
-        self.ubx[self.size_x()*(self.N+1)+1: num_vars: 4] = mc.inner_gimbal_range[1]     # inner gimbal upper bound
-        self.ubx[self.size_x()*(self.N+1)+3: num_vars: 4] = mc.diff_thrust_constraint[1] # delta thrust upper bound
+        self.lbx[2: n_x_vars: self.size_x()] = 0     # keep z position above 0
+
+
+        self.lbx[n_x_vars:   num_vars: self.size_u()] = mc.outer_gimbal_range[0]     # outer gimbal lower bound
+        self.lbx[n_x_vars+1: num_vars: self.size_u()] = mc.inner_gimbal_range[0]     # inner gimbal lower bound
+        # self.lbx[n_x_vars+2: num_vars: self.size_u()] = 0                            # average thrust lower bound
+        self.lbx[n_x_vars+3: num_vars: self.size_u()] = mc.diff_thrust_constraint[0] # delta thrust lower bound
+
+        self.ubx[n_x_vars:   num_vars: self.size_u()] = mc.outer_gimbal_range[1]     # outer gimbal upper bound
+        self.ubx[n_x_vars+1: num_vars: self.size_u()] = mc.inner_gimbal_range[1]     # inner gimbal upper bound
+        self.ubx[n_x_vars+3: num_vars: self.size_u()] = mc.diff_thrust_constraint[1] # delta thrust upper bound
 
 
         tau_2_time = (self.T/2)
 
 
         theta, D = chebyshev_D(self.N)
-        D_ca = ca.DM(D)
+        D_ca = ca.DM(-D)
 
         
         w = np.zeros(self.N+1)
@@ -123,13 +129,17 @@ class DroneNMPCCasadi:
                 v = v - 2*np.cos(2*k*theta[1:self.N])/(4*k**2-1)
 
         w[1:self.N]=2*v/self.N
-        print(w)
 
-        # from hop.chebyshev import clenshaw_curtis
-        # x, w = clenshaw_curtis(self.N)
-        # print(w)
-
+        # g constraints contain an expression that is constrained by an upper and lower bound
+        self.lbg = []   # will hold lower bounds for g constraints
+        self.ubg = []   # will hold upper bounds for g constraints
     
+
+        # equations of motion constraints
+        g = X[:, 0] - X0
+        self.lbg += [0.0]*int(g.numel())
+        self.ubg += [0.0]*int(g.numel())
+
         # cost function
         cost = 0.0
         for j in range(self.N + 1):
@@ -142,25 +152,24 @@ class DroneNMPCCasadi:
             running_cost = state_cost + control_cost
             cost = cost + w[j] * running_cost
 
+            # dynamics constraints
+            f_k = self.f(x_k, u_k)
+            g = ca.vertcat(g, (D_ca[j,:] @ X.T).T - tau_2_time * f_k)
+            self.lbg += [0.0]*int(self.size_x())
+            self.ubg += [0.0]*int(self.size_x())
+
+            # build up the upper thrust limit constraints         
+            g   = ca.vertcat(g, (u_k[2] + 0.5*u_k[3]) - mc.prop_thrust_constraint)
+            g   = ca.vertcat(g, (u_k[2] - 0.5*u_k[3]) - mc.prop_thrust_constraint)
+            self.lbg += [-ca.inf]*2
+            self.ubg += [0.0]*2
+
+            # q_j = X[6:10, j]
+            # g = ca.vertcat(g, ca.sumsqr(q_j) - 1)
+
         cost = cost * tau_2_time
-
-
-        # equations of motion constraints
-        g = X[:, self.N] - X0
-
-        for j in range(self.N + 1):
-            x_j = X[:, j]
-            u_j = U[:, j]
-            f_j = self.f(x_j, u_j)
-            g = ca.vertcat(g, (D_ca[j,:] @ X.T).T - tau_2_time * f_j)
-            q_j = X[6:10, j]
-            g = ca.vertcat(g, ca.sumsqr(q_j) - 1)
-
+            
         # Now we set up the solver and do all of the options and parameters
-
-        g_bound = np.zeros(int(g.numel()))
-        self.lbg = g_bound
-        self.ubg = g_bound
 
         nlp_prob = {
             'f': cost,
@@ -190,8 +199,8 @@ class DroneNMPCCasadi:
         self.init_guess = np.concatenate([X_init.reshape(-1, order='F'), U_init.reshape(-1, order='F')])
         
         # Here we initialize our stored solution to zeros
-        self.sol_x = np.zeros(self.size_x() * (self.N+1))
-        self.sol_u = np.zeros(self.size_u() * (self.N+1))
+        self.sol_x = np.zeros(n_x_vars)
+        self.sol_u = np.zeros(n_u_vars)
         self.first_iteration = True
 
 
@@ -209,13 +218,7 @@ class DroneNMPCCasadi:
         self.sol_x = sol_opt[:self.size_x() * (self.N+1)]
         self.sol_u = sol_opt[self.size_x() * (self.N+1):]
 
-        # print('theta1', self.sol_u[0: 28: 4])
-        # print('theta2', self.sol_u[1: 28: 4])
-        # print('avg thrust', self.sol_u[2: 28: 4])
-        # print('delta thrust', self.sol_u[3: 28: 4])
-        # quit()
-
-        return self.sol_u[-self.size_u():]
+        return self.sol_u[:self.size_u()]
 
 
 
