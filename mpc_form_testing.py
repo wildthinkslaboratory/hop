@@ -17,16 +17,7 @@ from plots import plot_state_for_comparison, plot_control_for_comparison
 mc = Constants()
 
 tests = [
-    {
-    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [0.0, -0.2, -1],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.8,
-    "num_iterations": 200,
-    "title": "hover"
-    },
-    {
+  {
     "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
     "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
     "animation_forward": [-1, -0.1, -0.2],
@@ -35,6 +26,15 @@ tests = [
     "num_iterations": 250,
     "title": "starting 15 deg around x"
   },
+  {
+    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [0.0, -0.2, -1],
+    "animation_up": [0, 1, 0],
+    "animation_frame_rate": 0.8,
+    "num_iterations": 200,
+    "title": "hover"
+    },
   {
     "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
     "xr": [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
@@ -127,7 +127,7 @@ for test in tests:
 
         start_time = perf_counter()
         # Solve the NMPC for the current state x_current
-        u0 = specmpc.make_step(x0)
+        u0 = specmpc.make_step(x0, u0)
         step_time = perf_counter() - start_time
 
         # Propagate the system using the discrete dynamics f (Euler forward integration)
@@ -150,7 +150,7 @@ for test in tests:
 
         start_time = perf_counter()
         # Solve the NMPC for the current state x_current
-        u0 = ssmpc.make_step(x0)
+        u0 = ssmpc.make_step(x0, u0)
         step_time = perf_counter() - start_time
 
         # Propagate the system using the discrete dynamics f (Euler forward integration)
