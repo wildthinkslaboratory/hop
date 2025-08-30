@@ -59,7 +59,7 @@ class Constants:
 
         self.x0 = ca.vertcat(0.0,0.0,0.0, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0)
         self.Q = ca.DM.eye(13)
-        self.R = ca.DM.eye(4) * 0.03
+        self.R = ca.DM.eye(4) * 1
         self.xr = ca.vertcat(0.0,0.0,0.0, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0)
 
 

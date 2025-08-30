@@ -120,11 +120,11 @@ class DroneNMPCSingleShoot:
         self.lbg += [0.0]*int(g.numel())
         self.ubg += [0.0]*int(g.numel())
 
-        first_u = U[:, 0]  
-        g   = ca.vertcat(g, (first_u[2] + 0.5*first_u[3]) - (U0[2] + 0.5*U0[3]))
-        g   = ca.vertcat(g, (first_u[2] - 0.5*first_u[3]) - (U0[2] - 0.5*U0[3]))
-        self.lbg += [-mc.thrust_dot_limit * mc.dt] * 2
-        self.ubg += [mc.thrust_dot_limit * mc.dt] * 2
+        # first_u = U[:, 0]  
+        # g   = ca.vertcat(g, (first_u[2] + 0.5*first_u[3]) - (U0[2] + 0.5*U0[3]))
+        # g   = ca.vertcat(g, (first_u[2] - 0.5*first_u[3]) - (U0[2] - 0.5*U0[3]))
+        # self.lbg += [-mc.thrust_dot_limit * mc.dt] * 2
+        # self.ubg += [mc.thrust_dot_limit * mc.dt] * 2
 
         cost = 0.0
         for k in range(self.N):
@@ -136,6 +136,10 @@ class DroneNMPCSingleShoot:
             state_error_cost = (x_k - self.x_goal).T @ mc.Q @ (x_k - self.x_goal)
             control_cost = u_k.T @ mc.R @ u_k
             cost = cost + state_error_cost + control_cost
+            x_N = X[:, self.N]             # final state
+            e_N = x_N - self.x_goal        # final error
+            Qf  = 10*mc.Q                     # terminal weight matrix (scale Q heavier)
+            cost = cost + e_N.T @ Qf @ e_N
 
             # here we create the constraints that require the solution
             # to obey our system dynamics. We use Runge Kutta integration
@@ -159,12 +163,12 @@ class DroneNMPCSingleShoot:
             self.ubg += [0.0]*2
 
             # build up rate of change constraints for thrust 
-            if k < self.N-1:
-                next_u = U[:, k+1]  
-                g   = ca.vertcat(g, (next_u[2] + 0.5*next_u[3]) - (u_k[2] + 0.5*u_k[3]))
-                g   = ca.vertcat(g, (next_u[2] - 0.5*next_u[3]) - (u_k[2] - 0.5*u_k[3]))
-                self.lbg += [-mc.thrust_dot_limit * mc.dt] * 2
-                self.ubg += [mc.thrust_dot_limit * mc.dt] * 2
+            # if k < self.N-1:
+            #     next_u = U[:, k+1]  
+            #     g   = ca.vertcat(g, (next_u[2] + 0.5*next_u[3]) - (u_k[2] + 0.5*u_k[3]))
+            #     g   = ca.vertcat(g, (next_u[2] - 0.5*next_u[3]) - (u_k[2] - 0.5*u_k[3]))
+            #     self.lbg += [-mc.thrust_dot_limit * mc.dt] * 2
+            #     self.ubg += [mc.thrust_dot_limit * mc.dt] * 2
 
 
             # # build up rate of change constraints for servos 
