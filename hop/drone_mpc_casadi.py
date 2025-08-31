@@ -136,10 +136,6 @@ class DroneNMPCSingleShoot:
             state_error_cost = (x_k - self.x_goal).T @ mc.Q @ (x_k - self.x_goal)
             control_cost = u_k.T @ mc.R @ u_k
             cost = cost + state_error_cost + control_cost
-            x_N = X[:, self.N]             # final state
-            e_N = x_N - self.x_goal        # final error
-            Qf  = 10*mc.Q                     # terminal weight matrix (scale Q heavier)
-            cost = cost + e_N.T @ Qf @ e_N
 
             # here we create the constraints that require the solution
             # to obey our system dynamics. We use Runge Kutta integration
@@ -179,6 +175,10 @@ class DroneNMPCSingleShoot:
             #     self.lbg += [-ca.inf]*2
             #     self.ubg += [0.0]*2
 
+        x_N = X[:, self.N]             # final state
+        e_N = x_N - self.x_goal        # final error
+        Qf  = 20*mc.Q                     # terminal weight matrix (scale Q heavier)
+        cost = cost + e_N.T @ Qf @ e_N
 
 
         # Now we set up the solver and do all of the options and parameters

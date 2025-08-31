@@ -156,16 +156,13 @@ class DroneNMPCSpectral:
             control_cost = u_k.T @ mc.R @ u_k
             running_cost = state_cost + control_cost
             cost = cost + w[j] * running_cost
-            x_N = X[:, self.N]             # final state
-            e_N = x_N - self.x_goal        # final error
-            Qf  = 10*mc.Q                     # terminal weight matrix (scale Q heavier)
-            cost = cost + e_N.T @ Qf @ e_N
 
             # dynamics constraints
-            f_k = self.f(x_k, u_k)
-            g = ca.vertcat(g, (D_ca[j,:] @ X.T).T - tau_2_time * f_k)
-            self.lbg += [0.0]*int(self.size_x())
-            self.ubg += [0.0]*int(self.size_x())
+            if 0 < j < self.N:
+                f_k = self.f(x_k, u_k)
+                g = ca.vertcat(g, (D_ca[j,:] @ X.T).T - tau_2_time * f_k)
+                self.lbg += [0.0]*int(self.size_x())
+                self.ubg += [0.0]*int(self.size_x())
 
             # build up the upper thrust limit constraints         
             g   = ca.vertcat(g, (u_k[2] + 0.5*u_k[3]) - mc.prop_thrust_constraint)
@@ -184,8 +181,21 @@ class DroneNMPCSpectral:
             # q_j = X[6:10, j]
             # g = ca.vertcat(g, ca.sumsqr(q_j) - 1)
 
+        xN = X[:, self.N]
+        eN = xN - self.x_goal
+        Qf  = 20*mc.Q                     # terminal weight matrix (scale Q heavier)
+        cost = cost + eN.T @ Qf @ eN
         cost = cost * tau_2_time
             
+        f_nodes = ca.hcat([self.f(X[:, j], U[:, j]) for j in range(self.N + 1)])
+
+        # Clenshaw–Curtis quadrature over τ ∈ [-1, 1]
+        quad = f_nodes @ ca.DM(w)   # (nx, 1) = Σ_j w[j] * f_j
+
+        g = ca.vertcat(g, xN - X0 - (self.T/2) * quad)
+        self.lbg += [0.0] * self.size_x()
+        self.ubg += [0.0] * self.size_x()
+
         # Now we set up the solver and do all of the options and parameters
 
         nlp_prob = {
