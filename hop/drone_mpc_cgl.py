@@ -2,7 +2,7 @@ import casadi as ca
 from casadi import sin, cos
 import numpy as np
 
-from hop.chebyshev import chebyshev_D, chebyshev_segments, weights_paper
+from hop.chebyshev import chebyshev_D, chebyshev_segments, weights, weights_paper
 
 from hop.constants import Constants
 mc = Constants()
@@ -93,7 +93,9 @@ class DroneNMPCwithCGL:
 
         self.lbx[n_x_vars:   num_vars: self.size_u()] = mc.outer_gimbal_range[0]     # outer gimbal lower bound
         self.lbx[n_x_vars+1: num_vars: self.size_u()] = mc.inner_gimbal_range[0]     # inner gimbal lower bound
+
         # self.lbx[n_x_vars+2: num_vars: self.size_u()] = 0                            # average thrust lower bound
+
         self.lbx[n_x_vars+3: num_vars: self.size_u()] = mc.diff_thrust_constraint[0] # delta thrust lower bound
 
         self.ubx[n_x_vars:   num_vars: self.size_u()] = mc.outer_gimbal_range[1]     # outer gimbal upper bound
@@ -106,6 +108,7 @@ class DroneNMPCwithCGL:
         D_ca = ca.DM(D)
 
         w = weights_paper(self.N)
+
 
         # g constraints contain an expression that is constrained by an upper and lower bound
         self.lbg = []   # will hold lower bounds for g constraints
@@ -189,8 +192,12 @@ class DroneNMPCwithCGL:
         
         x_initial_guess = ca.DM([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
         X_init = np.tile(np.array(x_initial_guess).reshape(-1,1), (1, self.N+1))
+
         # initial guess for controls is zero
         U_init = np.zeros((self.size_u(), self.N+1))
+
+        # U_initial_guess = ca.DM([0.0,0.0,5.67,0.0])
+        # U_init = np.tile(np.array(U_initial_guess).reshape(-1,1), (1, self.N+1))
 
         # glue this all together to make our initial guess
         self.init_guess = np.concatenate([X_init.reshape(-1, order='F'), U_init.reshape(-1, order='F')])

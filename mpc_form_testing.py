@@ -131,6 +131,7 @@ for test in tests:
     specmpc_time_data = []
     x0 = x_init
     u0 = np.zeros(4)
+    # u0 = np.array([0.0, 0.0, 5.67, 0.0])
 
     print('running spectral mpc solver')
     for k in range(num_iterations):
