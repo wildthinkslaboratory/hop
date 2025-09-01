@@ -9,7 +9,7 @@ import statistics as stats
 from hop.utilities import import_data
 from time import perf_counter
 from hop.drone_mpc_casadi import DroneNMPCSingleShoot
-from hop.drone_mpc_spectral import DroneNMPCSpectral
+from hop.drone_mpc_cgl import DroneNMPCwithCGL
 from animation import RocketAnimation
 import matplotlib.pyplot as plt
 from plots import plot_state_for_comparison, plot_control_for_comparison
@@ -17,6 +17,15 @@ from plots import plot_state_for_comparison, plot_control_for_comparison
 mc = Constants()
 
 tests = [
+  {
+    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [0.0, -0.2, -1],
+    "animation_up": [0, 1, 0],
+    "animation_frame_rate": 0.8,
+    "num_iterations": 200,
+    "title": "hover"
+  },
   {
     "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
     "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
@@ -34,7 +43,7 @@ tests = [
     "animation_frame_rate": 0.8,
     "num_iterations": 200,
     "title": "hover"
-    },
+  },
   {
     "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
     "xr": [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
@@ -114,13 +123,14 @@ for test in tests:
         dompc_time_data.append(step_time)
         
 
-    specmpc = DroneNMPCSpectral()
+    specmpc = DroneNMPCwithCGL()
     specmpc.set_goal_state(xr)
     specmpc.set_start_state(x_init)
     specmpc_state_data = np.empty([num_iterations,13])
     specmpc_control_data = np.empty([num_iterations,4])
     specmpc_time_data = []
     x0 = x_init
+    u0 = np.zeros(4)
 
     print('running spectral mpc solver')
     for k in range(num_iterations):
@@ -146,7 +156,7 @@ for test in tests:
     x0 = x_init
 
     print('running single shoot mpc solver')
-    for k in range(num_iterations):
+    for k in range(3):
 
         start_time = perf_counter()
         # Solve the NMPC for the current state x_current

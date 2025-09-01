@@ -19,7 +19,7 @@ class Constants:
         self.dt = 0.02 # 50 Hz like in paper
         self.mpc_horizon = 100 # number of timesteps for nmpc to consider
 
-        self.spectral_order = 6
+        self.spectral_order = 8
 
         self.timelimit = 1 # in seconds
 
@@ -31,7 +31,7 @@ class Constants:
         self.outer_gimbal_range = [-20,20]
         self.inner_gimbal_range = [-13.5,13.5]
         self.theta_dot_constraint = 6.16
-        self.thrust_dot_limit = 35.0  # rate per second
+        self.thrust_dot_limit = 20.0  # rate per second
 
         self.prop_thrust_constraint = 22.0
         self.diff_thrust_constraint = [-0.8,0.8]
@@ -59,7 +59,7 @@ class Constants:
 
         self.x0 = ca.vertcat(0.0,0.0,0.0, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0)
         self.Q = ca.DM.eye(13)
-        self.R = ca.DM.eye(4) * 0.03
+        self.R = ca.diag([0.03, 0.03, 1, 0.03])
         self.xr = ca.vertcat(0.0,0.0,0.0, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0)
 
 
