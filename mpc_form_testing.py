@@ -24,7 +24,7 @@ tests = [
     "animation_up": [0, 1, 0],
     "animation_frame_rate": 0.8,
     "num_iterations": 400,
-    "title": "hover"
+    "title": "drop"
   },
   {
     "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],

@@ -166,14 +166,7 @@ class DroneNMPCwithCGL:
             'p': P0
         }
 
-        opts = {
-            'ipopt.max_iter': 200,
-            'ipopt.acceptable_tol': 1e-8,
-            'ipopt.acceptable_obj_change_tol': 1e-6,
-            'ipopt.print_level': 0,
-            'ipopt.sb': 'yes',
-            'print_time': 0
-        }
+        opts = mc.ipopt_settings
 
         self.solver = ca.nlpsol('solver', 'ipopt', nlp_prob, opts)
         
