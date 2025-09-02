@@ -32,9 +32,9 @@ class Constants:
         self.inner_gimbal_range = [-13.5,13.5]
         self.theta_dot_constraint = 6.16
         self.thrust_dot_limit = 20.0  # rate per second
-        self.hover_thrust = 5.7
+        self.hover_thrust = 5.67
 
-        self.prop_thrust_constraint = 22.0
+        self.prop_thrust_constraint = 50.0
         self.diff_thrust_constraint = [-0.8,0.8]
 
         self.g = np.array([

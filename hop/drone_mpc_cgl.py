@@ -126,11 +126,11 @@ class DroneNMPCwithCGL:
         for j in range(self.N + 1):
             x_k = X[:, j]
             u_k = U[:, j]
-            error = x_k - self.x_goal
-            u_error = u_k - u_goal
 
-            state_cost = (error).T @ mc.Q @ (error)
-            control_cost = u_error.T @ mc.R @ u_error
+
+            # cost function
+            state_cost = (x_k - self.x_goal).T @ mc.Q @ (x_k - self.x_goal)
+            control_cost = (u_k - u_goal).T @ mc.R @ (u_k - u_goal)
             running_cost = state_cost + control_cost
             cost = cost + w[j] * running_cost
 
@@ -141,8 +141,8 @@ class DroneNMPCwithCGL:
             self.lbg += [0.0]*int(self.size_x())
             self.ubg += [0.0]*int(self.size_x())
 
-            # 4
-            # # build up the upper thrust limit constraints         
+
+            # upper thrust limit constraints         
             # g   = ca.vertcat(g, (u_k[2] + 0.5*u_k[3]) - mc.prop_thrust_constraint)
             # g   = ca.vertcat(g, (u_k[2] - 0.5*u_k[3]) - mc.prop_thrust_constraint)
             # self.lbg += [-ca.inf]*2
@@ -151,7 +151,7 @@ class DroneNMPCwithCGL:
 
 
         cost = cost * tau_2_time
-        # 5
+        
         # x_N = X[:, self.N]
         # e_N = x_N - self.x_goal
         # Qf = 10*mc.Q
@@ -167,8 +167,8 @@ class DroneNMPCwithCGL:
         }
 
         opts = {
-            'ipopt.max_iter': 100,
-            'ipopt.acceptable_tol': 1e-6,
+            'ipopt.max_iter': 200,
+            'ipopt.acceptable_tol': 1e-8,
             'ipopt.acceptable_obj_change_tol': 1e-6,
             'ipopt.print_level': 0,
             'ipopt.sb': 'yes',
