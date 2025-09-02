@@ -19,8 +19,8 @@ class Constants:
         self.dt = 0.02 # 50 Hz like in paper
         self.mpc_horizon = 100 # number of timesteps for nmpc to consider
 
-        self.spectral_order = 8
 
+        self.spectral_order = 6
         self.timelimit = 1 # in seconds
 
         self.a = 0
@@ -32,6 +32,7 @@ class Constants:
         self.inner_gimbal_range = [-13.5,13.5]
         self.theta_dot_constraint = 6.16
         self.thrust_dot_limit = 20.0  # rate per second
+        self.hover_thrust = 5.7
 
         self.prop_thrust_constraint = 22.0
         self.diff_thrust_constraint = [-0.8,0.8]

@@ -18,15 +18,6 @@ mc = Constants()
 
 tests = [
   {
-    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [0.0, -0.2, -1],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.8,
-    "num_iterations": 200,
-    "title": "hover"
-  },
-  {
     "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
     "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
     "animation_forward": [-1, -0.1, -0.2],
@@ -34,6 +25,15 @@ tests = [
     "animation_frame_rate": 0.4,
     "num_iterations": 250,
     "title": "starting 15 deg around x"
+  },
+  {
+    "x0": [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [0.0, -0.2, -1],
+    "animation_up": [0, 1, 0],
+    "animation_frame_rate": 0.8,
+    "num_iterations": 400,
+    "title": "hover"
   },
   {
     "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
@@ -157,7 +157,7 @@ for test in tests:
     x0 = x_init
 
     print('running single shoot mpc solver')
-    for k in range(3):
+    for k in range(num_iterations):
 
         start_time = perf_counter()
         # Solve the NMPC for the current state x_current
@@ -173,11 +173,16 @@ for test in tests:
 
     mean_time = [round(t,3) for t in [stats.mean(dompc_time_data), stats.mean(specmpc_time_data), stats.mean(ssmpc_time_data)]]
     max_time = [round(t,3) for t in [max(dompc_time_data), max(specmpc_time_data),  max(ssmpc_time_data)]]
+    bad_times = [len([b for b in dompc_time_data if b > 0.014]), 
+                 len([b for b in specmpc_time_data if b > 0.014]), 
+                 len([b for b in ssmpc_time_data if b > 0.014])]
     
-    print("     {: >20} {: >20} {: >20}".format('do-mpc', 'spectral', 'sing shoot'))
+    print(test['title'])
+    print("          {: >20} {: >20} {: >20}".format('do-mpc', 'spectral', 'sing shoot'))
     print("-----------------------------------------------------------------------------------------")
-    print("mean {: >20} {: >20} {: >20}".format(*mean_time))
-    print("max  {: >20} {: >20} {: >20}".format(*max_time))
+    print("mean      {: >20} {: >20} {: >20}".format(*mean_time))
+    print("max       {: >20} {: >20} {: >20}".format(*max_time))
+    print("bad times {: >20} {: >20} {: >20}".format(*bad_times))
 
     plot_state_for_comparison(tspan, dompc_state_data, test["title"] + ' dompc', 1)
     plot_state_for_comparison(tspan, specmpc_state_data, test["title"] + ' specmpc', 2)

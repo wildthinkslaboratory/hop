@@ -2,7 +2,7 @@ import casadi as ca
 from casadi import sin, cos
 import numpy as np
 
-from hop.chebyshev import chebyshev_D, chebyshev_segments, weights, weights_paper
+from hop.chebyshev import chebyshev_D, weights
 
 from hop.constants import Constants
 mc = Constants()
@@ -107,7 +107,7 @@ class DroneNMPCwithCGL:
         D = chebyshev_D(self.N)
         D_ca = ca.DM(D)
 
-        w = weights_paper(self.N)
+        w = weights(self.N)
 
 
         # g constraints contain an expression that is constrained by an upper and lower bound
@@ -120,21 +120,17 @@ class DroneNMPCwithCGL:
         self.lbg += [0.0]*int(g.numel())
         self.ubg += [0.0]*int(g.numel())
 
-        first_u = U[:, 0]  
-        g   = ca.vertcat(g, (first_u[2] + 0.5*first_u[3]) - (U0[2] + 0.5*U0[3]))
-        g   = ca.vertcat(g, (first_u[2] - 0.5*first_u[3]) - (U0[2] - 0.5*U0[3]))
-        self.lbg += [-mc.thrust_dot_limit * mc.dt] * 2
-        self.ubg += [mc.thrust_dot_limit * mc.dt] * 2
-
         # cost function
         cost = 0.0
+        u_goal = ca.DM([0.0, 0.0, mc.hover_thrust, 0.0])
         for j in range(self.N + 1):
             x_k = X[:, j]
             u_k = U[:, j]
             error = x_k - self.x_goal
+            u_error = u_k - u_goal
 
             state_cost = (error).T @ mc.Q @ (error)
-            control_cost = u_k.T @ mc.R @ u_k
+            control_cost = u_error.T @ mc.R @ u_error
             running_cost = state_cost + control_cost
             cost = cost + w[j] * running_cost
 
@@ -145,30 +141,21 @@ class DroneNMPCwithCGL:
             self.lbg += [0.0]*int(self.size_x())
             self.ubg += [0.0]*int(self.size_x())
 
-            # build up the upper thrust limit constraints         
-            g   = ca.vertcat(g, (u_k[2] + 0.5*u_k[3]) - mc.prop_thrust_constraint)
-            g   = ca.vertcat(g, (u_k[2] - 0.5*u_k[3]) - mc.prop_thrust_constraint)
-            self.lbg += [-ca.inf]*2
-            self.ubg += [0.0]*2
+            # 4
+            # # build up the upper thrust limit constraints         
+            # g   = ca.vertcat(g, (u_k[2] + 0.5*u_k[3]) - mc.prop_thrust_constraint)
+            # g   = ca.vertcat(g, (u_k[2] - 0.5*u_k[3]) - mc.prop_thrust_constraint)
+            # self.lbg += [-ca.inf]*2
+            # self.ubg += [0.0]*2
 
-            # # build up rate of change constraints for thrust 
-            # if j < self.N-1:
-            #     next_u = U[:, j+1]  
-            #     g   = ca.vertcat(g, (next_u[2] + 0.5*next_u[3]) - (u_k[2] + 0.5*u_k[3]))
-            #     g   = ca.vertcat(g, (next_u[2] - 0.5*next_u[3]) - (u_k[2] - 0.5*u_k[3]))
-            #     self.lbg += [-mc.thrust_dot_limit * dt_segs[j]] * 2
-            #     self.ubg += [mc.thrust_dot_limit * dt_segs[j]] * 2
 
 
         cost = cost * tau_2_time
-        x_N = X[:, self.N]
-        e_N = x_N - self.x_goal
-        Qf = 10*mc.Q
-        cost = cost + e_N.T @ Qf @ e_N
-
-        R0 = ca.diag(ca.DM([1, 1, 2, 1]))
-        cost_first_move = (U[:, 0] - U0).T @ R0 @ (U[:, 0] - U0)
-        cost = cost + cost_first_move
+        # 5
+        # x_N = X[:, self.N]
+        # e_N = x_N - self.x_goal
+        # Qf = 10*mc.Q
+        # cost = cost + e_N.T @ Qf @ e_N
 
 
         # Now we set up the solver and do all of the options and parameters
@@ -180,8 +167,8 @@ class DroneNMPCwithCGL:
         }
 
         opts = {
-            'ipopt.max_iter': 200,
-            'ipopt.acceptable_tol': 1e-8,
+            'ipopt.max_iter': 100,
+            'ipopt.acceptable_tol': 1e-6,
             'ipopt.acceptable_obj_change_tol': 1e-6,
             'ipopt.print_level': 0,
             'ipopt.sb': 'yes',
@@ -195,9 +182,6 @@ class DroneNMPCwithCGL:
 
         # initial guess for controls is zero
         U_init = np.zeros((self.size_u(), self.N+1))
-
-        # U_initial_guess = ca.DM([0.0,0.0,5.67,0.0])
-        # U_init = np.tile(np.array(U_initial_guess).reshape(-1,1), (1, self.N+1))
 
         # glue this all together to make our initial guess
         self.init_guess = np.concatenate([X_init.reshape(-1, order='F'), U_init.reshape(-1, order='F')])
@@ -224,11 +208,6 @@ class DroneNMPCwithCGL:
         self.sol_x = sol_opt[:self.size_x() * (self.N+1)]
         self.sol_u = sol_opt[self.size_x() * (self.N+1):]
 
-        # reshape U vector back to (nu, N+1) in Fortran order
-        Umat = np.reshape(self.sol_u, (self.size_u(), self.N+1), order='F')
-        # simple, effective approximation: average node 0 and 1
-        self.sol_u[:self.size_u()] = 0.5*(Umat[:, 0] + Umat[:, 1])
-
         return self.sol_u[:self.size_u()]
 
 
@@ -243,45 +222,3 @@ class DroneNMPCwithCGL:
     def size_x(self):
         return self.x.size1()
 
-
-
-# solver = DroneNMPCCasadi()
-
-# sim_time = 5.0
-# n_sim_steps = int(sim_time/mc.dt)
-# tspan = np.arange(0, n_sim_steps * mc.dt, mc.dt)
-
-# # The starting state
-# x_current = ca.DM([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0]) 
-
-# state_data = np.empty([n_sim_steps,13])
-# control_data = np.empty([n_sim_steps,4])
-
-# state_goal = ca.DM([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
-# solver.set_goal_state(state_goal)
-
-# for i in range(n_sim_steps):
-
-#     # Solve the NMPC for the current state x_current
-#     u_current = solver.make_step(x_current)
-    
-#     # Propagate the system using the discrete dynamics f (Euler forward integration)
-#     x_current = x_current + mc.dt* solver.f(x_current,u_current)
-    
-#     state_data[i] = np.reshape(x_current, (13,))
-#     control_data[i] = np.reshape(u_current, (4,))
-
-
-    
-
-
-# import sys
-# sys.path.append('..')
-# from plots import plot_state, plot_control
-# # first we print out the state in one plot
-# plot_state(tspan, state_data)
-# plot_control(tspan, control_data)
-# from animation import RocketAnimation
-# rc = RocketAnimation([-1, -0.1, -0.2], [0,1,0], 0.4)
-# rc.animate(tspan, state_data, control_data)
-    
