@@ -64,37 +64,14 @@ class Constants:
         self.xr = ca.vertcat(0.0,0.0,0.0, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0)
 
         self.ipopt_settings = {
-            "ipopt.max_iter": 200,                   # keep small; rely on warm starts
+            "ipopt.max_iter": 100,                   # keep small; rely on warm starts
             "ipopt.tol": 1e-3,                      # relax accuracy
             "ipopt.acceptable_tol": 3e-2,
             'ipopt.print_level': 0,
             'ipopt.sb': 'yes',
             'print_time': 0,
             'ipopt.linear_solver': 'ma27',
-
-            # "ipopt.acceptable_constr_viol_tol": 1e-3,
-            # "ipopt.mu_strategy": "adaptive",
-            # "ipopt.warm_start_init_point": "yes",
-            # "ipopt.warm_start_bound_push": 1e-8,
-            # "ipopt.warm_start_mult_bound_push": 1e-8,
-            # "ipopt.warm_start_slack_bound_push": 1e-8,
-
-
-            # 'ipopt.acceptable_obj_change_tol': 1e-6,
-
-
-            # "ipopt.hessian_approximation": "limited-memory",   # these don't seem to help
-            # "ipopt.limited_memory_max_history":  20,   # try 10–50
-
-            # "ipopt.max_cpu_time": 0.03,  # this seems to make solution worse with no speedup
-
-            # "ipopt.linear_solver": "ma57",  # for example
-            # 'ipopt.hsllib': '/Users/heididixon/src/ipopt-hsl/coinbrew/dist/lib/libma57.dylib',  # e.g. libhsl_ma57.dylib
-            #   # good starting point for stability vs speed:
-            # "ipopt.ma57_automatic_scaling": "yes",
-            # "ipopt.ma57_pivtol": 1e-8,         # try 1e-8 … 1e-6
-            # "ipopt.ma57_pivtolmax": 1e-4,      # cap on pivot tolerance increase
-   
+            # 'ipopt.max_cpu_time': 0.014,  
         }
 
     # This function makes it possible to print the Constants with print function

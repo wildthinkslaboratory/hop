@@ -1,0 +1,122 @@
+\documentclass[]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{multicol}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage{physics}
+\usepackage{graphicx}
+\usepackage{float}
+%\usepackage[round]{natbib}
+%\bibliographystyle{unsrtnat}
+
+% this just sets up the page size and margins
+\setlength{\topmargin}{0pt}
+\setlength{\oddsidemargin}{0pt}
+\setlength{\evensidemargin}{0pt}
+\setlength{\textwidth}{6.5in}
+\setlength{\textheight}{8.5in}
+\setlength{\headheight}{0pt}
+
+% create some short cut commands
+\newcommand{\bx}{\boldsymbol{x}}
+\newcommand{\by}{\boldsymbol{y}}
+\newcommand{\bu}{\boldsymbol{u}}
+
+
+% this is a bunch of stuff that allows python style code snippits
+% Default fixed font does not support bold face
+\DeclareFixedFont{\ttb}{T1}{txtt}{bx}{n}{10} % for bold
+\DeclareFixedFont{\ttm}{T1}{txtt}{m}{n}{10}  % for normal
+% Custom colors
+\usepackage{color}
+\definecolor{deepblue}{rgb}{0,0,0.5}
+\definecolor{deepred}{rgb}{0.6,0,0}
+\definecolor{deepgreen}{rgb}{0,0.5,0}
+
+\usepackage{listings}
+
+% Python style for highlighting
+\newcommand\pythonstyle{\lstset{
+		language=Python,
+		basicstyle=\ttm,
+		morekeywords={self},              % Add keywords here
+		keywordstyle=\ttb\color{deepblue},
+		emph={MyClass,__init__},          % Custom highlighting
+		emphstyle=\ttb\color{deepred},    % Custom highlighting style
+		stringstyle=\color{deepgreen},
+		frame=tb,                         % Any extra options here
+		showstringspaces=false,
+		tabsize=4
+}}
+
+% Python environment
+\lstnewenvironment{python}[1][]
+{
+	\pythonstyle
+	\lstset{#1}
+}
+{}
+
+% Python for inline
+\newcommand\pythoninline[1]{{\pythonstyle\lstinline!#1!}}
+
+\title{Thrust Vector Drone Simulation}
+\author{Izzy Mones and Heidi Dixon}
+%\date{}
+
+\begin{document}
+	\maketitle
+	
+	\section*{Introduction}	
+	\begin{enumerate}
+		\item {\em Thrust Vector Drone}: What is a thrust vector drone and why they are useful control theory projects for rocket control.
+		\item {\em Description:} of the drone we are simulating.
+	\end{enumerate}
+	
+	\section*{Equations of Motion}
+	\begin{enumerate}
+	\item {\em Equations}:
+	\item {\em Quaternions:} Why we chose to use them.
+	\item {\em Thrust Model:}
+	\end{enumerate}
+	\section*{Algorithms}	
+	
+	\begin{enumerate}
+	\item {\em NMPC}: What is NMPC and why did we choose it?
+	\item {\em NMPC Problem Formulation:} Describe the general set of constraints. 
+	\item {\em NLP encodings} Non Linear Problem Encodings
+	\begin{enumerate}
+		\item {\em do-mpc } What does do-mpc do
+		\item {\em Single-Shooter with Runge-Kutta}: 
+		\item {\em Chebyshev-Gauss-Lobatto with spectral analysis}
+	\end{enumerate}
+	
+	\item {\em Solver:} ipopt solver, mumps, ma27 and ma57
+	\item {\em Comparing Quality of Solution}  
+	\item {\em Time Comparisons} 
+	\end{enumerate}
+	
+	\subsection*{NLP Solver}
+	To solve our non-linear programming (NLP) problems we used the \texttt{ipopt} solver that comes installed with CasADi.  This solver requires an additional subroutine to  solve sparse matrix systems. We experimented with the \texttt{mumps}  solver that comes with CasADi, and also tried using the  \texttt{ma27} and  \texttt{ma57} solvers  from HSL (Harwell Subroutine Library) \cite{hsl}. The HSL \texttt{ma27} solver produced the most efficient solutions overall. All solvers and experiments were run with the same solver settings.
+	\vspace{\baselineskip}
+	\begin{python}
+        ipopt_settings = {
+			'ipopt.max_iter': 100,                  
+			'ipopt.tol': 1e-3,                      	
+			'ipopt.acceptable_tol': 3e-2,
+			'ipopt.linear_solver': 'ma27',
+		}
+	\end{python}
+	
+	\section*{Conclusions}
+	
+	
+	
+%	\nocite{*}
+%	
+\bibliographystyle{annotate}
+\bibliography{references.bib}
+\end{document}
+
