@@ -9,7 +9,7 @@ import statistics as stats
 from hop.utilities import import_data
 from time import perf_counter
 from hop.drone_mpc_casadi import DroneNMPCSingleShoot
-from hop.drone_mpc_spectral import DroneNMPCSpectral
+from hop.drone_mpc_cgl import DroneNMPCwithCGL
 from animation import RocketAnimation
 import matplotlib.pyplot as plt
 from plots import plot_state_for_comparison, plot_control_for_comparison
@@ -18,13 +18,13 @@ mc = Constants()
 
 tests = [
   {
-    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
+    "x0": [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
     "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [-1, -0.1, -0.2],
+    "animation_forward": [0.0, -0.2, -1],
     "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.4,
-    "num_iterations": 250,
-    "title": "starting 15 deg around x"
+    "animation_frame_rate": 0.8,
+    "num_iterations": 400,
+    "title": "drop"
   },
   {
     "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
@@ -34,7 +34,16 @@ tests = [
     "animation_frame_rate": 0.8,
     "num_iterations": 200,
     "title": "hover"
-    },
+  },
+  {
+    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [-1, -0.1, -0.2],
+    "animation_up": [0, 1, 0],
+    "animation_frame_rate": 0.4,
+    "num_iterations": 250,
+    "title": "starting 15 deg around x"
+  },
   {
     "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
     "xr": [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
@@ -114,13 +123,15 @@ for test in tests:
         dompc_time_data.append(step_time)
         
 
-    specmpc = DroneNMPCSpectral()
+    specmpc = DroneNMPCwithCGL()
     specmpc.set_goal_state(xr)
     specmpc.set_start_state(x_init)
     specmpc_state_data = np.empty([num_iterations,13])
     specmpc_control_data = np.empty([num_iterations,4])
     specmpc_time_data = []
     x0 = x_init
+    u0 = np.zeros(4)
+    # u0 = np.array([0.0, 0.0, 5.67, 0.0])
 
     print('running spectral mpc solver')
     for k in range(num_iterations):
@@ -162,11 +173,16 @@ for test in tests:
 
     mean_time = [round(t,3) for t in [stats.mean(dompc_time_data), stats.mean(specmpc_time_data), stats.mean(ssmpc_time_data)]]
     max_time = [round(t,3) for t in [max(dompc_time_data), max(specmpc_time_data),  max(ssmpc_time_data)]]
+    bad_times = [len([b for b in dompc_time_data if b > 0.014]), 
+                 len([b for b in specmpc_time_data if b > 0.014]), 
+                 len([b for b in ssmpc_time_data if b > 0.014])]
     
-    print("     {: >20} {: >20} {: >20}".format('do-mpc', 'spectral', 'sing shoot'))
+    print(test['title'])
+    print("          {: >20} {: >20} {: >20}".format('do-mpc', 'spectral', 'sing shoot'))
     print("-----------------------------------------------------------------------------------------")
-    print("mean {: >20} {: >20} {: >20}".format(*mean_time))
-    print("max  {: >20} {: >20} {: >20}".format(*max_time))
+    print("mean      {: >20} {: >20} {: >20}".format(*mean_time))
+    print("max       {: >20} {: >20} {: >20}".format(*max_time))
+    print("bad times {: >20} {: >20} {: >20}".format(*bad_times))
 
     plot_state_for_comparison(tspan, dompc_state_data, test["title"] + ' dompc', 1)
     plot_state_for_comparison(tspan, specmpc_state_data, test["title"] + ' specmpc', 2)

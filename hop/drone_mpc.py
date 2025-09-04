@@ -21,32 +21,7 @@ class DroneMPC:
         self.mpc.settings.collocation_deg = 2
         self.mpc.settings.collocation_ni = 1
         self.mpc.settings.store_full_solution = True
-        self.mpc.settings.nlpsol_opts = {
-            "ipopt.max_iter": 200,                   # keep small; rely on warm starts
-            "ipopt.tol": 1e-3,                      # relax accuracy
-            "ipopt.acceptable_tol": 3e-2,
-            "ipopt.acceptable_constr_viol_tol": 1e-3,
-            "ipopt.mu_strategy": "adaptive",
-            "ipopt.linear_solver": "mumps",    
-
-            "ipopt.warm_start_init_point": "yes",
-            "ipopt.warm_start_bound_push": 1e-8,
-            "ipopt.warm_start_mult_bound_push": 1e-8,
-            "ipopt.warm_start_slack_bound_push": 1e-8,
-
-            # "ipopt.hessian_approximation": "limited-memory",   # these don't seem to help
-            # "ipopt.limited_memory_max_history":  20,   # try 10–50
-
-            # "ipopt.max_cpu_time": 0.03,  # this seems to make solution worse with no speedup
-
-            # "ipopt.linear_solver": "ma57",  # for example
-            # 'ipopt.hsllib': '/Users/heididixon/src/ipopt-hsl/coinbrew/dist/lib/libma57.dylib',  # e.g. libhsl_ma57.dylib
-            #   # good starting point for stability vs speed:
-            # "ipopt.ma57_automatic_scaling": "yes",
-            # "ipopt.ma57_pivtol": 1e-8,         # try 1e-8 … 1e-6
-            # "ipopt.ma57_pivtolmax": 1e-4,      # cap on pivot tolerance increase
-   
-        }
+        self.mpc.settings.nlpsol_opts = mc.ipopt_settings
 
         self.mpc.bounds['lower', '_u', 'u'] = [
             mc.outer_gimbal_range[0],
