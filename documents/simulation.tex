@@ -81,7 +81,8 @@
 	\item {\em Quaternions:} Why we chose to use them.
 	\item {\em Thrust Model:}
 	\end{enumerate}
-	\section*{Algorithms}	
+	
+	\section*{Nonlinear Model Predictive Control (NMPC)}
 	
 	\begin{enumerate}
 	\item {\em NMPC}: What is NMPC and why did we choose it?
@@ -97,6 +98,9 @@
 	\item {\em Comparing Quality of Solution}  
 	\item {\em Time Comparisons} 
 	\end{enumerate}
+	
+
+	
 	
 	\subsection*{NLP Solver}
 	To solve our non-linear programming (NLP) problems we used the \texttt{ipopt} solver that comes installed with CasADi.  This solver requires an additional subroutine to  solve sparse matrix systems. We experimented with the \texttt{mumps}  solver that comes with CasADi, and also tried using the  \texttt{ma27} and  \texttt{ma57} solvers  from HSL (Harwell Subroutine Library) \cite{hsl}. The HSL \texttt{ma27} solver produced the most efficient solutions overall. All solvers and experiments were run with the same solver settings.
