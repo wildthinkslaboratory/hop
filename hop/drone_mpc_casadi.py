@@ -169,6 +169,10 @@ class DroneNMPCSingleShoot:
             #     self.lbg += [-ca.inf]*2
             #     self.ubg += [0.0]*2
 
+        x_N = X[:, self.N]             # final state
+        e_N = x_N - self.x_goal        # final error
+        Qf  = 20*mc.Q                     # terminal weight matrix (scale Q heavier)
+        cost = cost + e_N.T @ Qf @ e_N
 
 
         # Now we set up the solver and do all of the options and parameters

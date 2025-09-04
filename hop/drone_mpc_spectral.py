@@ -139,11 +139,11 @@ class DroneNMPCSpectral:
         self.lbg += [0.0]*int(g.numel())
         self.ubg += [0.0]*int(g.numel())
 
-        first_u = U[:, 0]  
-        g   = ca.vertcat(g, (first_u[2] + 0.5*first_u[3]) - (U0[2] + 0.5*U0[3]))
-        g   = ca.vertcat(g, (first_u[2] - 0.5*first_u[3]) - (U0[2] - 0.5*U0[3]))
-        self.lbg += [-mc.thrust_dot_limit * mc.dt] * 2
-        self.ubg += [mc.thrust_dot_limit * mc.dt] * 2
+        # first_u = U[:, 0]  
+        # g   = ca.vertcat(g, (first_u[2] + 0.5*first_u[3]) - (U0[2] + 0.5*U0[3]))
+        # g   = ca.vertcat(g, (first_u[2] - 0.5*first_u[3]) - (U0[2] - 0.5*U0[3]))
+        # self.lbg += [-mc.thrust_dot_limit * mc.dt] * 2
+        # self.ubg += [mc.thrust_dot_limit * mc.dt] * 2
 
         # cost function
         cost = 0.0
@@ -158,10 +158,11 @@ class DroneNMPCSpectral:
             cost = cost + w[j] * running_cost
 
             # dynamics constraints
-            f_k = self.f(x_k, u_k)
-            g = ca.vertcat(g, (D_ca[j,:] @ X.T).T - tau_2_time * f_k)
-            self.lbg += [0.0]*int(self.size_x())
-            self.ubg += [0.0]*int(self.size_x())
+            if 0 < j < self.N:
+                f_k = self.f(x_k, u_k)
+                g = ca.vertcat(g, (D_ca[j,:] @ X.T).T - tau_2_time * f_k)
+                self.lbg += [0.0]*int(self.size_x())
+                self.ubg += [0.0]*int(self.size_x())
 
             # build up the upper thrust limit constraints         
             g   = ca.vertcat(g, (u_k[2] + 0.5*u_k[3]) - mc.prop_thrust_constraint)
@@ -170,18 +171,31 @@ class DroneNMPCSpectral:
             self.ubg += [0.0]*2
 
             # build up rate of change constraints for thrust 
-            if k < self.N-1:
-                next_u = U[:, k+1]  
-                g   = ca.vertcat(g, (next_u[2] + 0.5*next_u[3]) - (u_k[2] + 0.5*u_k[3]))
-                g   = ca.vertcat(g, (next_u[2] - 0.5*next_u[3]) - (u_k[2] - 0.5*u_k[3]))
-                self.lbg += [-mc.thrust_dot_limit * dt_segs[k]] * 2
-                self.ubg += [mc.thrust_dot_limit * dt_segs[k]] * 2
+            # if k < self.N-1:
+            #     next_u = U[:, k+1]  
+            #     g   = ca.vertcat(g, (next_u[2] + 0.5*next_u[3]) - (u_k[2] + 0.5*u_k[3]))
+            #     g   = ca.vertcat(g, (next_u[2] - 0.5*next_u[3]) - (u_k[2] - 0.5*u_k[3]))
+            #     self.lbg += [-mc.thrust_dot_limit * dt_segs[k]] * 2
+            #     self.ubg += [mc.thrust_dot_limit * dt_segs[k]] * 2
 
             # q_j = X[6:10, j]
             # g = ca.vertcat(g, ca.sumsqr(q_j) - 1)
 
+        xN = X[:, self.N]
+        eN = xN - self.x_goal
+        Qf  = 20*mc.Q                     # terminal weight matrix (scale Q heavier)
+        cost = cost + eN.T @ Qf @ eN
         cost = cost * tau_2_time
             
+        f_nodes = ca.hcat([self.f(X[:, j], U[:, j]) for j in range(self.N + 1)])
+
+        # Clenshaw–Curtis quadrature over τ ∈ [-1, 1]
+        quad = f_nodes @ ca.DM(w)   # (nx, 1) = Σ_j w[j] * f_j
+
+        g = ca.vertcat(g, xN - X0 - (self.T/2) * quad)
+        self.lbg += [0.0] * self.size_x()
+        self.ubg += [0.0] * self.size_x()
+
         # Now we set up the solver and do all of the options and parameters
 
         nlp_prob = {
@@ -215,7 +229,6 @@ class DroneNMPCSpectral:
         self.sol_x = np.zeros(n_x_vars)
         self.sol_u = np.zeros(n_u_vars)
         self.first_iteration = True
-
 
     def make_step(self, x, u):
 
