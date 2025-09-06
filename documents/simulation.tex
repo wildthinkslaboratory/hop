@@ -78,22 +78,292 @@
 	\section*{Equations of Motion}
 	\begin{enumerate}
 	\item {\em Equations}:
+        \[
+        \dot{\vec{x}} =
+        \begin{bmatrix}
+        x \\ y \\ z \\ v_x \\ v_y \\ v_z \\ q_x \\ q_y \\ q_z \\ q_w \\ \omega_x \\ \omega_y \\ \omega_z
+        \end{bmatrix}
+        \]
+        \[
+        \dot{\vec{u}} =
+        \begin{bmatrix}
+        \theta_1 \\ \theta_2 \\ T_{avg} \\ T_{diff}
+        \end{bmatrix}
+        \]
+	\[
+		\dot{\vec{p}} = \vec{v}
+	\]
+	\[
+		\dot{\vec{v}} = \frac{1}{m}R(\vec{q})\vec{F_b}+\vec{g}
+	\]
+	\[
+		\dot{\vec{q}} = \frac{1}{2}Q(\vec{\omega})\vec{q}
+	\]
+	\[
+		\dot{\vec{\omega}} = I^{-1}\!\left(\vec{M_b} - \vec{\omega} \times (I\,\vec{\omega})\right)
+	\]
+	\[
+		\dot{x} = v_x
+	\]
+	\[
+		\dot{y} = v_y
+	\]
+	\[
+		\dot{z} = v_z
+	\]
+	 \[
+         \vec{F_b} = T
+        \begin{bmatrix}
+        \sin{\theta_2}  \\
+         -\sin{\theta_1}\cos{\theta_2}  \\
+         \cos{\theta_1}\cos{\theta_2}
+        \end{bmatrix}
+        \]
+        \[
+	\vec{l} =
+        \begin{bmatrix}
+        0  \\
+        0  \\
+        -l
+        \end{bmatrix}
+        \]
+        
+        \[
+	\vec{M_z} =
+        \begin{bmatrix}
+        0  \\
+        0  \\
+        M_z
+        \end{bmatrix}
+        \]
+        	 \[
+        \vec{M_b} = \vec{l} \times \vec{F_b} + \vec{M_z}=       
+        \begin{bmatrix}
+        -lT\sin{\theta_1}\cos{\theta_2}  \\
+        -lT\sin{\theta_2}  \\
+	M_z
+        \end{bmatrix}
+        \]
+        
+         \[
+        I =
+        \begin{bmatrix}
+        I_{xx} & 0 &0 \\
+        0 & I_{yy }& 0 \\
+        0 & 0 & I_{zz}
+        \end{bmatrix}
+        \]
+
+        \[
+        R(\vec{q}) =
+        \begin{bmatrix}
+        1 - 2(q_y^2 + q_z^2) & 2(q_x q_y - q_w q_z) & 2(q_x q_z + q_w q_y) \\
+        2(q_x q_y + q_w q_z) & 1 - 2(q_x^2 + q_z^2) & 2(q_y q_z - q_w q_x) \\
+        2(q_x q_z - q_w q_y) & 2(q_y q_z + q_w q_x) & 1 - 2(q_x^2 + q_y^2)
+        \end{bmatrix}
+        \]
+        
+        \[
+        Q(\vec{\omega}) =
+        \begin{bmatrix}
+        0 & \omega_z & -\omega_y & \omega_x \\
+        -\omega_z & 0 & \omega_x & \omega_y \\
+        \omega_y & -\omega_x & 0 & \omega_z \\
+        -\omega_x & -\omega_y & -\omega_z & 0
+        \end{bmatrix}
+	\]
+	\[
+		\dot{x} = v_x
+	\]
+	\[
+		\dot{y} = v_y
+	\]
+	\[
+		\dot{z} = v_z
+	\]
+	\[
+		\dot{v_x} = \frac{\sin{\theta_2} *T(1 - 2(q_y^2 + q_z^2))-\sin{\theta_1}\cos{\theta_2}*2T(q_x q_y - q_w q_z)+\cos{\theta_1}\cos{\theta_2}* 2T(q_x q_z + q_w q_y)}{m}
+	\]
+	\[
+		\dot{v_y} =\frac{\sin{\theta_2} *2T(q_x q_y + q_w q_z)-\sin{\theta_1}\cos{\theta_2}*T(1 - 2(q_x^2 + q_z^2))+\cos{\theta_1}\cos{\theta_2}* 2T(q_y q_z - q_w q_x)}{m}+g
+	\]
+	\[
+		\dot{v_z} = \frac{\sin{\theta_2} *2T(q_x q_z - q_w q_y-\sin{\theta_1}\cos{\theta_2}* 2T(q_y q_z + q_w q_x)+\cos{\theta_1}\cos{\theta_2}* T(1 - 2(q_x^2 + q_y^2))}{m}
+	\]
+	\[
+		\dot{q_x} = \frac{\omega_z q_y-\omega_y q_z+ \omega_x q_w}{2}
+	\]
+	\[
+		\dot{q_y} = \frac{-\omega_z q_x+\omega_x q_z+ \omega_y q_w}{2}
+	\]
+	\[
+		\dot{q_z} =  \frac{\omega_y q_x-\omega_x q_y+ \omega_z q_w}{2}
+	\]
+	\[
+		\dot{q_w} =  \frac{-\omega_x q_x - \omega_y q_y - \omega_z q_z}{2}
+	\]
+	\[
+		\dot{\omega_x} = \frac{-lT\sin{\theta_1}\cos{\theta_2}-\omega_y\omega_zI_{zz} + \omega_y\omega_zI_{yy}}{I_{xx}}
+	\]
+	\[
+		\dot{\omega_y} = \frac{-lT\sin{\theta_2}-\omega_x\omega_zI_{xx} + \omega_x\omega_zI_{zz}}{I_{yy}}
+	\]
+	\[
+		\dot{\omega_z} =  \frac{M_z -\omega_x\omega_yI_{yy} + \omega_x\omega_yI_{xx}}{I_{zz}}
+	\]
 	\item {\em Quaternions:} Why we chose to use them.
 	\item {\em Thrust Model:}
-	\end{enumerate}
+	\[
+		T = aT_{avg}^2+bT_{avg}+c
+	\]
+	\[
+		M_z = d I_{zz} T_{diff}
+	\]
+	\[
+		T_1 = T_{avg} + T_{diff}/2
+	\]
+	\[
+		T_2 = T_{avg} - T_{diff}/2
+	\]
+		\end{enumerate}
 	
 	\section*{Nonlinear Model Predictive Control (NMPC)}
 	
 	\begin{enumerate}
 	\item {\em NMPC}: What is NMPC and why did we choose it?
 	\item {\em NMPC Problem Formulation:} Describe the general set of constraints. 
+        \[
+        \min_{u(t)} \; \int_{t_0}^{t_f} \ell(x,u,t)\,dt \;+\; \phi(x_f)
+        \]
+        \[
+	\ell(x,u,t) = (x(t)-x_{ref})^T Q (x(t)-x_{ref}) + (u(t)-u_{ref})^T R (u(t)-u_{ref}) 
+        \]
+        \[
+	\phi(x_f) = (x(t_f)-x_{ref})^T Q_f (x(t_f)-x_{ref})
+        \]
+        \[
+	-\theta_{max} \leq \theta_1 \leq \theta_{max}
+        \]
+        \[
+	-\theta_{max} \leq \theta_2 \leq \theta_{max}
+        \]
+        \[
+        	-\dot{\theta}_{max} \leq \dot{\theta}_1 \leq \dot{\theta}_{max}
+        \]
+        \[
+        	-\dot{\theta}_{max} \leq \dot{\theta}_2 \leq \dot{\theta}_{max}
+        \]
+        \[
+        	T_{min}  \leq T_{avg} + T_{diff}/2 \leq T_{max}
+        \]
+        \[
+        T_{min} \leq  T_{avg} - T_{diff}/2 \leq T_{max}
+        \]
+        \[
+        T_{diff_{min}} \leq T_{diff} \leq T_{diff_{max}}
+        \]
+        \[
+        0 \leq z
+        \]
+        
 	\item {\em NLP encodings} Non Linear Problem Encodings
 	\begin{enumerate}
 		\item {\em do-mpc } What does do-mpc do
 		\item {\em Single-Shooter with Runge-Kutta}: 
+	\[
+        \begin{aligned}
+        k_1 &= f(x_k, u_k, t_k), \\[6pt]
+        k_2 &= f\!\left(x_k + \tfrac{\Delta t}{2} k_1,\, u_k,\, t_k + \tfrac{\Delta t}{2}\right), \\[6pt]
+        k_3 &= f\!\left(x_k + \tfrac{\Delta t}{2} k_2,\, u_k,\, t_k + \tfrac{\Delta t}{2}\right), \\[6pt]
+        k_4 &= f\!\left(x_k + \Delta t\, k_3,\, u_k,\, t_k + \Delta t\right), \\[10pt]
+        x_{k+1} &= x_k + \tfrac{\Delta t}{6}\,\Big(k_1 + 2k_2 + 2k_3 + k_4\Big).
+        \end{aligned}
+        \]
 		\item {\em Chebyshev-Gauss-Lobatto with spectral analysis}
+	\[
+        \tau_j = \cos{(\frac{j\pi}{N})},\qquad j = 0,1,...,N
+        \]
+	\[
+       D_{N_{00}}=\frac{2N^2+1}{6}
+        \]
+	\[
+       D_{N_{jj}}=\frac{-x_j}{2(1-x_j^2)}
+        \]
+	\[
+       D_{N_{ij}}=\frac{c_i}{c_j}\frac{(-1)^{i+j}}{x_i-x_j}
+        \]
+	\[
+       D_{N_{NN}}=-\frac{2N^2+1}{6}
+        \]
+	\[
+        c_{i/j}=
+        \begin{cases}
+        2 & i/j = 0 \;\text{or}\; N, \\
+        1 & \text{otherwise}.
+        \end{cases}
+        \]
+        \[
+        D_{6} =
+        \begin{bmatrix}
+        \frac{73}{6} & -(8+4\sqrt{3})  & 4 & -2 & \frac{4}{3} & 4\sqrt{3} - 8 & \frac{1}{2}\\
+        2+\sqrt{3} & -\sqrt{3} & -(1+\sqrt{3}) & \frac{2}{\sqrt{3}} & 1-\sqrt{3} & \frac{1}{\sqrt{3}} & \frac{1-\sqrt{3}}{1+\sqrt{3}}\\
+        -1 & 1+\sqrt{3} & -\frac{1}{3} & -2 & 1 & 1-\sqrt{3} & \frac{1}{3}\\
+        \frac{1}{2} & -\frac{2}{\sqrt{3}} & 2 & 0 & -2 & \frac{2}{\sqrt{3}} & -\frac{1}{2}\\
+        -\frac{1}{3} & \sqrt{3}-1 & -1 & 2 & \frac{1}{3} & -(1+\sqrt{3}) & 1\\
+        \frac{1-\sqrt{3}}{1+\sqrt{3}} & \sqrt{3} & \sqrt{3}-1 & -\frac{2}{\sqrt{3}} & 1+\sqrt{3} & \sqrt{3} &-( 2+\sqrt{3})\\
+        -\frac{1}{2} & 8-4\sqrt{3} & -\frac{4}{3} & 2 & -4 & 8+4\sqrt{3} &  -\frac{73}{6}
+        \end{bmatrix}
+        \]
+        \[
+        \dot{x}(\tau_i) \;\approx\; \sum_{j=0}^N D_{ij}\,x(\tau_j), 
+        \qquad i=0,\dots,N.
+        \]
+        \[
+        t(\tau) = \frac{t_f-t_0}{2}\,\tau + \frac{t_f+t_0}{2}, 
+        \qquad 
+        \frac{dt}{d\tau} = \frac{t_f-t_0}{2}.
+        \]
+        
+        \[
+        \sum_{j=0}^N D_{ij}\,x_j 
+        = \frac{t_f-t_0}{2}\, f(x_i,u_i), 
+        \qquad i=1,\dots,N-1.
+        \]
+        
+
+        \[
+        w_{\mathrm{j_{even}}} =
+        \begin{cases}
+        \displaystyle
+        \frac{2}{N}\!\left(
+        1 - \sum_{n=1}^{\frac{N}{2}-1} \frac{2}{4n^{2}-1}\,
+        \cos\!\Big(\tfrac{2 n j \pi}{N}\Big)
+        -\frac{(-1)^{j}}{N^{2}-1}
+        \right), & 1 \le j \le N-1, \\[2.0ex]
+        \displaystyle \frac{1}{N^{2}-1}, & j=0\ \text{or}\ j=N \quad(\text{since \(N\) even}).
+        \end{cases}
+        \]
 	\end{enumerate}
-	
+	\[
+        w_{\mathrm{j_{odd}}} =
+        \begin{cases}
+        \displaystyle
+        \frac{2}{N}\!\left(
+        1 - \sum_{n=1}^{\frac{N}{2}-1} \frac{2}{4n^{2}-1}\,
+        \cos\!\Big(\tfrac{2 n j \pi}{N}\Big)
+        \right), & 1 \le j \le N-1, \\[2ex]
+        \displaystyle \frac{1}{N^{2}}, & j=0\ \text{or}\ j=N.
+        \end{cases}
+        \]
+        	\[
+	J=\frac{t_f-t_0}{2}\int_{t_0}^{t_f} \ell(x(t),u(t),t)\,dt \;+\; \phi(x(t_f))
+        \]
+        \[
+        J \;\approx\; \frac{t_f-t_0}{2} \sum_{j=0}^{N} w_j \,\ell(x_j,u_j,t_j)
+        \;+\; \phi(x_N),
+        \qquad t_j = \frac{t_f-t_0}{2}\,\tau_j + \frac{t_f+t_0}{2}.
+        \]
+        	
 	\item {\em Solver:} ipopt solver, mumps, ma27 and ma57
 	\item {\em Comparing Quality of Solution}  
 	\item {\em Time Comparisons} 
