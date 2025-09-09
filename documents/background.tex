@@ -1,0 +1,51 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{glossaries}
+
+\makeglossaries
+
+\newglossaryentry{trajectoryOptimization}
+{
+	name=trajectory optimization,
+	description={is the optimization of a series control inputs across a time period.}
+}
+
+\newglossaryentry{directMethod}
+{
+	name=direct method,
+	description={A direct method of trajectory optimization a continuous problem is discretized at a finite number of nodes. The system differential equations is integrated to produce equations that enforce system dynamics at given nodes. Then the defined optimization problem is solved with a nonlinear programming solver.}
+}
+
+\newglossaryentry{indirectMethod}
+{
+	name=indirect method,
+	description={A indirect method of trajectory optimization uses calculus of variations to solve a nonlinear boundary value problem. }
+}
+
+\newglossaryentry{directMultipleShooting}
+{
+	name=direct multiple shooting,
+	description={State variables and control inputs are descretized into decision variables. At each time step we construct an integrated forward constraint enforcing the change of state at that time step. Typical integration methods might be Runge-Kutta or forward Euler.}
+}
+
+\newglossaryentry{directCollocation}
+{
+	name=direct collocation,
+	description={Direct collocaton expands on multiple shooting by adding intermediate collocation states between time steps. Constraints are enforced at these interior collocation points. Interior collocation points do not need to be evenly spaced and can use a variety of quadrature formulas.}
+}
+\newglossaryentry{boundaryValueProblem}
+{
+	name=boundary value problem,
+	description={A set of differential equations subject to boundary conditions. It is similar to an initial value problem typically with the addition of a final boundary condition. A solution is a solution to the differential equations that satisfies the boundary conditions. In the case of control theory, we are allowed to vary the control inputs to construct a solution that meets system dynamics and boundary conditions.}
+}
+
+\title{Resources for Thrust Vector Drone Project}
+\author{Izzy Mones and Heidi Dixon }
+\date{ }
+
+\begin{document}
+	\maketitle
+	\glsaddall
+	\printglossaries
+	
+\end{document}
