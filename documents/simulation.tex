@@ -51,6 +51,9 @@
 		tabsize=4
 }}
 
+\newcommand{\mpc}{\textsc{mpc}}
+\newcommand{\nmpc}{\textsc{nmpc}}
+
 % Python environment
 \lstnewenvironment{python}[1][]
 {
@@ -62,7 +65,7 @@
 % Python for inline
 \newcommand\pythoninline[1]{{\pythonstyle\lstinline!#1!}}
 
-\title{Thrust Vector Drone Simulation}
+\title{Nonlinear Model Predictive Control  of a Thrust Vector Drone}
 \author{Izzy Mones and Heidi Dixon}
 %\date{}
 
@@ -71,11 +74,17 @@
 	
 	\section*{Introduction}	
 	\begin{enumerate}
-		\item {\em Thrust Vector Drone}: What is a thrust vector drone and why they are useful control theory projects for rocket control.
-		\item {\em Description:} of the drone we are simulating.
+		\item What is a Thrust Vector Drone and Why they are useful for Rocket Design
 	\end{enumerate}
 	
-	\section*{Equations of Motion}
+
+	
+	\section*{Thrust Vector Drone Equations of Motion}
+	
+	\begin{enumerate}
+		\item What goes in this section
+	\end{enumerate}	
+	
 	\begin{enumerate}
 	\item {\em Equations}:
         \[
@@ -227,11 +236,32 @@
 	\]
 		\end{enumerate}
 	
-	\section*{Nonlinear Model Predictive Control (NMPC)}
-	
-	\begin{enumerate}
-	\item {\em NMPC}: What is NMPC and why did we choose it?
-	\item {\em NMPC Problem Formulation:} Describe the general set of constraints. 
+
+
+	\section*{NMPC}
+
+
+\begin{enumerate}
+	\item what goes in this section
+\end{enumerate}	
+
+Model predictive control (\mpc) is a control algorithm that solves a linear optimization problem at each time step. 
+The set of instance constraints can be used to enforce the equations of motion and restrict the values of control inputs or state variables.  For example, {\mpc} constraints can be used to eliminate solutions that violate minimum or maximum control values or require control values to change faster than mechanically possible.  This gives {\mpc} algorithms more control over the types of solutions produced than linear quadratic regulators (LQR) or proportional integral derivative (PID) controllers.  
+Unlike LQR and PID methods which are designed to find an optimal control input for a given moment in time, an {\mpc} solution considers a series of control inputs over a finite time horizon.  This allows {\mpc} solutions to create a {\em plan} of actions that can anticipate and adjust to future issues. For example, the optimal speed for a car at a given instance might change if the algorithm knew that it was entering a curve in the road in the next few time steps.
+The ability to anticipate future conditions allows {\mpc} to construct more robust solutions. The control plan is rebuilt at each timestep allowing the method to react to disturbances and noise.
+Nonlinear model predictive control (\nmpc) is a variant of {\mpc} that allows nonlinear constraints. 
+
+The biggest advantage of using {\nmpc} to control our thrust vector drone is the allowance of nonlinear constraints. 
+The 6DOF equations of motion that describe our dynamics are strongly nonlinear.  An LQR or {\mpc} method  requires a linear model. The 6DOF equations can be linearized around the fixed point in which the drone is vertically balanced, however, the linearized equations quickly become inaccurate if the drone moves away from the fixed point.  Working directly with the nonlinear equations allows more accurate predictions of the drone state. Like {\mpc}, {\nmpc}  allows us to enforce the mechanical limitations of our thrust motors and gimbal servos.
+
+
+A prime drawback of {\mpc} and {\nmpc} algorithms over LQR and PID  is their higher computational cost.  To use {\nmpc} to control a thrust vector drone, we need to solve an {\nmpc} instance in less than $0.02$ seconds on a Raspberry Pi 5.  Given an {\nmpc} problem instance, there are a variety of known ways to formulate the instance as nonlinear programming problem.  Here we give our {\nmpc} problem instance and present three different ways to formulate this instance as a nonlinear programming problem.  We then compare the quality of  solutions produced and their relative computational efficiency.
+
+To use {\nmpc} the problem instance needs to be parameterized over the control trajectory, the differential equations for the system dynamics need to be integrated forward, and then the resulting problem can be optimized over control parameters. There are different ways to parameterize the problem and integrate it.  These choices will affect the size of the problem and the speed at which it can be solved.
+
+Terms we should know {\em single shooting}, {\em multiple shooting}, {\em direct collocation methods}, {\em pseudo spectral methods} What are these and relative advantages / disadvantages.
+
+
         \[
         \min_{u(t)} \; \int_{t_0}^{t_f} \ell(x,u,t)\,dt \;+\; \phi(x_f)
         \]
@@ -266,10 +296,15 @@
         0 \leq z
         \]
         
-	\item {\em NLP encodings} Non Linear Problem Encodings
-	\begin{enumerate}
-		\item {\em do-mpc } What does do-mpc do
-		\item {\em Single-Shooter with Runge-Kutta}: 
+\section{Direct Methods}
+\subsection*{Orthagonal Collocation using {do-mpc}} 
+\subsection*{Direct Collocation (with Runge–Kutta discretization)}: 
+
+\begin{enumerate}
+	\item We discretize the state and control over $N$ time steps with length $\Delta t$.
+	\item We use Runge-Kutta integrations technique to estimate the state transition bewteen time steps.
+	\item The resulting set of $N$ constraints over 
+\end{enumerate}
 	\[
         \begin{aligned}
         k_1 &= f(x_k, u_k, t_k), \\[6pt]
@@ -279,7 +314,8 @@
         x_{k+1} &= x_k + \tfrac{\Delta t}{6}\,\Big(k_1 + 2k_2 + 2k_3 + k_4\Big).
         \end{aligned}
         \]
-		\item {\em Chebyshev-Gauss-Lobatto with spectral analysis}
+\subsection*{Chebyshev-Gauss-Lobatto with spectral analysis}
+Maintains accuracy with far fewer nodes.  Disadvantages: A more complex NLP. doesn't do well with discontinuous controls.
 	\[
         \tau_j = \cos{(\frac{j\pi}{N})},\qquad j = 0,1,...,N
         \]
@@ -343,7 +379,7 @@
         \displaystyle \frac{1}{N^{2}-1}, & j=0\ \text{or}\ j=N \quad(\text{since \(N\) even}).
         \end{cases}
         \]
-	\end{enumerate}
+
 	\[
         w_{\mathrm{j_{odd}}} =
         \begin{cases}
@@ -364,10 +400,10 @@
         \qquad t_j = \frac{t_f-t_0}{2}\,\tau_j + \frac{t_f+t_0}{2}.
         \]
         	
-	\item {\em Solver:} ipopt solver, mumps, ma27 and ma57
-	\item {\em Comparing Quality of Solution}  
-	\item {\em Time Comparisons} 
-	\end{enumerate}
+ {\em Solver:} ipopt solver, mumps, ma27 and ma57
+ {\em Comparing Quality of Solution}  
+ {\em Time Comparisons} 
+
 	
 
 	
@@ -384,6 +420,7 @@
 		}
 	\end{python}
 	
+	\section*{Comparison of Methods}
 	\section*{Conclusions}
 	
 	
