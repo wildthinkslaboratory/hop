@@ -50,7 +50,18 @@ def plot_state_for_comparison(tspan, data, title, plot_no):
         plt.plot(tspan, data[:,i+10])
     plt.ylabel('$w$')
 
-    plt.xlabel('Time')
+    plt.xlabel('Time (sec)')
+
+def plot_time_comparison(tspan, d1, d2, d3, title, plot_no):
+    plt.figure(figsize=(6,3))
+    plt.figure(plot_no)
+    plt.plot(tspan, d1, label='do-mpc', marker='+', linestyle='None', markersize=4)
+    plt.plot(tspan, d2, label='multi shooter', marker='^', linestyle='None', markersize=4)
+    plt.plot(tspan, d3, label='CGL pseudospectral', marker='.', linestyle='None', markersize=4)
+    plt.ylabel('CPU Time (sec)')
+    plt.legend()
+    plt.savefig("documents/time" + title  + ".pdf", format="pdf", bbox_inches="tight")
+
 
 
 def plot_control_for_comparison(tspan, control, title, plot_no):
@@ -163,5 +174,75 @@ def plot_state_control(axs, tspan, data, control):
     axs[6].plot(tspan, control[:,3])
     axs[6].set_ylabel('$\\Delta P$')
 
-
     axs[6].set_ylim(min(min_val, -0.01), max(max_val, 0.01))
+
+
+
+def plot_state_for_paper(tspan, data, title, plot_no):
+
+    plt.figure(figsize=(6,8))
+    # plt.rcParams['ytick.labelsize'] = 10 
+    # plt.rcParams['xtick.labelsize'] = 10
+
+    plt.figure(plot_no)
+    plt.subplot(4, 1, 1)
+    plt.ylim(-0.5, 0.5)
+    for i in range(3):
+        plt.plot(tspan, data[:,i])
+    plt.ylabel('$x$')
+
+    plt.subplot(4, 1, 2)
+    plt.yticks(np.arange(-0.01, 0.02, step=0.005))
+    for i in range(3):
+        plt.plot(tspan, data[:,i+3])
+    plt.ylabel('$v$')
+
+    plt.subplot(4, 1, 3)
+    for i in range(4):
+        plt.plot(tspan, data[:,i+6])
+    plt.ylabel('$q$')
+
+    plt.subplot(4, 1, 4)
+    plt.yticks(np.arange(-0.2, 0.2, step=0.05))
+
+    for i in range(3):
+        plt.plot(tspan, data[:,i+10])
+    plt.ylabel('$w$')
+
+    plt.xlabel('Time (sec)')
+    plt.savefig("documents/state" + title + str(plot_no) + ".pdf", format="pdf", bbox_inches="tight")
+
+
+
+
+
+def plot_control_for_paper(tspan, control, title, plot_no):
+
+    plt.figure(figsize=(6,6))
+    # plt.rcParams['ytick.labelsize'] = 4 
+    # plt.rcParams['xtick.labelsize'] = 4
+
+    plt.figure(plot_no)
+    
+    
+    # gimbal angles
+    plt.subplot(3, 1, 1)
+    plt.ylim(-0.05, 0.05)
+    for i in range(2):
+        plt.plot(tspan, control[:,i])
+    plt.ylabel('$\\theta$')
+
+    plt.subplot(3, 1, 2)
+    # average thrust
+    plt.plot(tspan, control[:,2])
+    plt.ylabel('$\\overline{P}$')
+
+    plt.subplot(3, 1, 3)
+    # plt.ylim(-0.01, 0.01)
+    # delta thrust
+    plt.plot(tspan, control[:,3])
+    plt.ylabel('$\\Delta P$')
+
+
+    plt.xlabel('Time (sec)')
+    plt.savefig("documents/control" + title + str(plot_no) + ".pdf", format="pdf", bbox_inches="tight")

@@ -8,6 +8,8 @@
 \usepackage{physics}
 \usepackage{graphicx}
 \usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
 %\usepackage[round]{natbib}
 %\bibliographystyle{unsrtnat}
 
@@ -65,7 +67,7 @@
 % Python for inline
 \newcommand\pythoninline[1]{{\pythonstyle\lstinline!#1!}}
 
-\title{Nonlinear Model Predictive Control  of a Thrust Vector Drone}
+\title{Comparison of Direct Methods for NMPC  Applied to  a Thrust Vector Drone}
 \author{Izzy Mones and Heidi Dixon}
 %\date{}
 
@@ -257,7 +259,7 @@ The 6DOF equations of motion that describe our dynamics are strongly nonlinear. 
 
 A prime drawback of {\mpc} and {\nmpc} algorithms over LQR and PID  is their higher computational cost.  To use {\nmpc} to control a thrust vector drone, we need to solve an {\nmpc} instance in less than $0.02$ seconds on a Raspberry Pi 5.  Given an {\nmpc} problem instance, there are a variety of known ways to formulate the instance as nonlinear programming problem.  Here we give our {\nmpc} problem instance and present three different ways to formulate this instance as a nonlinear programming problem.  We then compare the quality of  solutions produced and their relative computational efficiency.
 
-To use {\nmpc} the problem instance needs to be parameterized over the control trajectory, the differential equations for the system dynamics need to be integrated forward, and then the resulting problem can be optimized over control parameters. There are different ways to parameterize the problem and integrate it.  These choices will affect the size of the problem and the speed at which it can be solved.
+To use {\nmpc} the problem instance needs to be parameterized over the control trajectory, the differential equations for the system dynamics need to be integrated forward, and then the resulting problem can be optimized over control parameters. There are different ways to parameterize the problem and integrate it.  These choices will affect the size of the problem and the speed at which it can be solved. Also the accuracy of the solution.
 
 Terms we should know {\em single shooting}, {\em multiple shooting}, {\em direct collocation methods}, {\em pseudo spectral methods} What are these and relative advantages / disadvantages.
 
@@ -298,22 +300,19 @@ Terms we should know {\em single shooting}, {\em multiple shooting}, {\em direct
         
 \section{Direct Methods}
 \subsection*{Orthagonal Collocation using {do-mpc}} 
-\subsection*{Direct Collocation (with Runge–Kutta discretization)}: 
-
-\begin{enumerate}
-	\item We discretize the state and control over $N$ time steps with length $\Delta t$.
-	\item We use Runge-Kutta integrations technique to estimate the state transition bewteen time steps.
-	\item The resulting set of $N$ constraints over 
-\end{enumerate}
-	\[
-        \begin{aligned}
-        k_1 &= f(x_k, u_k, t_k), \\[6pt]
-        k_2 &= f\!\left(x_k + \tfrac{\Delta t}{2} k_1,\, u_k,\, t_k + \tfrac{\Delta t}{2}\right), \\[6pt]
-        k_3 &= f\!\left(x_k + \tfrac{\Delta t}{2} k_2,\, u_k,\, t_k + \tfrac{\Delta t}{2}\right), \\[6pt]
-        k_4 &= f\!\left(x_k + \Delta t\, k_3,\, u_k,\, t_k + \Delta t\right), \\[10pt]
-        x_{k+1} &= x_k + \tfrac{\Delta t}{6}\,\Big(k_1 + 2k_2 + 2k_3 + k_4\Big).
-        \end{aligned}
-        \]
+\subsection*{Multiple Shooting (with Runge–Kutta discretization)}
+For multiple shooting, we divide our time horizon into $N$ evenly spaced nodes $\{ t_0, t_1, \ldots, t_N \}$. At each node we make a copy of our state $x_k$ and control $u_k$ variables.  Within each time step $[ t_k, t_{k+1}]$ we forward integrate our differential equations $f$ using Runge-Kutta  to create a constraint that enforces the change of state between time steps. 
+\begin{eqnarray}
+		 \nonumber
+        k_1 &= f(x_k, u_k, t_k), \\[6pt] \nonumber
+        k_2 &= f\!\left(x_k + \tfrac{\Delta t}{2} k_1,\, u_k,\, t_k + \tfrac{\Delta t}{2}\right), \\[6pt]  \nonumber
+        k_3 &= f\!\left(x_k + \tfrac{\Delta t}{2} k_2,\, u_k,\, t_k + \tfrac{\Delta t}{2}\right), \\[6pt]  \nonumber
+        k_4 &= f\!\left(x_k + \Delta t\, k_3,\, u_k,\, t_k + \Delta t\right), \\[10pt]  
+        x_{k+1} &= x_k + \tfrac{\Delta t}{6}\,\Big(k_1 + 2k_2 + 2k_3 + k_4\Big).  \label{eq.rkstate}
+ \end{eqnarray}
+ 
+ Where $f$ here needs a reference to our differential equations function from earlier.
+ 
 \subsection*{Chebyshev-Gauss-Lobatto with spectral analysis}
 Maintains accuracy with far fewer nodes.  Disadvantages: A more complex NLP. doesn't do well with discontinuous controls.
 	\[
@@ -400,16 +399,34 @@ Maintains accuracy with far fewer nodes.  Disadvantages: A more complex NLP. doe
         \qquad t_j = \frac{t_f-t_0}{2}\,\tau_j + \frac{t_f+t_0}{2}.
         \]
         	
- {\em Solver:} ipopt solver, mumps, ma27 and ma57
- {\em Comparing Quality of Solution}  
- {\em Time Comparisons} 
 
-	
+\section*{Comparison of Methods}
 
-	
+To compare the 
+\begin{enumerate}
+	\item We had seven simulations: initial state, goal state, number of iterations.
+	\item For all simulations and all formulations, same dt, same solver settings
+
+\end{enumerate}	
+
+\begin{center}
+	\begin{tabular}{ | l | c | c | c | } 
+		\hline
+		 initial state & do-mpc & MS & CGL SA \\
+		\hline
+		initial state equal to goal state & 0.0 & 0.0 & 0.0 \\ 
+		$45^{\circ}$ rotation about $z$ axis & 0.0 & 0.0 & 0.0 \\ 
+		$z = 1$  & 0.0 & 0.0 & 0.0 \\ 
+		$y = 1$  & 0.0 & 0.0 & 0.0 \\ 
+		$x = 1$, $z=1$, $v_x = 0.5$  & 0.0 & 0.0 & 0.0 \\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+	All experiements were run on a Macbook Pro  3.49GHz Apple M2 chip with 8GB RAM. Code was implemented in Python 3.13 using CasADI 3.7.1. 
 	
 	\subsection*{NLP Solver}
-	To solve our non-linear programming (NLP) problems we used the \texttt{ipopt} solver that comes installed with CasADi.  This solver requires an additional subroutine to  solve sparse matrix systems. We experimented with the \texttt{mumps}  solver that comes with CasADi, and also tried using the  \texttt{ma27} and  \texttt{ma57} solvers  from HSL (Harwell Subroutine Library) \cite{hsl}. The HSL \texttt{ma27} solver produced the most efficient solutions overall. All solvers and experiments were run with the same solver settings.
+	To solve our non-linear programming (NLP) problems we used the \texttt{ipopt} solver that comes installed with CasADi 3.7.1.  This solver requires an additional subroutine to  solve sparse matrix systems. We experimented with the \texttt{mumps}  solver that comes with CasADi, and also tried using the  \texttt{ma27} and  \texttt{ma57} solvers  from HSL (Harwell Subroutine Library) \cite{hsl}. The HSL \texttt{ma27} solver produced the most efficient solutions overall. All solvers and experiments were run with the same solver settings.
 	\vspace{\baselineskip}
 	\begin{python}
         ipopt_settings = {
@@ -420,7 +437,66 @@ Maintains accuracy with far fewer nodes.  Disadvantages: A more complex NLP. doe
 		}
 	\end{python}
 	
-	\section*{Comparison of Methods}
+
+	
+	
+	 {\em Solver:} ipopt solver, mumps, ma27 and ma57
+	{\em Comparing Quality of Solution}  
+
+	
+	{\em Time Comparisons} 
+	
+
+\begin{figure}[H]
+	\centering
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{state45dz1.pdf}
+		\caption{orthagonal collocation}
+	\end{subfigure}%
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{state45dz2.pdf}
+		\caption{multishooter}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{state45dz3.pdf}
+		\caption{CGL spectral collocation}
+	\end{subfigure}
+	\caption{State data on a simulation requiring a $45^{\circ}$ rotation about the $z$ axis.}
+	\label{fig:state45z}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{control45dz4.pdf}
+		\caption{orthagonal collocation}
+	\end{subfigure}%
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{control45dz5.pdf}
+		\caption{multishooter}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{control45dz6.pdf}
+		\caption{CGL spectral collocation}
+	\end{subfigure}
+	\caption{Control data on a simulation requiring a $45^{\circ}$ rotation about the $z$ axis.}
+	\label{fig:control45z}
+\end{figure}
+
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\textwidth]{time45z.pdf}
+	\caption{CPU time for simulation requiring a $45^{\circ}$ rotation about the $z$ axis.}
+	\label{fig:kfangle}
+\end{figure}
+
 	\section*{Conclusions}
 	
 	
