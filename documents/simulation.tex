@@ -89,19 +89,21 @@
 	
 	\begin{enumerate}
 	\item {\em Equations}:
+	
+	The system state and control variables are defined as:
         \[
         \dot{\vec{x}} =
         \begin{bmatrix}
         x \\ y \\ z \\ v_x \\ v_y \\ v_z \\ q_x \\ q_y \\ q_z \\ q_w \\ \omega_x \\ \omega_y \\ \omega_z
         \end{bmatrix}
-        \]
-        \[
+        \qquad
         \dot{\vec{u}} =
         \begin{bmatrix}
         \theta_1 \\ \theta_2 \\ T_{avg} \\ T_{diff}
         \end{bmatrix}
         \]
-	\[
+        The equations of motion are represented as a series of first-order vector differential equations:
+        	\[
 		\dot{\vec{p}} = \vec{v}
 	\]
 	\[
@@ -112,15 +114,6 @@
 	\]
 	\[
 		\dot{\vec{\omega}} = I^{-1}\!\left(\vec{M_b} - \vec{\omega} \times (I\,\vec{\omega})\right)
-	\]
-	\[
-		\dot{x} = v_x
-	\]
-	\[
-		\dot{y} = v_y
-	\]
-	\[
-		\dot{z} = v_z
 	\]
 	 \[
          \vec{F_b} = T
@@ -182,6 +175,15 @@
         \omega_y & -\omega_x & 0 & \omega_z \\
         -\omega_x & -\omega_y & -\omega_z & 0
         \end{bmatrix}
+	\]
+	\[
+		\dot{x} = v_x
+	\]
+	\[
+		\dot{y} = v_y
+	\]
+	\[
+		\dot{z} = v_z
 	\]
 	\[
 		\dot{x} = v_x
