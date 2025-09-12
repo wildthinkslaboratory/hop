@@ -171,7 +171,7 @@ class DroneNMPCSingleShoot:
 
         x_N = X[:, self.N]             # final state
         e_N = x_N - self.x_goal        # final error
-        Qf  = 20*mc.Q                     # terminal weight matrix (scale Q heavier)
+        Qf  = mc.Q                     # terminal weight matrix (scale Q heavier)
         cost = cost + e_N.T @ Qf @ e_N
 
 

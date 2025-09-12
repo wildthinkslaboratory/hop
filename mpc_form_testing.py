@@ -12,20 +12,11 @@ from hop.drone_mpc_casadi import DroneNMPCSingleShoot
 from hop.drone_mpc_cgl import DroneNMPCwithCGL
 from animation import RocketAnimation
 import matplotlib.pyplot as plt
-from plots import plot_state_for_comparison, plot_control_for_comparison
+from plots import plot_state_for_comparison, plot_control_for_comparison, plot_time_comparison, plot_state_for_paper, plot_control_for_paper
 
 mc = Constants()
 
 tests = [
-  {
-    "x0": [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [0.0, -0.2, -1],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.8,
-    "num_iterations": 400,
-    "title": "drop"
-  },
   {
     "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
     "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
@@ -34,6 +25,63 @@ tests = [
     "animation_frame_rate": 0.8,
     "num_iterations": 200,
     "title": "hover"
+  },
+]
+
+tests_full = [
+  {
+    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [0.0, -0.2, -1],
+    "animation_up": [0, 1, 0],
+    "animation_frame_rate": 0.8,
+    "num_iterations": 200,
+    "title": "hover"
+  },
+  {
+    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.383, 0.924, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [-0.2, -0.5, 0.2],
+    "animation_up": [0, 1, 0],
+    "animation_frame_rate": 0.8,
+    "num_iterations": 500,
+    "title": "45dz"
+  },
+  {
+    "x0": [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [0.0, -0.2, -1],
+    "animation_up": [0, 1, 0],
+    "animation_frame_rate": 0.8,
+    "num_iterations": 400,
+    "title": "z1"
+  },
+  {
+    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "xr": [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [0.0, -0.2, -1],
+    "animation_up": [0, 1, 0],
+    "animation_frame_rate": 0.8,
+    "num_iterations": 200,
+    "title": "y1"
+  },
+  {
+    "x0": [1.0, 0.0, 1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [1, -0.5, -1],
+    "animation_up": [0, 1, 0],
+    "animation_frame_rate": 0.4,
+    "num_iterations": 200,
+    "title": "x1z1vx"
+  },
+  {
+    "x0": [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [-1, -0.1, -0.2],
+    "animation_up": [0, 1, 0],
+    "animation_frame_rate": 0.4,
+    "num_iterations": 250,
+    "title": "y115dx"
   },
   {
     "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
@@ -52,36 +100,8 @@ tests = [
     "animation_frame_rate": 0.4,
     "num_iterations": 250,
     "title": "hop in y direction, starting 15 deg around x"
-  },
-  {
-    "x0": [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "xr": [1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [1, -0.5, -1],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.4,
-    "num_iterations": 200,
-    "title": "starting velocity, hop to [1, 0, 1]"
-  },
-  {
-    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "xr": [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [0.0, -0.2, -1],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.8,
-    "num_iterations": 200,
-    "title": "hop in positive y direction"
-  },
-  {
-    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.383, 0.924, 0.0, 0.0, 0.0],
-    "xr": [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [-0.2, -0.5, 0.2],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.8,
-    "num_iterations": 350,
-    "title": "hop in y direction, 45 deg rotation about z axis"
   }
 ]
-
 
 for test in tests:
 
@@ -184,14 +204,24 @@ for test in tests:
     print("max       {: >20} {: >20} {: >20}".format(*max_time))
     print("bad times {: >20} {: >20} {: >20}".format(*bad_times))
 
-    plot_state_for_comparison(tspan, dompc_state_data, test["title"] + ' dompc', 1)
-    plot_state_for_comparison(tspan, specmpc_state_data, test["title"] + ' specmpc', 2)
-    plot_state_for_comparison(tspan, ssmpc_state_data, test["title"] + ' ssmpc', 3)
 
-    plot_control_for_comparison(tspan, dompc_control_data, test["title"] + ' dompc', 4)
-    plot_control_for_comparison(tspan, specmpc_control_data, test["title"] + ' specmpc', 5)
-    plot_control_for_comparison(tspan, ssmpc_control_data, test["title"] + ' ssmpc', 6)
+    plot_state_for_paper(tspan, dompc_state_data, test["title"], 1)
+    plot_state_for_paper(tspan, specmpc_state_data, test["title"], 2)
+    plot_state_for_paper(tspan, ssmpc_state_data, test["title"], 3)
 
+    plot_control_for_paper(tspan, dompc_control_data, test["title"], 4)
+    plot_control_for_paper(tspan, specmpc_control_data, test["title"], 5)
+    plot_control_for_paper(tspan, ssmpc_control_data, test["title"], 6)
+
+    # plot_state_for_comparison(tspan, dompc_state_data, test["title"], 1)
+    # plot_state_for_comparison(tspan, specmpc_state_data, test["title"], 2)
+    # plot_state_for_comparison(tspan, ssmpc_state_data, test["title"], 3)
+
+    # plot_control_for_comparison(tspan, dompc_control_data, test["title"], 4)
+    # plot_control_for_comparison(tspan, specmpc_control_data, test["title"], 5)
+    # plot_control_for_comparison(tspan, ssmpc_control_data, test["title"], 6)
+
+    plot_time_comparison(tspan, dompc_time_data, ssmpc_time_data, specmpc_time_data, test["title"], 7)
     plt.show()
 
     # input("Press [enter] to continue.")

@@ -148,15 +148,13 @@ class DroneNMPCwithCGL:
             # self.lbg += [-ca.inf]*2
             # self.ubg += [0.0]*2
 
-
+        
+        x_N = X[:, self.N]
+        e_N = x_N - self.x_goal
+        Qf = mc.Q
+        cost = cost + e_N.T @ Qf @ e_N
 
         cost = cost * tau_2_time
-        
-        # x_N = X[:, self.N]
-        # e_N = x_N - self.x_goal
-        # Qf = 10*mc.Q
-        # cost = cost + e_N.T @ Qf @ e_N
-
 
         # Now we set up the solver and do all of the options and parameters
         nlp_prob = {

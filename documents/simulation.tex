@@ -8,6 +8,8 @@
 \usepackage{physics}
 \usepackage{graphicx}
 \usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
 %\usepackage[round]{natbib}
 %\bibliographystyle{unsrtnat}
 
@@ -65,7 +67,7 @@
 % Python for inline
 \newcommand\pythoninline[1]{{\pythonstyle\lstinline!#1!}}
 
-\title{Nonlinear Model Predictive Control  of a Thrust Vector Drone}
+\title{Comparison of Direct Methods for NMPC  Applied to  a Thrust Vector Drone}
 \author{Izzy Mones and Heidi Dixon}
 %\date{}
 
@@ -259,7 +261,7 @@ The 6DOF equations of motion that describe our dynamics are strongly nonlinear. 
 
 A prime drawback of {\mpc} and {\nmpc} algorithms over LQR and PID  is their higher computational cost.  To use {\nmpc} to control a thrust vector drone, we need to solve an {\nmpc} instance in less than $0.02$ seconds on a Raspberry Pi 5.  Given an {\nmpc} problem instance, there are a variety of known ways to formulate the instance as nonlinear programming problem.  Here we give our {\nmpc} problem instance and present three different ways to formulate this instance as a nonlinear programming problem.  We then compare the quality of  solutions produced and their relative computational efficiency.
 
-To use {\nmpc} the problem instance needs to be parameterized over the control trajectory, the differential equations for the system dynamics need to be integrated forward, and then the resulting problem can be optimized over control parameters. There are different ways to parameterize the problem and integrate it.  These choices will affect the size of the problem and the speed at which it can be solved.
+To use {\nmpc} the problem instance needs to be parameterized over the control trajectory, the differential equations for the system dynamics need to be integrated forward, and then the resulting problem can be optimized over control parameters. There are different ways to parameterize the problem and integrate it.  These choices will affect the size of the problem and the speed at which it can be solved. Also the accuracy of the solution.
 
 Terms we should know {\em single shooting}, {\em multiple shooting}, {\em direct collocation methods}, {\em pseudo spectral methods} What are these and relative advantages / disadvantages.
 
@@ -300,23 +302,26 @@ Terms we should know {\em single shooting}, {\em multiple shooting}, {\em direct
         
 \section{Direct Methods}
 \subsection*{Orthagonal Collocation using {do-mpc}} 
-\subsection*{Direct Collocation (with Runge–Kutta discretization)}: 
+\subsection*{Multiple Shooting (with Runge–Kutta discretization)}
+Need to talk about time period $[t_i, t_f]$ and how we divide it into sizes of $\Delta t$.
+For multiple shooting, we divide our time horizon into $N$ evenly spaced nodes $\{ t_0, t_1, \ldots, t_N \}$. At each node we make a copy of our state $x_k$ and control $u_k$ variables.  Within each time step $[ t_k, t_{k+1}]$ we forward integrate our differential equations $f$ using Runge-Kutta  to create a constraint that enforces the change of state between time steps. 
+\begin{eqnarray}
+		 \nonumber
+        k_1 &= f(x_k, u_k, t_k), \\[6pt] \nonumber
+        k_2 &= f\!\left(x_k + \tfrac{\Delta t}{2} k_1,\, u_k,\, t_k + \tfrac{\Delta t}{2}\right), \\[6pt]  \nonumber
+        k_3 &= f\!\left(x_k + \tfrac{\Delta t}{2} k_2,\, u_k,\, t_k + \tfrac{\Delta t}{2}\right), \\[6pt]  \nonumber
+        k_4 &= f\!\left(x_k + \Delta t\, k_3,\, u_k,\, t_k + \Delta t\right), \\[10pt]  
+        x_{k+1} &= x_k + \tfrac{\Delta t}{6}\,\Big(k_1 + 2k_2 + 2k_3 + k_4\Big).  \label{eq.rkstate}
+ \end{eqnarray}
+ 
+ Where $f$ here needs a reference to our differential equations function from earlier. Need to talk about initial conditions, objective function, 
+ \[ x_0 = X_0\]
+ \begin{equation}
+ 	 \sum_{k=0}^{N-1}  \Big[(x_k -  x_{r})^T Q (x_k - x_{r}) + (u_k -  u_{r})^T R (u_k - u_{r}) \Big] + (x_N -  x_{r})^T Q (x_N - x_{r})
+ \end{equation}
 
-\begin{enumerate}
-	\item We discretize the state and control over $N$ time steps with length $\Delta t$.
-	\item We use Runge-Kutta integrations technique to estimate the state transition bewteen time steps.
-	\item The resulting set of $N$ constraints over 
-\end{enumerate}
-	\[
-        \begin{aligned}
-        k_1 &= f(x_k, u_k, t_k), \\[6pt]
-        k_2 &= f\!\left(x_k + \tfrac{\Delta t}{2} k_1,\, u_k,\, t_k + \tfrac{\Delta t}{2}\right), \\[6pt]
-        k_3 &= f\!\left(x_k + \tfrac{\Delta t}{2} k_2,\, u_k,\, t_k + \tfrac{\Delta t}{2}\right), \\[6pt]
-        k_4 &= f\!\left(x_k + \Delta t\, k_3,\, u_k,\, t_k + \Delta t\right), \\[10pt]
-        x_{k+1} &= x_k + \tfrac{\Delta t}{6}\,\Big(k_1 + 2k_2 + 2k_3 + k_4\Big).
-        \end{aligned}
-        \]
-\subsection*{Chebyshev-Gauss-Lobatto with spectral analysis}
+ 
+\subsection*{Chebyshev Pseudospectral Method}
 Maintains accuracy with far fewer nodes.  Disadvantages: A more complex NLP. doesn't do well with discontinuous controls.
 	\[
         \tau_j = \cos{(\frac{j\pi}{N})},\qquad j = 0,1,...,N
@@ -368,6 +373,7 @@ Maintains accuracy with far fewer nodes.  Disadvantages: A more complex NLP. doe
         \qquad i=1,\dots,N-1.
         \]
         
+        Using Clenshaw-Curtis quadrature.
 
         \[
         w_{\mathrm{j_{even}}} =
@@ -402,16 +408,13 @@ Maintains accuracy with far fewer nodes.  Disadvantages: A more complex NLP. doe
         \qquad t_j = \frac{t_f-t_0}{2}\,\tau_j + \frac{t_f+t_0}{2}.
         \]
         	
- {\em Solver:} ipopt solver, mumps, ma27 and ma57
- {\em Comparing Quality of Solution}  
- {\em Time Comparisons} 
 
-	
+\section*{Comparison of Methods}
 
-	
+To compare our different formulations for the NLP problem, we ran a series of simulations each with the drone beginning in a unique and perturbed starting state. In all cases, the drone goal state was to be vertically balanced and motionless at the point $(x,y,z) = (0, 0, 0)$ in three dimensional space. For each simulation, we computed the average time required to solve the NLP problem at each iteration. The quality of the solutions produced by each method was assessed by comparing the state and control graphs through time. All experiements were run on a Macbook Pro  3.49GHz Apple M2 chip with 8GB RAM. Code was implemented in Python 3.13 using CasADI 3.7.1. 
 	
 	\subsection*{NLP Solver}
-	To solve our non-linear programming (NLP) problems we used the \texttt{ipopt} solver that comes installed with CasADi.  This solver requires an additional subroutine to  solve sparse matrix systems. We experimented with the \texttt{mumps}  solver that comes with CasADi, and also tried using the  \texttt{ma27} and  \texttt{ma57} solvers  from HSL (Harwell Subroutine Library) \cite{hsl}. The HSL \texttt{ma27} solver produced the most efficient solutions overall. All solvers and experiments were run with the same solver settings.
+	To solve our non-linear programming (NLP) problems we used the \texttt{ipopt} solver that comes installed with CasADi 3.7.1.  This solver requires an additional subroutine to  solve sparse matrix systems. We experimented with the \texttt{mumps}  solver that comes with CasADi, and also tried using the  \texttt{ma27} and  \texttt{ma57} solvers  from HSL (Harwell Subroutine Library) \cite{hsl}. All solvers were compiled with Apple clang version 17.0.0. The HSL \texttt{ma27} solver produced the most efficient solutions overall. All solvers and experiments were run with the same solver settings.
 	\vspace{\baselineskip}
 	\begin{python}
         ipopt_settings = {
@@ -421,8 +424,231 @@ Maintains accuracy with far fewer nodes.  Disadvantages: A more complex NLP. doe
 			'ipopt.linear_solver': 'ma27',
 		}
 	\end{python}
-	
-	\section*{Comparison of Methods}
+
+
+
+\begin{figure}[H]
+	\centering
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{state45dz1.pdf}
+		\caption{orthagonal collocation}
+	\end{subfigure}%
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{state45dz3.pdf}
+		\caption{multiple shooter}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{state45dz2.pdf}
+		\caption{Chebyshev pseudospectral}
+	\end{subfigure}
+	\caption{State data on a simulation requiring a $45^{\circ}$ rotation about the $z$ axis.}
+	\label{fig:state45z}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{control45dz4.pdf}
+		\caption{orthagonal collocation}
+	\end{subfigure}%
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{control45dz6.pdf}
+		\caption{multiple shooter}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{control45dz5.pdf}
+		\caption{Chebyshev pseudospectral}
+	\end{subfigure}
+	\caption{Control data on a simulation requiring a $45^{\circ}$ rotation about the $z$ axis.}
+	\label{fig:control45z}
+\end{figure}
+
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\textwidth]{time45dz.pdf}
+	\caption{CPU time for simulation requiring a $45^{\circ}$ rotation about the $z$ axis.}
+	\label{fig:kfangle}
+\end{figure}
+
+
+\begin{figure}[H]
+	\centering
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{statex1z1vx1.pdf}
+		\caption{orthagonal collocation}
+	\end{subfigure}%
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{statex1z1vx3.pdf}
+		\caption{multiple shooter}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{statex1z1vx2.pdf}
+		\caption{Chebyshev pseudospectral}
+	\end{subfigure}
+	\caption{State data on a simulation with initial conditions: $x = 1$, $z=1$, $v_x = 0.5$ }
+	\label{fig:state45z}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{controlx1z1vx4.pdf}
+		\caption{orthagonal collocation}
+	\end{subfigure}%
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{controlx1z1vx6.pdf}
+		\caption{multiple shooter}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{controlx1z1vx5.pdf}
+		\caption{Chebyshev pseudospectral}
+	\end{subfigure}
+	\caption{Control data on a simulation with initial conditions: $x = 1$, $z=1$, $v_x = 0.5$}
+	\label{fig:control45z}
+\end{figure}
+
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\textwidth]{time45dz.pdf}
+	\caption{CPU time for a simulation with initial conditions: $x = 1$, $z=1$, $v_x = 0.5$}
+	\label{fig:timex1z1vx}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{statey115dx1.pdf}
+		\caption{orthagonal collocation}
+	\end{subfigure}%
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{statey115dx3.pdf}
+		\caption{multiple shooter}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{statey115dx2.pdf}
+		\caption{Chebyshev pseudospectral}
+	\end{subfigure}
+	\caption{State data on a simulation with initial conditions: $y = 1$,$15^{\circ}$ rotation about $x$ axis.}
+	\label{fig:state45z}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{controly115dx4.pdf}
+		\caption{orthagonal collocation}
+	\end{subfigure}%
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{controly115dx6.pdf}
+		\caption{multiple shooter}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{controly115dx5.pdf}
+		\caption{Chebyshev pseudospectral}
+	\end{subfigure}
+	\caption{Control data on a simulation with initial conditions: $y = 1$,$15^{\circ}$ rotation about $x$ axis.}
+	\label{fig:control45z}
+\end{figure}
+
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\textwidth]{timey115dx.pdf}
+	\caption{CPU time for simulation with initial conditions: $y = 1$,$15^{\circ}$ rotation about $x$ axis.}
+	\label{fig:kfangle}
+\end{figure}
+
+
+
+
+\begin{figure}[H]
+	\centering
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{statehover1.pdf}
+		\caption{orthagonal collocation}
+	\end{subfigure}%
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{statehover3.pdf}
+		\caption{multiple shooter}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{statehover2.pdf}
+		\caption{Chebyshev pseudospectral}
+	\end{subfigure}
+	\caption{State data on a simulation with initial state equal to goal state.}
+	\label{fig:state45z}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{controlhover4.pdf}
+		\caption{orthagonal collocation}
+	\end{subfigure}%
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{controlhover6.pdf}
+		\caption{multiple shooter}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{controlhover5.pdf}
+		\caption{Chebyshev pseudospectral}
+	\end{subfigure}
+	\caption{Control data on a simulation with initial state equal to goal state.}
+	\label{fig:control45z}
+\end{figure}
+
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\textwidth]{timehover.pdf}
+	\caption{CPU time for simulation with initial state equal to goal state.}
+	\label{fig:kfangle}
+\end{figure}
+
+
+\begin{table}[h!]	
+	\begin{center}
+		\begin{tabular}{ | l | c | c | c | } 
+			\hline
+			initial state & OC  & MS & CPS \\
+			\hline
+			$45^{\circ}$ rotation about $z$ axis & 0.063 &       0.056 & 0.002 \\ 
+			$x = 1$, $z=1$, $v_x = 0.5$  & 0.059          &        0.046 & 0.003 \\ 
+			$y = 1$,$15^{\circ}$ rotation about $x$ axis &0.063          &       0.06 & 0.004\\ 
+				initial state equal to goal state & 0.062    &            0.056  & 0.002 \\ 
+			\hline
+		\end{tabular}
+		\caption{Comparison of average CPU time in seconds for solution of NLP for a series of  simulations. Methods include orthagonal collocation (OC),  multiple shooter (MS), and Chebyshev pseudospectral method (CPS). }
+	\end{center}
+\end{table}
+
+Our goal is to run our control algorithm at $50$Hz on the raspberry Pi 5. The CPU speed of the Pi is 2.4GHz while our experiments were run on a machine with a CPU speed of 3.49GHz. To meet our goal of 50Hz on the Pi we need a solution time on the experiment machine of less than $0.014$ seconds.
 	\section*{Conclusions}
 	
 	
