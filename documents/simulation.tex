@@ -56,8 +56,8 @@
 		tabsize=4
 }}
 
-\newcommand{\mpc}{\textsc{mpc}}
-\newcommand{\nmpc}{\textsc{nmpc}}
+\newcommand{\mpc}{MPC}
+\newcommand{\nmpc}{NMPC}
 
 % Python environment
 \lstnewenvironment{python}[1][]
@@ -99,18 +99,12 @@
         \end{bmatrix}
         \]
         The equations of motion are represented as a series of first-order vector differential equations:
-        	\[
-		\dot{\vec{p}} = \vec{v}
-	\]
-	\[
-		\dot{\vec{v}} = \frac{1}{m}R(\vec{q})\vec{F_b}+\vec{g}
-	\]
-	\[
-		\dot{\vec{q}} = \frac{1}{2}Q(\vec{\omega})\vec{q}
-	\]
-	\[
-		\dot{\vec{\omega}} = I^{-1}\!\left(\vec{M_b} - \vec{\omega} \times (I\,\vec{\omega})\right)
-	\]
+        \begin{gather}
+        	\dot{\vec{p}}  = \vec{v}         \label{eqMotion1}	\\
+        	\dot{\vec{v}}  = \frac{1}{m}R(\vec{q})\vec{F_b}+\vec{g}  \label{eqMotion2} \\
+        	\dot{\vec{q}} = \frac{1}{2}Q(\vec{\omega})\vec{q}  \label{eqMotion3} \\
+        	\dot{\vec{\omega}} = I^{-1}\!\left(\vec{M_b} - \vec{\omega} \times (I\,\vec{\omega})\right) \label{eqMotion4}
+        \end{gather}
 	Using vector decomposition we can find the thrust vector in body coordinates in terms of the control variables $\theta_1$ and $\theta_2$.	
 	\begin{figure}[H]
 	\centering
@@ -265,18 +259,16 @@ To map the average thrust command signal value to the actual thrust force value 
 	\section*{NMPC}
 
 Model predictive control (\mpc) is a control algorithm that solves a linear optimization problem at each time step. 
-The set of instance constraints can be used to enforce the equations of motion and restrict the values of control inputs or state variables.  For example, {\mpc} constraints can be used to eliminate solutions that violate minimum or maximum control values or require control values to change faster than mechanically possible.  This gives {\mpc} algorithms more control over the types of solutions produced than linear quadratic regulators (LQR) or proportional integral derivative (PID) controllers.  
+The set of instance constraints can be used to enforce the system dynamics and restrict the values of control inputs or state variables.  For example, {\mpc} constraints can be used to eliminate solutions that violate minimum or maximum control values or require control values to change faster than mechanically possible.  This gives {\mpc} algorithms more control over the types of solutions produced than linear quadratic regulators (LQR) or proportional integral derivative (PID) controllers.  
 Unlike LQR and PID methods which are designed to find an optimal control input for a given moment in time, an {\mpc} solution considers a series of control inputs over a finite time horizon.  This allows {\mpc} solutions to create a {\em plan} of actions that can anticipate and adjust to future issues. For example, the optimal speed for a car at a given instance might change if the algorithm knew that it was entering a curve in the road in the next few time steps.
 The ability to anticipate future conditions allows {\mpc} to construct more robust solutions. The control plan is rebuilt at each timestep allowing the method to react to disturbances and noise.
 Nonlinear model predictive control (\nmpc) is a variant of {\mpc} that allows nonlinear constraints. 
 
-The biggest advantage of using {\nmpc} to control our thrust vector drone is the allowance of nonlinear constraints. 
-The 6DOF equations of motion that describe our dynamics are strongly nonlinear.  An LQR or {\mpc} method  requires a linear model. The 6DOF equations can be linearized around the fixed point in which the drone is vertically balanced, however, the linearized equations quickly become inaccurate if the drone moves away from the fixed point.  Working directly with the nonlinear equations allows more accurate predictions of the drone state. Like {\mpc}, {\nmpc}  allows us to enforce the mechanical limitations of our thrust motors and gimbal servos.
+The biggest advantage of using {\nmpc} to control our thrust vector drone is the allowance of nonlinear constraints. An LQR or {\mpc} method  requires a linear model.
+ Equations (\ref{eqMotion1}-\ref{eqMotion4}) are strongly nonlinear, but can be linearized around the fixed point in which the drone is vertically balanced.  However, the linearized equations quickly become inaccurate if the drone moves away from the fixed point.  Working directly with the nonlinear equations allows more accurate predictions of the drone behavior. Like {\mpc}, {\nmpc}  allows us to enforce the mechanical limitations of our thrust motors and gimbal servos.
 
 
-A prime drawback of {\mpc} and {\nmpc} algorithms over LQR and PID  is their higher computational cost.  To use {\nmpc} to control a thrust vector drone, we need to solve an {\nmpc} instance in less than $0.02$ seconds on a Raspberry Pi 5.  Given an {\nmpc} problem instance, there are a variety of known ways to formulate the instance as nonlinear programming problem.  Here we give our {\nmpc} problem instance and present three different ways to formulate this instance as a nonlinear programming problem.  We then compare the quality of  solutions produced and their relative computational efficiency.
 
-To use {\nmpc} the problem instance needs to be parameterized over the control trajectory, the differential equations for the system dynamics need to be integrated forward, and then the resulting problem can be optimized over control parameters. There are different ways to parameterize the problem and integrate it.  These choices will affect the size of the problem and the speed at which it can be solved. Also the accuracy of the solution.
 
 
 
@@ -314,7 +306,13 @@ To use {\nmpc} the problem instance needs to be parameterized over the control t
         0 \leq z
         \]
         
-\section{Direct Methods}
+\section{NLP Formulations}
+A prime drawback of {\mpc} and {\nmpc} algorithms over LQR and PID  is their higher computational cost.  Ideally, we'd like to run our control algorithm at $50$Hz on a Raspberry Pi 5.  To meet this timing restriction we need to build an {\nmpc} instance that can be solved efficiently.
+Given an {\nmpc} problem instance, there are a variety of known ways to formulate the instance as nonlinear programming problem.  
+Here we give our {\nmpc} problem instance and present three different ways to formulate this instance as a nonlinear programming problem.  We then compare the quality of  solutions produced and their relative computational efficiency.
+
+To use {\nmpc} the problem instance needs to be parameterized over the control trajectory, the differential equations for the system dynamics need to be integrated forward, and then the resulting problem can be optimized over control parameters. There are different ways to parameterize the problem and integrate it.  These choices will affect the size of the problem and the speed at which it can be solved. Also the accuracy of the solution.
+
 \subsection*{Orthogonal Collocation using {do-mpc}} 
 Orthogonal collocation is a local method that divides the time horizon into finite elements and fits polynomials to each interval. The dynamics are enforced throughout each interval at a set of Radau nodes given by:
         \[
