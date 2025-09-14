@@ -86,7 +86,7 @@
 	
 	\section*{Thrust Vector Drone Equations of Motion}
 	
-	The system state and control variables are defined as follows, the state $\vec{x}$ includes translational position $x, y,  z $ and velocity $v_x, v_y, v_z $  in the world frame, the attitude represented as a unit quaternion $q_x, q_y,  q_z, q_w$ , and the angular velocity in the body frame $ \omega_x, \omega_y, \omega_z$. The control variables include the two gimbal angles $\theta_1, \theta_2 $, the average thrust between the two propellers $T_{avg}$ and the differential thrust between the propellers $T_{diff}$ to control the rotation about the body z axis.
+The system state $\vec{x}$ includes translational position $x, y,  z $ and velocity $v_x, v_y, v_z $  in the world frame, the attitude represented as a unit quaternion $q_x, q_y,  q_z, q_w$ and the angular velocity in the body frame $ \omega_x, \omega_y, \omega_z$. The control variables include the two gimbal angles $\theta_1, \theta_2 $, the average thrust between the two propellers $T_{avg}$ and the differential thrust between the propellers $T_{diff}$ to control the rotation about the body z axis.
         \[
         \vec{x} =
         \begin{bmatrix}
@@ -105,7 +105,7 @@
         	\dot{\vec{q}} = \frac{1}{2}Q(\vec{\omega})\vec{q}  \label{eqMotion3} \\
         	\dot{\vec{\omega}} = I^{-1}\!\left(\vec{M_b} - \vec{\omega} \times (I\,\vec{\omega})\right) \label{eqMotion4}
         \end{gather}
-	Using vector decomposition we can find the thrust vector in body coordinates in terms of the control variables $\theta_1$ and $\theta_2$.	
+
 	\begin{figure}[H]
 	\centering
 	\includegraphics[width=0.7\textwidth]{graph3d.jpg}
@@ -128,14 +128,15 @@
         	\label{fig:3dDecomp}
         \end{figure}
 
-	 \[
-         \vec{F_b} = T
-        \begin{bmatrix}
-        \sin{\theta_2}  \\
-         -\sin{\theta_1}\cos{\theta_2}  \\
-         \cos{\theta_1}\cos{\theta_2}
-        \end{bmatrix}
-        \]
+	Using vector decomposition we can find the thrust vector in body coordinates in terms of the control variables $\theta_1$ and $\theta_2$.	
+\[
+\vec{F_b} = T
+\begin{bmatrix}
+	\sin{\theta_2}  \\
+	-\sin{\theta_1}\cos{\theta_2}  \\
+	\cos{\theta_1}\cos{\theta_2}
+\end{bmatrix}
+\]
 $\vec{M_z}$ is the moment about the body z axis due to differential thrust.
         \[
 	\vec{M_z} =
@@ -256,7 +257,7 @@ To map the average thrust command signal value to the actual thrust force value 
 	
 
 
-	\section*{NMPC}
+\section*{NMPC}
 
 Model predictive control (\mpc) is a control algorithm that solves a linear optimization problem at each time step. 
 The set of instance constraints can be used to enforce the system dynamics and restrict the values of control inputs or state variables.  For example, {\mpc} constraints can be used to eliminate solutions that violate minimum or maximum control values or require control values to change faster than mechanically possible.  This gives {\mpc} algorithms more control over the types of solutions produced than linear quadratic regulators (LQR) or proportional integral derivative (PID) controllers.  
@@ -265,53 +266,39 @@ The ability to anticipate future conditions allows {\mpc} to construct more robu
 Nonlinear model predictive control (\nmpc) is a variant of {\mpc} that allows nonlinear constraints. 
 
 The biggest advantage of using {\nmpc} to control our thrust vector drone is the allowance of nonlinear constraints. An LQR or {\mpc} method  requires a linear model.
- Equations (\ref{eqMotion1}-\ref{eqMotion4}) are strongly nonlinear, but can be linearized around the fixed point in which the drone is vertically balanced.  However, the linearized equations quickly become inaccurate if the drone moves away from the fixed point.  Working directly with the nonlinear equations allows more accurate predictions of the drone behavior. Like {\mpc}, {\nmpc}  allows us to enforce the mechanical limitations of our thrust motors and gimbal servos.
-
-
-
-
-
-
-        \[
-        \min_{u(t)} \; \int_{t_0}^{t_f} \ell(x,u,t)\,dt \;+\; \phi(x_f)
-        \]
-        \[
-	\ell(x,u,t) = (x(t)-x_{ref})^T Q (x(t)-x_{ref}) + (u(t)-u_{ref})^T R (u(t)-u_{ref}) 
-        \]
-        \[
-	\phi(x_f) = (x(t_f)-x_{ref})^T Q_f (x(t_f)-x_{ref})
-        \]
-        \[
-	-\theta_{max} \leq \theta_1 \leq \theta_{max}
-        \]
-        \[
-	-\theta_{max} \leq \theta_2 \leq \theta_{max}
-        \]
-        \[
-        	-\dot{\theta}_{max} \leq \dot{\theta}_1 \leq \dot{\theta}_{max}
-        \]
-        \[
-        	-\dot{\theta}_{max} \leq \dot{\theta}_2 \leq \dot{\theta}_{max}
-        \]
-        \[
-        	T_{min}  \leq T_{avg} + T_{diff}/2 \leq T_{max}
-        \]
-        \[
-        T_{min} \leq  T_{avg} - T_{diff}/2 \leq T_{max}
-        \]
-        \[
-        T_{diff_{min}} \leq T_{diff} \leq T_{diff_{max}}
-        \]
-        \[
-        0 \leq z
-        \]
+ Equations (\ref{eqMotion1}-\ref{eqMotion4}) are strongly nonlinear, but can be linearized around the fixed point in which the drone is vertically balanced.  However, the linearized equations quickly become inaccurate if the drone moves away from the fixed point by tilting or rotating.  Working directly with the nonlinear equations allows more accurate predictions of the drone behavior. Like {\mpc}, {\nmpc}  allows us to enforce the mechanical limitations of our thrust motors and gimbal servos. An {\nmpc} instance for the thrust vector drone is a minimization problem of the form
+\begin{align}
+	   \min_{u(t)} \; & \int_{t_0}^{t_f} \ell(x,u,t)\,dt \;+\; \phi(x_f) \label{nmpc:cost} \\
+	  	  \text{s.t.} \;\; & \dot{x} = f(x,u)  \label{nmpc:eq_mot} \\
+	  &	-\theta_{max} \leq \theta_1 \leq \theta_{max} \label{nmpc:gimbal1} \\
+	  & 	-\theta_{max} \leq \theta_2 \leq \theta_{max} \label{nmpc:gimbal2} \\
+%	  & 	-\dot{\theta}_{max} \leq \dot{\theta}_1 \leq \dot{\theta}_{max} \\
+%	  &  	-\dot{\theta}_{max} \leq \dot{\theta}_2 \leq \dot{\theta}_{max}\\ 
+	  & 	T_{min}  \leq T_{avg} + T_{diff}/2 \leq T_{max} \label{nmpc:thrust1} \\
+	  &    T_{min} \leq  T_{avg} - T_{diff}/2 \leq T_{max} \label{nmpc:thrust2} \\
+%	  &       T_{diff_{min}} \leq T_{diff} \leq T_{diff_{max}} \label{nmpc:thrust3} \\
+	  &        0 \leq z. \label{nmpc:vert}
+\end{align}
+The cost function (\ref{nmpc:cost}) minimizes both  the squared error between the current state $x(t)$ and the goal state $x_{ref}$ weighted by diagonal matrix $Q$ and the error between the current control $u(t)$ and the goal control $u_{ref}$ weighted by diagonal matrix $R$. 
         
-\section{NLP Formulations}
-A prime drawback of {\mpc} and {\nmpc} algorithms over LQR and PID  is their higher computational cost.  Ideally, we'd like to run our control algorithm at $50$Hz on a Raspberry Pi 5.  To meet this timing restriction we need to build an {\nmpc} instance that can be solved efficiently.
-Given an {\nmpc} problem instance, there are a variety of known ways to formulate the instance as nonlinear programming problem.  
-Here we give our {\nmpc} problem instance and present three different ways to formulate this instance as a nonlinear programming problem.  We then compare the quality of  solutions produced and their relative computational efficiency.
+        \begin{equation}
+        		\ell(x,u,t) = (x(t)-x_{ref})^T Q (x(t)-x_{ref}) + (u(t)-u_{ref})^T R (u(t)-u_{ref}) 
+        \end{equation}
+We also add a termial cost 
+        \begin{equation}
+        	\phi(x_f) = (x(t_f)-x_{ref})^T Q_f (x(t_f)-x_{ref})
+        \end{equation}
+The constraints enforce the equations of motion (\ref{nmpc:eq_mot}), gimbal min and max angles (\ref{nmpc:gimbal1},\ref{nmpc:gimbal2}), min and max values for the thrust motors (\ref{nmpc:thrust1}, \ref{nmpc:thrust2}) and the drones vertical height (\ref{nmpc:vert}).
 
-To use {\nmpc} the problem instance needs to be parameterized over the control trajectory, the differential equations for the system dynamics need to be integrated forward, and then the resulting problem can be optimized over control parameters. There are different ways to parameterize the problem and integrate it.  These choices will affect the size of the problem and the speed at which it can be solved. Also the accuracy of the solution.
+To solve the {\nmpc} instance at each time step, it is formulated as a nonlinear programming problem (NLP) and solved by a standard NLP solver.  NLP solvers are well established, highly optimized methods that originated in the field of operations research. Unfortunately, despite the availability of efficient solvers for these problem, NLP solutions for {\nmpc} problem instances may be too slow to produce control inputs for a thrust vector drone which requires a fast response time. This is a prime drawback of {\mpc} and {\nmpc} algorithms over LQR and PID  methods which can be computed very quickly.
+
+Ideally, we'd like to run our control algorithm at $50$Hz on a Raspberry Pi 5.  To meet this timing restriction we need to build an {\nmpc} instance that can be solved efficiently. Given an {\nmpc} problem instance, there are a variety of known ways to formulate the instance as nonlinear programming problem.  
+Next, we present three different ways to formulate this instance as a nonlinear programming problem and then compare the quality of  solutions produced and their relative computational efficiency.
+
+
+\section*{NLP Formulations}
+
+To use {\nmpc} the problem instance needs to be parameterized over the control trajectory, the differential equations for the system dynamics need to be integrated, and then the resulting problem can be optimized over control parameters. There are different ways to parameterize the problem and integrate it.  These choices will affect the size of the problem and the speed at which it can be solved. All these methods are using numerical methods to estimate the behaviour of differential equations. The accuracy of the estimation will vary depending on the method used and the coarseness of the parameterization. Typically there is a tradeoff between speed and accuracy.
 
 \subsection*{Orthogonal Collocation using {do-mpc}} 
 Orthogonal collocation is a local method that divides the time horizon into finite elements and fits polynomials to each interval. The dynamics are enforced throughout each interval at a set of Radau nodes given by:
