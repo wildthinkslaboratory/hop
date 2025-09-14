@@ -739,52 +739,8 @@ All of the methods provide good quality solutions with state values that behaved
 
  Our goal is to run our control algorithm at $50$Hz on the raspberry Pi 5. The CPU speed of the Pi is 2.4GHz while our experiments were run on a machine with a CPU speed of 3.49GHz. To meet our goal of 50Hz on the Pi we need a solution time on the experiment machine of less than $0.014$ seconds. Table (\ref{table:CPU}) summarizes the average CPU time for solution of the NLP problem for each simulation and each method.  The run times for the orthagonal collocation and multiple shooter are both too slow to meet our  $50$Hz target.  Additional changes such as reducing the length of the horizon or relaxing convergence criteria might improve these times somewhat, but they are unlikely to provide the performance needed for this application of NMPC.  The Chebyshev pseudospectral method is substantially faster and comfortably meets our $0.014$ solution time while providing solution graphs with comparable quality.
 
-
-\begin{figure}[H]
-	\centering
-	\begin{subfigure}[b]{0.3\textwidth}
-		\centering
-		\includegraphics[width=\textwidth]{controlx1z1vx6.pdf}
-		\caption{orthagonal collocation}
-	\end{subfigure}%
-	\begin{subfigure}[b]{0.3\textwidth}
-		\centering
-		\includegraphics[width=\textwidth]{controlx1z1vx5.pdf}
-		\caption{multiple shooter}
-	\end{subfigure}
-	\begin{subfigure}[b]{0.3\textwidth}
-		\centering
-		\includegraphics[width=\textwidth]{controlx1z1vxN85.pdf}
-		\caption{Chebyshev pseudospectral}
-	\end{subfigure}
-	\caption{Control data on a simulation with initial state equal to goal state.}
-	\label{fig:controlwithN81}
-\end{figure}
-
-
-\begin{figure}[H]
-	\centering
-	\begin{subfigure}[b]{0.3\textwidth}
-		\centering
-		\includegraphics[width=\textwidth]{controly115dx6.pdf}
-		\caption{orthagonal collocation}
-	\end{subfigure}%
-	\begin{subfigure}[b]{0.3\textwidth}
-		\centering
-		\includegraphics[width=\textwidth]{controly115dx5.pdf}
-		\caption{multiple shooter}
-	\end{subfigure}
-	\begin{subfigure}[b]{0.3\textwidth}
-		\centering
-		\includegraphics[width=\textwidth]{controly115dxN85.pdf}
-		\caption{Chebyshev pseudospectral}
-	\end{subfigure}
-	\caption{Control data on a simulation with initial state equal to goal state.}
-	\label{fig:controlwithN82}
-\end{figure}
-
-	\section*{Conclusions}
-	
+\section*{Conclusions}
+We implemented three different formulations of the NPL problem for an NMPC algorithm controlling a thrust vector drone and compared their solution quality and relative efficiency. All methods produced good quality solutions while only the Chebyshev pseudospectral method provided solutions that are efficient enough to control the drone on a Raspberry Pi 5. Further real-world experiments are required to determine if the solutions produced provide good control in practice.
 	
 	
 %	\nocite{*}

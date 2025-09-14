@@ -20,7 +20,7 @@ class Constants:
         self.mpc_horizon = 100 # number of timesteps for nmpc to consider
 
 
-        self.spectral_order = 10
+        self.spectral_order = 6
         self.timelimit = 1 # in seconds
 
         self.a = 0

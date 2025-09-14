@@ -24,7 +24,7 @@ tests = [
     "animation_up": [0, 1, 0],
     "animation_frame_rate": 0.4,
     "num_iterations": 250,
-    "title": "y115dxN10"
+    "title": "y115dxT"
   },
 ]
 
