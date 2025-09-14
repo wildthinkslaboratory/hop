@@ -303,21 +303,11 @@ To use {\nmpc} the problem instance needs to be parameterized over the control t
 \subsection*{Orthogonal Collocation using {do-mpc}} 
 Orthogonal collocation is a local method that divides the time horizon into finite elements and fits polynomials to each interval. The dynamics are enforced throughout each interval at a set of Radau nodes given by:
         \[
-        \tau_0=1,  \qquad \tau_j = \text{roots of } \big(P_s(\tau)+P_{s+1}(\tau)\big), \qquad j = 1,\ldots,s
+        \gamma_0=1,  \qquad \gamma_j = \gamma_{j-1} \frac{(n-j+1)(n+j+\alpha+\beta)}{j(j+\beta)}, \qquad j = 1,\ldots,s
         \]
 When $P_n$ are the Legendre polynomials:
         \[
-        P_n(\tau) = \frac{1}{2^nn!}\frac{d^n}{d\tau^n}[(\tau^2-1)^n]
-        \]
-
-        \[
-        t(\tau) = \frac{t_{k+1}-t_k}{2}\,\tau + \frac{t_{k+1}+t_k}{2},  
-        \qquad 
-        \frac{dt}{d\tau} = \frac{\Delta t}{2}.
-        \]
-The chain rule is used to create a constraint for enforcing the dynamics:
-        \[
-        \frac{dx}{dt}=\frac{d\tau}{dt}\frac{dx}{d\tau}=\frac{2}{\Delta t}\frac{dx}{d\tau}
+        P_n^{(\alpha, \beta)}(\tau) = \sum_{j=0}^{n}(-1)^{n-j}\gamma_j\tau^j
         \]
         \[
         \frac{2}{\Delta t}\sum_{j=0}^s D_{ij}\,x_j - f(x(\tau_i),u(\tau_i),t(\tau_i))=0, 
