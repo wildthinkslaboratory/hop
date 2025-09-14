@@ -318,30 +318,39 @@ To use {\nmpc} the problem instance needs to be parameterized over the control t
 \subsection*{Orthogonal Collocation using {do-mpc}} 
 Orthogonal collocation is a local method that divides the time horizon into finite elements and fits polynomials to each interval. The dynamics are enforced throughout each interval at a set of Radau nodes given by:
         \[
-        \gamma_0=1,  \qquad \gamma_j = \gamma_{j-1} \frac{(n-j+1)(n+j+\alpha+\beta)}{j(j+\beta)}, \qquad j = 1,\ldots,s
+        \gamma_0=1,  \qquad \gamma_j = \gamma_{j-1} \frac{(K-j+1)(K+j+\alpha+\beta)}{j(j+\beta)}, \qquad j = 1,\ldots,K
         \]
-When $P_n$ are the Legendre polynomials:
+When $P_K$ are the Gauss-Jacobi polynomials:
         \[
-        P_n^{(\alpha, \beta)}(\tau) = \sum_{j=0}^{n}(-1)^{n-j}\gamma_j\tau^j
+        P_K^{(\alpha, \beta)}(\tau) = \sum_{j=0}^{K}(-1)^{K-j}\gamma_j\tau^j
+        \]
+Lagrange polynomials, $\ell_j(\tau)$, are used to interpolate the state trajectory $z^K(\tau)$:
+        \[
+	\ell_j(\tau)=\prod_{\substack{m=0 \\ m\neq j}}^{K}\frac{\tau-\tau_m}{\tau_j-\tau_m}
+        \]        
+        \[
+	z^K(\tau)=\sum_{j=0}^{K}z_{ij}\ell_j(\tau)
+        \]
+By differentiating the state trajectory and equating it with the dynamics ODEs, $f$, a dynamics constraint is formed:
+        \[
+        \sum_{j=0}^K z_{ij}\frac{d\ell_j(\tau_k)}{d\tau}=h_if(z_{ik},t_{ik}), 
+        \qquad k=1,\dots,K.
+        \]
+Continuity constraints are used to fit an interval polynomial's endpoint with the first point of the next interval. There are two additional continuity constraints for enforcing the overall horizon's start and endpoint continuity.
+        \[
+	z_{i+1,0}=\sum_{j=0}^{K}\ell_j(1)z^{ij}
         \]
         \[
-        \frac{2}{\Delta t}\sum_{j=0}^s D_{ij}\,x_j - f(x(\tau_i),u(\tau_i),t(\tau_i))=0, 
-        \qquad i=1,\dots,s.
+	z_f=\sum_{j=0}^{K}\ell_j(1)z^{Nj}, \qquad z_{1,0} = z_0
         \]
-Continuity constraints are imposed between intervals with $x_s$ being the state at the final Radau node:
+        The cost function is defined as:
         \[
-       x(t_{k+1})=x_s 
-        \]
-The cost function is defined as:
-        \[
-        	J=\frac{\Delta t}{2}\int_{t_k}^{t_{k+1}} \ell(x(t),u(t),t)\,dt \;+\; \phi(x(t_{k+1}))
+        	\substack{min \\ i(\cdot)}J=\Phi(z(t_f),t_f) + \int_{t_0}^{t_f}L(z(t),u(t),t)dt
         \]
         \[
-        J \;\approx\; \frac{\Delta t}{2} \sum_{i=0}^{s} w_i \,\ell(x_i,u_i,t_i)
-        \;+\; \phi(x_s),
-        \qquad  t(\tau) = \frac{t_{k+1}-t_k}{2}\,\tau + \frac{t_{k+1}+t_k}{2}.
+        J=\Phi(z(t_f)) + \sum_{i=1}^{N}h_i\sum_{k=1}^{K}\omega_kL(z_{ik},u_{ik},t_{ik})
         \]
-Where the weights $w_i$ are determined by Radau quadrature, which integrates all polynomials up to $2s-1$. For a horizon of 100 time steps each with an interpolant polynomial order of two the total number of decision variables per time step is $13*(100*(2+1)+1)+4*100=4313.$
+Where the weights $\omega_k$ are determined by Radau quadrature, which integrates all polynomials up to $2s-1$. For a horizon of 100 time steps each with an interpolant polynomial order of two the total number of decision variables per time step is $13*(100*(2+1)+1)+4*100=4313.$
 
 \subsection*{Multiple Shooting (with Runge–Kutta discretization)}
 For multiple shooting, we divide our time horizon into $N$ evenly spaced nodes $\{ t_0, t_1, \ldots, t_N \}$ of length $\Delta t$. The initial state is constrained and at each node we make a copy of our state $x_k$ and control $u_k$ variables. Within each time step $[ t_k, t_{k+1}]$ we forward integrate our differential equations $f$ using Runge-Kutta to create a constraint that enforces the change of state between time steps with the system dynamics. 
