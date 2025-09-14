@@ -131,7 +131,7 @@ class DroneNMPCwithCGL:
             # cost function
             state_cost = (x_k - self.x_goal).T @ mc.Q @ (x_k - self.x_goal)
             control_cost = (u_k - u_goal).T @ mc.R @ (u_k - u_goal)
-            running_cost = state_cost + control_cost
+            running_cost = state_cost + control_cost 
             cost = cost + w[j] * running_cost
 
 

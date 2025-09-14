@@ -186,7 +186,7 @@ def plot_state_for_paper(tspan, data, title, plot_no):
 
     plt.figure(plot_no)
     plt.subplot(4, 1, 1)
-    plt.ylim(-0.5, 0.5)
+    # plt.ylim(-0.5, 0.5)
     for i in range(3):
         plt.plot(tspan, data[:,i])
     plt.ylabel('$x$')
@@ -204,7 +204,7 @@ def plot_state_for_paper(tspan, data, title, plot_no):
 
     plt.subplot(4, 1, 4)
     # plt.yticks(np.arange(-0.2, 0.2, step=0.05))
-    plt.ylim(-0.02, 0.02)
+    # plt.ylim(-0.02, 0.02)
 
     for i in range(3):
         plt.plot(tspan, data[:,i+10])

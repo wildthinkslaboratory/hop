@@ -86,11 +86,7 @@
 	
 	\section*{Thrust Vector Drone Equations of Motion}
 	
-	
-	\begin{enumerate}
-	\item {\em Equations}:
-	
-	The system state and control variables are defined as follows, the state includes translational position and velocity in the world frame, the attitude represented as a unit quaternion, and the angular velocity in the body frame. The control variables include the two gimbal angles, the average thrust between the two propellers and the differential thrust between the propellers to control the rotation about the body z axis.
+	The system state and control variables are defined as follows, the state $\vec{x}$ includes translational position $x, y,  z $ and velocity $v_x, v_y, v_z $  in the world frame, the attitude represented as a unit quaternion $q_x, q_y,  q_z, q_w$ , and the angular velocity in the body frame $ \omega_x, \omega_y, \omega_z$. The control variables include the two gimbal angles $\theta_1, \theta_2 $, the average thrust between the two propellers $T_{avg}$ and the differential thrust between the propellers $T_{diff}$ to control the rotation about the body z axis.
         \[
         \vec{x} =
         \begin{bmatrix}
@@ -240,8 +236,7 @@ The quaternion propagation matrix computes the change in quaternions given a set
 	\[
 		\dot{\omega_z} =  \frac{M_z -\omega_x\omega_yI_{yy} + \omega_x\omega_yI_{xx}}{I_{zz}}
 	\]
-	\item {\em Quaternions:} Why we chose to use them. I think maybe this is unnecessary. 
-	\item {\em Thrust Model:}
+
 	The average thrust and differential thrust control variables are defined as the average of and difference between the two propeller thrust values. 
 	\[
 		T_{avg} =\frac{T_1+T_2}{2}
@@ -263,16 +258,11 @@ To map the average thrust command signal value to the actual thrust force value 
 	\[
 		M_z = d I_{zz} T_{diff}
 	\]
-		\end{enumerate}
+
 	
 
 
 	\section*{NMPC}
-
-
-\begin{enumerate}
-	\item what goes in this section
-\end{enumerate}	
 
 Model predictive control (\mpc) is a control algorithm that solves a linear optimization problem at each time step. 
 The set of instance constraints can be used to enforce the equations of motion and restrict the values of control inputs or state variables.  For example, {\mpc} constraints can be used to eliminate solutions that violate minimum or maximum control values or require control values to change faster than mechanically possible.  This gives {\mpc} algorithms more control over the types of solutions produced than linear quadratic regulators (LQR) or proportional integral derivative (PID) controllers.  
@@ -288,7 +278,6 @@ A prime drawback of {\mpc} and {\nmpc} algorithms over LQR and PID  is their hig
 
 To use {\nmpc} the problem instance needs to be parameterized over the control trajectory, the differential equations for the system dynamics need to be integrated forward, and then the resulting problem can be optimized over control parameters. There are different ways to parameterize the problem and integrate it.  These choices will affect the size of the problem and the speed at which it can be solved. Also the accuracy of the solution.
 
-Terms we should know {\em single shooting}, {\em multiple shooting}, {\em direct collocation methods}, {\em pseudo spectral methods} What are these and relative advantages / disadvantages.
 
 
         \[
@@ -493,7 +482,7 @@ For $N=6$ the differentiation matrix is:
 
 \section*{Comparison of Methods}
 
-To compare our different formulations for the NLP problem, we ran a series of simulations each with the drone beginning in a unique and perturbed starting state. In all cases, the drone goal state was to be vertically balanced and motionless at the point $(x,y,z) = (0, 0, 0)$ in three dimensional space. For each simulation, we computed the average time required to solve the NLP problem at each iteration. The quality of the solutions produced by each method was assessed by comparing the state and control graphs through time. All experiements were run on a Macbook Pro  3.49GHz Apple M2 chip with 8GB RAM. Code was implemented in Python 3.13 using CasADI 3.7.1. 
+To compare our different formulations for the NLP problem, we ran a series of simulations each with the drone beginning in a unique and perturbed starting state. In all cases, the drone goal state was to be vertically balanced and motionless at the point $(x,y,z) = (0, 0, 0)$ in three dimensional space. We initially ran a set of seven different simulations. The results for all the simulations were similar in both quality of solutions and timing results, so we present only four of those simulations here.  For each simulation, we computed the average time required to solve the NLP problem at each iteration. The quality of the solutions produced by each method was assessed by comparing the state and control graphs through time. All experiements were run on a Macbook Pro  3.49GHz Apple M2 chip with 8GB RAM. Code was implemented in Python 3.13 using CasADI 3.7.1. 
 	
 	\subsection*{NLP Solver}
 	To solve our non-linear programming (NLP) problems we used the \texttt{ipopt} solver that comes installed with CasADi 3.7.1.  This solver requires an additional subroutine to  solve sparse matrix systems. We experimented with the \texttt{mumps}  solver that comes with CasADi, and also tried using the  \texttt{ma27} and  \texttt{ma57} solvers  from HSL (Harwell Subroutine Library) \cite{hsl}. All solvers were compiled with Apple clang version 17.0.0. The HSL \texttt{ma27} solver produced the most efficient solutions overall. All solvers and experiments were run with the same solver settings.
@@ -508,7 +497,10 @@ To compare our different formulations for the NLP problem, we ran a series of si
 	\end{python}
 
 
-
+\subsection*{Results}
+We begin with our first simulation which requires the drone to perform a $45^{\circ}$ rotation about the $z$ axis to achieve the goal state. 
+Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each of our methods: orthagoal collocation, multiple shooter, and Chebyshev pseudospectral. The figures  (\ref{fig:statex1z1vx}), (\ref{fig:statey115dx}) and (\ref{fig:statehover}) show similar graphs for our other three simulations.  Comparison graphs of the control variables are given in figures (\ref{fig:control45z}), (\ref{fig:controlx1z1vx}), (\ref{fig:controly115dx}) and (\ref{fig:controlhover}). Finally, graphs comparing the CPU time for NLP calls throughout the simulations are given in figures (\ref{fig:time45z}), (\ref{fig:timex1z1vx}), (\ref{fig:timey115dx}) and (\ref{fig:timehover}). 
+ 
 \begin{figure}[H]
 	\centering
 	\begin{subfigure}[b]{0.3\textwidth}
@@ -556,7 +548,7 @@ To compare our different formulations for the NLP problem, we ran a series of si
 	\centering
 	\includegraphics[width=\textwidth]{time45dz.pdf}
 	\caption{CPU time for simulation requiring a $45^{\circ}$ rotation about the $z$ axis.}
-	\label{fig:kfangle}
+	\label{fig:time45z}
 \end{figure}
 
 
@@ -578,7 +570,7 @@ To compare our different formulations for the NLP problem, we ran a series of si
 		\caption{Chebyshev pseudospectral}
 	\end{subfigure}
 	\caption{State data on a simulation with initial conditions: $x = 1$, $z=1$, $v_x = 0.5$ }
-	\label{fig:state45z}
+	\label{fig:statex1z1vx}
 \end{figure}
 
 \begin{figure}[H]
@@ -599,7 +591,7 @@ To compare our different formulations for the NLP problem, we ran a series of si
 		\caption{Chebyshev pseudospectral}
 	\end{subfigure}
 	\caption{Control data on a simulation with initial conditions: $x = 1$, $z=1$, $v_x = 0.5$}
-	\label{fig:control45z}
+	\label{fig:controlx1z1vx}
 \end{figure}
 
 
@@ -628,7 +620,7 @@ To compare our different formulations for the NLP problem, we ran a series of si
 		\caption{Chebyshev pseudospectral}
 	\end{subfigure}
 	\caption{State data on a simulation with initial conditions: $y = 1$,$15^{\circ}$ rotation about $x$ axis.}
-	\label{fig:state45z}
+	\label{fig:statey115dx}
 \end{figure}
 
 \begin{figure}[H]
@@ -649,7 +641,7 @@ To compare our different formulations for the NLP problem, we ran a series of si
 		\caption{Chebyshev pseudospectral}
 	\end{subfigure}
 	\caption{Control data on a simulation with initial conditions: $y = 1$,$15^{\circ}$ rotation about $x$ axis.}
-	\label{fig:control45z}
+	\label{fig:controly115dx}
 \end{figure}
 
 
@@ -657,7 +649,7 @@ To compare our different formulations for the NLP problem, we ran a series of si
 	\centering
 	\includegraphics[width=\textwidth]{timey115dx.pdf}
 	\caption{CPU time for simulation with initial conditions: $y = 1$,$15^{\circ}$ rotation about $x$ axis.}
-	\label{fig:kfangle}
+	\label{fig:timey115dx}
 \end{figure}
 
 
@@ -681,7 +673,7 @@ To compare our different formulations for the NLP problem, we ran a series of si
 		\caption{Chebyshev pseudospectral}
 	\end{subfigure}
 	\caption{State data on a simulation with initial state equal to goal state.}
-	\label{fig:state45z}
+	\label{fig:statehover}
 \end{figure}
 
 \begin{figure}[H]
@@ -702,7 +694,7 @@ To compare our different formulations for the NLP problem, we ran a series of si
 		\caption{Chebyshev pseudospectral}
 	\end{subfigure}
 	\caption{Control data on a simulation with initial state equal to goal state.}
-	\label{fig:control45z}
+	\label{fig:controlhover}
 \end{figure}
 
 
@@ -710,8 +702,11 @@ To compare our different formulations for the NLP problem, we ran a series of si
 	\centering
 	\includegraphics[width=\textwidth]{timehover.pdf}
 	\caption{CPU time for simulation with initial state equal to goal state.}
-	\label{fig:kfangle}
+	\label{fig:timehover}
 \end{figure}
+
+
+All of the methods provide good quality solutions with state values that behaved smoothly and converged to the desired goal state. The graphs of control variables were generally smooth, but all methods occasionally constructed solutions where the  average thrust $\overline{P}$ seemed more irregular than required to reach the goal state.  Real world experiments on the drone will be needed to determine if solutions with these irregularities will negatively affect performance in practice.
 
 
 \begin{table}[h!]	
@@ -727,12 +722,15 @@ To compare our different formulations for the NLP problem, we ran a series of si
 			\hline
 		\end{tabular}
 		\caption{Comparison of average CPU time in seconds for solution of NLP for a series of  simulations. Methods include orthagonal collocation (OC),  multiple shooter (MS), and Chebyshev pseudospectral method (CPS). }
+		\label{table:CPU}
 	\end{center}
+
 \end{table}
 
-Our goal is to run our control algorithm at $50$Hz on the raspberry Pi 5. The CPU speed of the Pi is 2.4GHz while our experiments were run on a machine with a CPU speed of 3.49GHz. To meet our goal of 50Hz on the Pi we need a solution time on the experiment machine of less than $0.014$ seconds.
-	\section*{Conclusions}
-	
+ Our goal is to run our control algorithm at $50$Hz on the raspberry Pi 5. The CPU speed of the Pi is 2.4GHz while our experiments were run on a machine with a CPU speed of 3.49GHz. To meet our goal of 50Hz on the Pi we need a solution time on the experiment machine of less than $0.014$ seconds. Table (\ref{table:CPU}) summarizes the average CPU time for solution of the NLP problem for each simulation and each method.  The run times for the orthagonal collocation and multiple shooter are both too slow to meet our  $50$Hz target.  Additional changes such as reducing the length of the horizon or relaxing convergence criteria might improve these times somewhat, but they are unlikely to provide the performance needed for this application of NMPC.  The Chebyshev pseudospectral method is substantially faster and comfortably meets our $0.014$ solution time while providing solution graphs with comparable quality.
+
+\section*{Conclusions}
+We implemented three different formulations of the NPL problem for an NMPC algorithm controlling a thrust vector drone and compared their solution quality and relative efficiency. All methods produced good quality solutions while only the Chebyshev pseudospectral method provided solutions that are efficient enough to control the drone on a Raspberry Pi 5. Further real-world experiments are required to determine if the solutions produced provide good control in practice.
 	
 	
 %	\nocite{*}
