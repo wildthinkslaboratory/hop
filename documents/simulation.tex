@@ -79,7 +79,12 @@
 	
 	\section*{Introduction}	
 	\begin{enumerate}
-		\item What is a Thrust Vector Drone and Why they are useful for Rocket Design
+		\item 
+		Rockets are inherently unstable. They have highly nonlinear, coupled dynamics, and must have highly responsive control algorithms to respond quickly to disturbances and sensor noise. Thrust Vector Control (TVC) is a method of directing a rocket by controlling the direction of engine thrust. By using a gimbal to angle the thrust vector, the rocket's position and attitude can be controlled. Validating control techniques on full scale rockets is prohibitively costly and high-risk, so there is a need for an inexpensive test vehicle that can allow experimentation with rocket GNC. A gimballed thrust drone with electric motors and propellers are a good choice for replicating rocket dynamics on a much smaller budget. This project is directly inspired by the small-scale rocket prototype presented by Linseny et al. (2023). We have designed a similar drone based on their images and design descriptions. Within this context there are many details and choices to explore. 
+		Vertical Takeoff and Landing (VTOL) milestones like NASA's Lunar Landing Research Vehicle (LLRV) which allowed Apollo astronauts to practice lunar landings, SpaceX's Falcon 9 landings, and the future Artemis III mission that aims to land and return astronauts from the Moon illustrate the value of propulsive VTOL with TVC and place our small-scale project in context.
+		
+		NMPC was chosen for our control algorithm for its ability to handle nonlinear rocket dynamics, manage constraints like gimbal angle range, servo rates, and thrust limits, and its robustness to disturbances. The main downside of NMPC is its high computational load. NMPC solves a constrained nonlinear optimization problem at every control step, and as a result it is much slower than simple control algorithms like PID or LQR. For controlling rockets some methods of formulating the NLP are sluggish or unacceptably time consuming. The main focus of this paper is experimenting with different choice of NLP formulations and evaluating their speed and accuracy. We  compare three approaches: Orthogonal Collocation with Gauss-Radau nodes implemented in the $\text{do\_mpc}$ library, a Runge-Kutta multiple-shooter method, and a Chebyshev Pseudospectral Collocation approach.
+
 	\end{enumerate}
 	
 
