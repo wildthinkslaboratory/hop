@@ -1,17 +1,18 @@
 \documentclass[]{article}
-\usepackage[utf8]{inputenc}
-\usepackage{multicol}
 \usepackage{amsmath}
 \usepackage{amsthm}
 \usepackage{amssymb}
-\usepackage{bm}
-\usepackage{physics}
 \usepackage{graphicx}
 \usepackage{float}
+\usepackage{listings}
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage[round]{natbib}
 \bibliographystyle{unsrtnat}
+
+%\usepackage{multicol}
+%\usepackage{bm}
+%\usepackage{physics}
 
 % this just sets up the page size and margins
 \setlength{\topmargin}{0pt}
@@ -21,12 +22,10 @@
 \setlength{\textheight}{8.5in}
 \setlength{\headheight}{0pt}
 
-
-
-
-
-% this is a bunch of stuff that allows python style code snippits
-% Default fixed font does not support bold face
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  This is all the stuff for Python code snippets
+%
 \DeclareFixedFont{\ttb}{T1}{txtt}{bx}{n}{10} % for bold
 \DeclareFixedFont{\ttm}{T1}{txtt}{m}{n}{10}  % for normal
 % Custom colors
@@ -36,9 +35,6 @@
 \definecolor{deepgreen}{rgb}{0,0.5,0}
 
 \setcounter{MaxMatrixCols}{15}
-
-
-\usepackage{listings}
 
 % Python style for highlighting
 \newcommand\pythonstyle{\lstset{
@@ -54,12 +50,6 @@
 		tabsize=4
 }}
 
-\newcommand{\mpc}{MPC}
-\newcommand{\nmpc}{NMPC}
-\newcommand{\pdiff}{P_{\Delta}}
-\newcommand{\pavg}{\overline{P}}
-
-
 % Python environment
 \lstnewenvironment{python}[1][]
 {
@@ -71,6 +61,15 @@
 % Python for inline
 \newcommand\pythoninline[1]{{\pythonstyle\lstinline!#1!}}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\newcommand{\mpc}{MPC}
+\newcommand{\nmpc}{NMPC}
+\newcommand{\pdiff}{P_{\Delta}}
+\newcommand{\pavg}{\overline{P}}
+
+
 \title{Comparison of Direct Methods for NMPC  Applied to  a Thrust Vector Drone}
 \author{Izzy Mones and Heidi Dixon}
 %\date{}
@@ -78,7 +77,7 @@
 \begin{document}
 \maketitle
 	
-	\section*{Introduction}	
+\section*{Introduction}	
 		Rockets are inherently unstable. They have highly nonlinear, coupled dynamics,  and require fast control algorithms that respond quickly to disturbances and sensor noise. Thrust vector control uses a gimbal to angle the direction of engine thrust and control the rocket's position and attitude. Validating control techniques on full scale rockets is prohibitively costly and high-risk, so there is a need for an inexpensive test vehicle that can allow experimentation with rocket guidance, navigation, and control. A gimballed thrust drone with electric motors and propellers are a good choice for replicating rocket dynamics on a much smaller budget. This project is directly inspired by the small-scale rocket prototype presented by \cite{TVCDrone}. We have designed a similar drone based on their images and design descriptions. Within this context there are still many details and choices to explore. 
 		Vertical takeoff and landing (VTOL) milestones like NASA's Lunar Landing Research Vehicle (LLRV) which allowed Apollo astronauts to practice lunar landings, SpaceX's Falcon 9 landings, and the future Artemis III mission that aims to land and return astronauts from the moon illustrate the value of propulsive VTOL with TVC and place our small-scale project in context.
 		
@@ -91,47 +90,47 @@
 	
 \section*{Thrust Vector Drone Equations of Motion}
 	
-The system state $\vec{x}$ includes translational position $\vec{p} = [x, y,  z]$ and velocity $\vec{v} = [v_x, v_y, v_z ]$  in the world frame, the attitude represented as a unit quaternion $\vec{q} = [q_x, q_y,  q_z, q_w]$ and the angular velocity in the body frame $ \vec{\omega} = [\omega_x, \omega_y, \omega_z]$. The control variables include the two gimbal angles $\theta_1, \theta_2 $, the average thrust between the two propellers $\pavg$ and the differential thrust between the propellers $\pdiff$ to control the rotation about the body z axis.
-\begin{gather*}
-	\vec{x} =
-	\begin{bmatrix}
-		x & y & z & v_x & v_y & v_z & q_x & q_y & q_z & q_w & \omega_x & \omega_y & \omega_z
-	\end{bmatrix}^T \\
-	        \vec{u} =
-	        \begin{bmatrix}
-		        \theta_1 & \theta_2 & \pavg & \pdiff
-		        \end{bmatrix}^T
-\end{gather*}
-The equations of motion are represented as a series of first-order vector differential equations:
-\begin{gather}
-        	\dot{\vec{p}}  = \vec{v}         \label{eqMotion1}	\\
-        	\dot{\vec{v}}  = \frac{1}{m}R(\vec{q})\vec{F_b}+\vec{g}  \label{eqMotion2} \\
-        	\dot{\vec{q}} = \frac{1}{2}Q(\vec{\omega})\vec{q}  \label{eqMotion3} \\
-        	\dot{\vec{\omega}} = I^{-1}\!\left(\vec{M_b} - \vec{\omega} \times (I\,\vec{\omega})\right) \label{eqMotion4}
-\end{gather}
-where $m$ is the mass of the drone and $\vec{g} = [0, 0, -9.81]^T$ is the acceleration due to gravity.
-\begin{figure}[H]
-	\centering
-	\includegraphics[width=0.7\textwidth]{figures/graph3d.jpg}
-	\caption{Three-dimensional thrust decomposition for a 2-axis gimballed drone.}
-	\label{fig:3dgraph}
-\end{figure}
-\begin{figure}[H]
-        	\centering
-        	\begin{subfigure}[b]{0.48\textwidth}
-        		\centering
-        		\includegraphics[width=\textwidth]{figures/graph2.jpg}
-        		\caption{Thrust decomposition in the inner gimbal axis plane.}
-        	\end{subfigure}
-        	\begin{subfigure}[b]{0.48\textwidth}
-        		\centering
-        		\includegraphics[width=\textwidth]{figures/graph3.jpg}
-        		\caption{Thrust decomposition in the x–z plane.}
-        	\end{subfigure}
-        	\caption{Two-dimensional thrust decompositions for a 2-axis gimballed drone.}
-        	\label{fig:3dDecomp}
-\end{figure}
-Using vector decomposition we can find the thrust vector in body coordinates in terms of the gimbal angles $\theta_1$ and $\theta_2$ and magnitude of the thrust $T$ acting on the drone.
+	The system state $\vec{x}$ includes translational position $\vec{p} = [x, y,  z]$ and velocity $\vec{v} = [v_x, v_y, v_z ]$  in the world frame, the attitude represented as a unit quaternion $\vec{q} = [q_x, q_y,  q_z, q_w]$ and the angular velocity in the body frame $ \vec{\omega} = [\omega_x, \omega_y, \omega_z]$. The control variables include the two gimbal angles $\theta_1, \theta_2 $, the average thrust between the two propellers $\pavg$ and the differential thrust between the propellers $\pdiff$ to control the rotation about the body z axis.
+	\begin{gather*}
+		\vec{x} =
+		\begin{bmatrix}
+			x & y & z & v_x & v_y & v_z & q_x & q_y & q_z & q_w & \omega_x & \omega_y & \omega_z
+		\end{bmatrix}^T \\
+		\vec{u} =
+		\begin{bmatrix}
+			\theta_1 & \theta_2 & \pavg & \pdiff
+		\end{bmatrix}^T
+	\end{gather*}
+	The equations of motion are represented as a series of first-order vector differential equations:
+	\begin{gather}
+		\dot{\vec{p}}  = \vec{v}         \label{eqMotion1}	\\
+		\dot{\vec{v}}  = \frac{1}{m}R(\vec{q})\vec{F_b}+\vec{g}  \label{eqMotion2} \\
+		\dot{\vec{q}} = \frac{1}{2}Q(\vec{\omega})\vec{q}  \label{eqMotion3} \\
+		\dot{\vec{\omega}} = I^{-1}\!\left(\vec{M_b} - \vec{\omega} \times (I\,\vec{\omega})\right) \label{eqMotion4}
+	\end{gather}
+	where $m$ is the mass of the drone and $\vec{g} = [0, 0, -9.81]^T$ is the acceleration due to gravity.
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.7\textwidth]{figures/graph3d.jpg}
+		\caption{Three-dimensional thrust decomposition for a 2-axis gimballed drone.}
+		\label{fig:3dgraph}
+	\end{figure}
+	\begin{figure}[H]
+		\centering
+		\begin{subfigure}[b]{0.48\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{figures/graph2.jpg}
+			\caption{Thrust decomposition in the inner gimbal axis plane.}
+		\end{subfigure}
+		\begin{subfigure}[b]{0.48\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{figures/graph3.jpg}
+			\caption{Thrust decomposition in the x–z plane.}
+		\end{subfigure}
+		\caption{Two-dimensional thrust decompositions for a 2-axis gimballed drone.}
+		\label{fig:3dDecomp}
+	\end{figure}
+	Using vector decomposition we can find the thrust vector in body coordinates in terms of the gimbal angles $\theta_1$ and $\theta_2$ and magnitude of the thrust $T$ acting on the drone.
 \[
 \vec{F_b} = T
 \begin{bmatrix}
