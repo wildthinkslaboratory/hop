@@ -10,8 +10,8 @@
 \usepackage{float}
 \usepackage{caption}
 \usepackage{subcaption}
-%\usepackage[round]{natbib}
-%\bibliographystyle{unsrtnat}
+\usepackage[round]{natbib}
+\bibliographystyle{unsrtnat}
 
 % this just sets up the page size and margins
 \setlength{\topmargin}{0pt}
@@ -79,14 +79,13 @@
 \maketitle
 	
 	\section*{Introduction}	
-	\begin{enumerate}
-		\item 
-		Rockets are inherently unstable. They have highly nonlinear, coupled dynamics, and must have highly responsive control algorithms to respond quickly to disturbances and sensor noise. Thrust Vector Control (TVC) is a method of directing a rocket by controlling the direction of engine thrust. By using a gimbal to angle the thrust vector, the rocket's position and attitude can be controlled. Validating control techniques on full scale rockets is prohibitively costly and high-risk, so there is a need for an inexpensive test vehicle that can allow experimentation with rocket GNC. A gimballed thrust drone with electric motors and propellers are a good choice for replicating rocket dynamics on a much smaller budget. This project is directly inspired by the small-scale rocket prototype presented by Linseny et al. (2023). We have designed a similar drone based on their images and design descriptions. Within this context there are many details and choices to explore. 
-		Vertical Takeoff and Landing (VTOL) milestones like NASA's Lunar Landing Research Vehicle (LLRV) which allowed Apollo astronauts to practice lunar landings, SpaceX's Falcon 9 landings, and the future Artemis III mission that aims to land and return astronauts from the Moon illustrate the value of propulsive VTOL with TVC and place our small-scale project in context.
+		Rockets are inherently unstable. They have highly nonlinear, coupled dynamics,  and require fast control algorithms that respond quickly to disturbances and sensor noise. Thrust vector control uses a gimbal to angle the direction of engine thrust and control the rocket's position and attitude. Validating control techniques on full scale rockets is prohibitively costly and high-risk, so there is a need for an inexpensive test vehicle that can allow experimentation with rocket guidance, navigation, and control. A gimballed thrust drone with electric motors and propellers are a good choice for replicating rocket dynamics on a much smaller budget. This project is directly inspired by the small-scale rocket prototype presented by \cite{TVCDrone}. We have designed a similar drone based on their images and design descriptions. Within this context there are still many details and choices to explore. 
+		Vertical takeoff and landing (VTOL) milestones like NASA's Lunar Landing Research Vehicle (LLRV) which allowed Apollo astronauts to practice lunar landings, SpaceX's Falcon 9 landings, and the future Artemis III mission that aims to land and return astronauts from the moon illustrate the value of propulsive VTOL with TVC and place our small-scale project in context.
 		
-		NMPC was chosen for our control algorithm for its ability to handle nonlinear rocket dynamics, manage constraints like gimbal angle range, servo rates, and thrust limits, and its robustness to disturbances. The main downside of NMPC is its high computational load. NMPC solves a constrained nonlinear optimization problem at every control step, and as a result it is much slower than simple control algorithms like PID or LQR. For controlling rockets some methods of formulating the NLP are sluggish or unacceptably time consuming. The main focus of this paper is experimenting with different choice of NLP formulations and evaluating their speed and accuracy. We  compare three approaches: Orthogonal Collocation with Gauss-Radau nodes implemented in the $\text{do\_mpc}$ library, a Runge-Kutta multiple-shooter method, and a Chebyshev Pseudospectral Collocation approach.
+		We chose nonlinear model predictive control (NMPC) for our control algorithm because of its ability to handle nonlinear rocket dynamics, manage constraints like gimbal angle range, servo rates, and thrust limits, and its robustness to disturbances. The main downside of NMPC is its high computational load. NMPC solves a constrained nonlinear optimization  problem (NLP) at every control step, and as a result it is much slower than simple control algorithms like PID or LQR.
+		There are a variety of ways to formulate an NMPC problem instance as a nonlinear programming problem. Different formulations may vary in their solution times and solution accuracy.
+		The main focus of this paper is experimenting with different choices of NLP formulations and evaluating their speed and accuracy. We  compare three approaches: orthogonal collocation with Gauss-Radau nodes implemented in the {\bf do-mpc}  library \citep{do-mpc}, a Runge-Kutta multiple-shooter method, and a Chebyshev pseudospectral collocation approach.
 
-	\end{enumerate}
 	
 
 	
@@ -113,7 +112,7 @@ The equations of motion are represented as a series of first-order vector differ
 where $m$ is the mass of the drone and $\vec{g} = [0, 0, -9.81]^T$ is the acceleration due to gravity.
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.7\textwidth]{graph3d.jpg}
+	\includegraphics[width=0.7\textwidth]{figures/graph3d.jpg}
 	\caption{Three-dimensional thrust decomposition for a 2-axis gimballed drone.}
 	\label{fig:3dgraph}
 \end{figure}
@@ -121,12 +120,12 @@ where $m$ is the mass of the drone and $\vec{g} = [0, 0, -9.81]^T$ is the accele
         	\centering
         	\begin{subfigure}[b]{0.48\textwidth}
         		\centering
-        		\includegraphics[width=\textwidth]{graph2.jpg}
+        		\includegraphics[width=\textwidth]{figures/graph2.jpg}
         		\caption{Thrust decomposition in the inner gimbal axis plane.}
         	\end{subfigure}
         	\begin{subfigure}[b]{0.48\textwidth}
         		\centering
-        		\includegraphics[width=\textwidth]{graph3.jpg}
+        		\includegraphics[width=\textwidth]{figures/graph3.jpg}
         		\caption{Thrust decomposition in the x–z plane.}
         	\end{subfigure}
         	\caption{Two-dimensional thrust decompositions for a 2-axis gimballed drone.}
@@ -261,7 +260,7 @@ To map the average thrust command signal value to the actual thrust force value 
 	
 
 
-\section*{NMPC}
+\section*{Nonlinear Model Predictive Control (NMPC)}
 
 Model predictive control (\mpc) is a control algorithm that solves a linear optimization problem at each time step. 
 The set of instance constraints can be used to enforce the system dynamics and restrict the values of control inputs or state variables.  For example, {\mpc} constraints can be used to eliminate solutions that violate minimum or maximum control values or require control values to change faster than mechanically possible.  This gives {\mpc} algorithms more control over the types of solutions produced than linear quadratic regulators (LQR) or proportional integral derivative (PID) controllers.  
@@ -305,7 +304,8 @@ Next, we present three different ways to formulate this instance as a nonlinear 
 To use {\nmpc} the problem instance needs to be parameterized over the control trajectory, the differential equations for the system dynamics need to be integrated, and then the resulting problem can be optimized over control parameters. There are different ways to parameterize the problem and integrate it.  These choices will affect the size of the problem and the speed at which it can be solved. All these methods are using numerical methods to estimate the behaviour of differential equations. The accuracy of the estimation will vary depending on the method used and the coarseness of the parameterization. Typically there is a tradeoff between speed and accuracy.
 
 \subsection*{Orthogonal Collocation using {do-mpc}} 
-{\em do-mpc} \cite{doi:10.1137/1.9780898719383}  Orthogonal collocation is a local method that divides the time horizon into finite elements and fits polynomials to each interval. The dynamics are enforced throughout each interval at a set of Radau nodes given by:
+{\bf do-mpc} \citep{do-mpc}  is an open source Python library for model predictive control. It is very easy to use making it excellent for prototyping  MPC and NMPC algorithms.  
+The {\bf do-mpc} library formulates NMPC problems using orthogonal collocation. Orthagoanl collocation is a local method that divides the time horizon into finite elements and fits polynomials to each interval. The dynamics are enforced throughout each interval at a set of Radau nodes given by:
         \[
         \gamma_0=1,  \qquad \gamma_j = \gamma_{j-1} \frac{(K-j+1)(K+j+\alpha+\beta)}{j(j+\beta)}, \qquad j = 1,\ldots,K
         \]
@@ -340,6 +340,8 @@ Continuity constraints are used to fit an interval polynomial's endpoint with th
         J=\Phi(z(t_f)) + \sum_{i=1}^{N}h_i\sum_{k=1}^{K}\omega_kL(z_{ik},u_{ik},t_{ik})
         \]
 Where the weights $\omega_k$ are determined by Radau quadrature, which integrates all polynomials up to $2s-1$. For a horizon of 100 time steps each with an interpolant polynomial order of two the total number of decision variables per time step is $13*(100*(2+1)+1)+4*100=4313.$
+
+Need to say clearly what horizon we used and why and the degree of quadrature.
 
 \subsection*{Multiple Shooting (with Runge–Kutta discretization)}
 For multiple shooting, we divide our time horizon into $N$ evenly spaced nodes $\{ t_0, t_1, \ldots, t_N \}$ of length $\Delta t$. The initial state is constrained and at each node we make a copy of our state $x_k$ and control $u_k$ variables. Within each time step $[ t_k, t_{k+1}]$ we forward integrate our differential equations $f$ using Runge-Kutta to create a constraint that enforces the change of state between time steps with the system dynamics. 
@@ -378,7 +380,9 @@ Multiple shooting considers the state and control variables at every time step t
         \end{bmatrix}
         \]
 This can easily become computationally demanding for long horizons and high-dimensional systems. For a horizon length of 100 time steps there are $13 * (100+1)+4*100=1713$ decision variables per time step.
- 
+
+Need to talk about our horizon and dt. any other details of our implementation.
+
 \subsection*{Chebyshev Pseudospectral Method}
 Multiple shooting is useful for its robustness to discontinuities and nonlinearity and its conceptual simplicity. However, thrust-vectoring dynamics are smooth and continuous, so many of the benefits of multiple shooting are unnecessary. Additionally, multiple shooting introduces a much larger NLP because it solves for the state and control variables at every point in the control horizon. By contrast, Chebyshev Pseudospectral Collocation is a global method that represents the trajectory of each state with a single interpolating polynomial of degree $N$ over the entire horizon, defined by its values at a set of $N+1$ nodes. It achieves spectral accuracy, with error decreasing exponentially as the number of nodes increases, while requiring far fewer decision variables than multiple shooting. For $N=6$ there are seven nodes and $7*13+7*4=119$ decision variables per time step. The dynamics are enforced by constraining the derivative of the interpolant at each node to the dynamic equations. Chebyshev–Gauss–Lobatto nodes are used to cluster more of the nodes towards the beginning and end of the horizon, mitigating the Runge Phenomenon, where polynomial interpolation develops large oscillations near the endpoints. The cosine distribution ensures accuracy and stability:
 	\[
@@ -478,12 +482,14 @@ For $N=6$ the differentiation matrix is:
         \end{cases}
         \]
 
+Need to summarize our choices.  N=6.
+
 \section*{Comparison of Methods}
 
-To compare our different formulations for the NLP problem, we ran a series of simulations each with the drone beginning in a unique and perturbed starting state. In all cases, the drone goal state was to be vertically balanced and motionless at the point $(x,y,z) = (0, 0, 0)$ in three dimensional space. We initially ran a set of seven different simulations. The results for all the simulations were similar in both quality of solutions and timing results, so we present only four of those simulations here.  For each simulation, we computed the average time required to solve the NLP problem at each iteration. The quality of the solutions produced by each method was assessed by comparing the state and control graphs through time. All experiements were run on a Macbook Pro  3.49GHz Apple M2 chip with 8GB RAM. Code was implemented in Python 3.13 using CasADI 3.7.1 \cite{Andersson2018}. 
+To compare our different formulations for the NLP problem, we ran a series of simulations each with the drone beginning in a unique and perturbed starting state. In all cases, the drone goal state was to be vertically balanced and motionless at the point $(x,y,z) = (0, 0, 0)$ in three dimensional space. We initially ran a set of seven different simulations. The results for all the simulations were similar in both quality of solutions and timing results, so we present only four of those simulations here.  For each simulation, we computed the average time required to solve the NLP problem at each iteration. The quality of the solutions produced by each method was assessed by comparing the state and control graphs through time. All experiements were run on a Macbook Pro  3.49GHz Apple M2 chip with 8GB RAM. Code was implemented in Python 3.13 using CasADI 3.7.1 \citep{Andersson2018}. 
 	
 	\subsection*{NLP Solver}
-	To solve our non-linear programming (NLP) problems we used the \texttt{ipopt} solver that comes installed with CasADi 3.7.1.  This solver requires an additional subroutine to  solve sparse matrix systems. We experimented with the \texttt{mumps}  solver that comes with CasADi, and also tried using the  \texttt{ma27} and  \texttt{ma57} solvers  from HSL (Harwell Subroutine Library) \cite{hsl}. All solvers were compiled with Apple clang version 17.0.0. The HSL \texttt{ma27} solver produced the most efficient solutions overall. All solvers and experiments were run with the same solver settings.
+	To solve our non-linear programming (NLP) problems we used the \texttt{ipopt} solver \citep{ipopt} that comes installed with CasADi 3.7.1.  This solver requires an additional subroutine to  solve sparse matrix systems. We experimented with the \texttt{mumps}  solver that comes with CasADi, and also tried using the  \texttt{ma27} and  \texttt{ma57} solvers  from HSL (Harwell Subroutine Library) \citep{hsl}. All solvers were compiled with Apple clang version 17.0.0. The HSL \texttt{ma27} solver produced the most efficient solutions overall. All solvers and experiments were run with the same solver settings.
 	\vspace{\baselineskip}
 	\begin{python}
         ipopt_settings = {
@@ -503,17 +509,17 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 	\centering
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{state45dz1.pdf}
+		\includegraphics[width=\textwidth]{figures/state45dz1.pdf}
 		\caption{orthagonal collocation}
 	\end{subfigure}%
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{state45dz3.pdf}
+		\includegraphics[width=\textwidth]{figures/state45dz3.pdf}
 		\caption{multiple shooter}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{state45dz2.pdf}
+		\includegraphics[width=\textwidth]{figures/state45dz2.pdf}
 		\caption{Chebyshev pseudospectral}
 	\end{subfigure}
 	\caption{State data on a simulation requiring a $45^{\circ}$ rotation about the $z$ axis.}
@@ -524,17 +530,17 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 	\centering
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{control45dz4.pdf}
+		\includegraphics[width=\textwidth]{figures/control45dz4.pdf}
 		\caption{orthagonal collocation}
 	\end{subfigure}%
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{control45dz6.pdf}
+		\includegraphics[width=\textwidth]{figures/control45dz6.pdf}
 		\caption{multiple shooter}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{control45dz5.pdf}
+		\includegraphics[width=\textwidth]{figures/control45dz5.pdf}
 		\caption{Chebyshev pseudospectral}
 	\end{subfigure}
 	\caption{Control data on a simulation requiring a $45^{\circ}$ rotation about the $z$ axis.}
@@ -544,7 +550,7 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=\textwidth]{time45dz.pdf}
+	\includegraphics[width=\textwidth]{figures/time45dz.pdf}
 	\caption{CPU time for simulation requiring a $45^{\circ}$ rotation about the $z$ axis.}
 	\label{fig:time45z}
 \end{figure}
@@ -554,17 +560,17 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 	\centering
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{statex1z1vx1.pdf}
+		\includegraphics[width=\textwidth]{figures/statex1z1vx1.pdf}
 		\caption{orthagonal collocation}
 	\end{subfigure}%
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{statex1z1vx3.pdf}
+		\includegraphics[width=\textwidth]{figures/statex1z1vx3.pdf}
 		\caption{multiple shooter}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{statex1z1vx2.pdf}
+		\includegraphics[width=\textwidth]{figures/statex1z1vx2.pdf}
 		\caption{Chebyshev pseudospectral}
 	\end{subfigure}
 	\caption{State data on a simulation with initial conditions: $x = 1$, $z=1$, $v_x = 0.5$ }
@@ -575,17 +581,17 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 	\centering
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{controlx1z1vx4.pdf}
+		\includegraphics[width=\textwidth]{figures/controlx1z1vx4.pdf}
 		\caption{orthagonal collocation}
 	\end{subfigure}%
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{controlx1z1vx6.pdf}
+		\includegraphics[width=\textwidth]{figures/controlx1z1vx6.pdf}
 		\caption{multiple shooter}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{controlx1z1vx5.pdf}
+		\includegraphics[width=\textwidth]{figures/controlx1z1vx5.pdf}
 		\caption{Chebyshev pseudospectral}
 	\end{subfigure}
 	\caption{Control data on a simulation with initial conditions: $x = 1$, $z=1$, $v_x = 0.5$}
@@ -595,7 +601,7 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=\textwidth]{time45dz.pdf}
+	\includegraphics[width=\textwidth]{figures/time45dz.pdf}
 	\caption{CPU time for a simulation with initial conditions: $x = 1$, $z=1$, $v_x = 0.5$}
 	\label{fig:timex1z1vx}
 \end{figure}
@@ -604,17 +610,17 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 	\centering
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{statey115dx1.pdf}
+		\includegraphics[width=\textwidth]{figures/statey115dx1.pdf}
 		\caption{orthagonal collocation}
 	\end{subfigure}%
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{statey115dx3.pdf}
+		\includegraphics[width=\textwidth]{figures/statey115dx3.pdf}
 		\caption{multiple shooter}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{statey115dx2.pdf}
+		\includegraphics[width=\textwidth]{figures/statey115dx2.pdf}
 		\caption{Chebyshev pseudospectral}
 	\end{subfigure}
 	\caption{State data on a simulation with initial conditions: $y = 1$,$15^{\circ}$ rotation about $x$ axis.}
@@ -625,17 +631,17 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 	\centering
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{controly115dx4.pdf}
+		\includegraphics[width=\textwidth]{figures/controly115dx4.pdf}
 		\caption{orthagonal collocation}
 	\end{subfigure}%
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{controly115dx6.pdf}
+		\includegraphics[width=\textwidth]{figures/controly115dx6.pdf}
 		\caption{multiple shooter}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{controly115dx5.pdf}
+		\includegraphics[width=\textwidth]{figures/controly115dx5.pdf}
 		\caption{Chebyshev pseudospectral}
 	\end{subfigure}
 	\caption{Control data on a simulation with initial conditions: $y = 1$,$15^{\circ}$ rotation about $x$ axis.}
@@ -645,7 +651,7 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=\textwidth]{timey115dx.pdf}
+	\includegraphics[width=\textwidth]{figures/timey115dx.pdf}
 	\caption{CPU time for simulation with initial conditions: $y = 1$,$15^{\circ}$ rotation about $x$ axis.}
 	\label{fig:timey115dx}
 \end{figure}
@@ -657,17 +663,17 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 	\centering
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{statehover1.pdf}
+		\includegraphics[width=\textwidth]{figures/statehover1.pdf}
 		\caption{orthagonal collocation}
 	\end{subfigure}%
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{statehover3.pdf}
+		\includegraphics[width=\textwidth]{figures/statehover3.pdf}
 		\caption{multiple shooter}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{statehover2.pdf}
+		\includegraphics[width=\textwidth]{figures/statehover2.pdf}
 		\caption{Chebyshev pseudospectral}
 	\end{subfigure}
 	\caption{State data on a simulation with initial state equal to goal state.}
@@ -678,17 +684,17 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 	\centering
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{controlhover4.pdf}
+		\includegraphics[width=\textwidth]{figures/controlhover4.pdf}
 		\caption{orthagonal collocation}
 	\end{subfigure}%
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{controlhover6.pdf}
+		\includegraphics[width=\textwidth]{figures/controlhover6.pdf}
 		\caption{multiple shooter}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{controlhover5.pdf}
+		\includegraphics[width=\textwidth]{figures/controlhover5.pdf}
 		\caption{Chebyshev pseudospectral}
 	\end{subfigure}
 	\caption{Control data on a simulation with initial state equal to goal state.}
@@ -698,7 +704,7 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=\textwidth]{timehover.pdf}
+	\includegraphics[width=\textwidth]{figures/timehover.pdf}
 	\caption{CPU time for simulation with initial state equal to goal state.}
 	\label{fig:timehover}
 \end{figure}
@@ -733,7 +739,7 @@ We implemented three different formulations of the NPL problem for an NMPC algor
 	
 %	\nocite{*}
 %	
-\bibliographystyle{plain}
+
 \bibliography{references.bib}
 \end{document}
 
