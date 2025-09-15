@@ -78,12 +78,20 @@
 \maketitle
 	
 \section*{Introduction}	
-		Rockets are inherently unstable. They have highly nonlinear, coupled dynamics,  and require fast control algorithms that respond quickly to disturbances and sensor noise. Thrust vector control uses a gimbal to angle the direction of engine thrust and control the rocket's position and attitude. Validating control techniques on full scale rockets is prohibitively costly and high-risk, so there is a need for an inexpensive test vehicle that can allow experimentation with rocket guidance, navigation, and control. A gimballed thrust drone with electric motors and propellers are a good choice for replicating rocket dynamics on a much smaller budget. This project is directly inspired by the small-scale rocket prototype presented by \cite{TVCDrone}. We have designed a similar drone based on their images and design descriptions. Within this context there are still many details and choices to explore. 
-		Vertical takeoff and landing (VTOL) milestones like NASA's Lunar Landing Research Vehicle (LLRV) which allowed Apollo astronauts to practice lunar landings, SpaceX's Falcon 9 landings, and the future Artemis III mission that aims to land and return astronauts from the moon illustrate the value of propulsive VTOL with TVC and place our small-scale project in context.
-		
-		We chose nonlinear model predictive control (NMPC) for our control algorithm because of its ability to handle nonlinear rocket dynamics, manage constraints like gimbal angle range, servo rates, and thrust limits, and its robustness to disturbances. The main downside of NMPC is its high computational load. NMPC solves a constrained nonlinear optimization  problem (NLP) at every control step, and as a result it is much slower than simple control algorithms like PID or LQR.
-		There are a variety of ways to formulate an NMPC problem instance as a nonlinear programming problem. Different formulations may vary in their solution times and solution accuracy.
-		The main focus of this paper is experimenting with different choices of NLP formulations and evaluating their speed and accuracy. We  compare three approaches: orthogonal collocation with Gauss-Radau nodes implemented in the {\bf do-mpc}  library \citep{do-mpc}, a Runge-Kutta multiple-shooter method, and a Chebyshev pseudospectral collocation approach.
+	This paper is  part of a larger project inspired by the small-scale rocket prototype presented by \cite{TVCDrone} which aims to study thrust vector control (TVC) and vertical take of and landing (VTOL) using a gimballed thrust drone with electric motors and propellers.  
+	
+	Rockets are inherently unstable. They have highly nonlinear, coupled dynamics,  and require fast control algorithms that respond quickly to disturbances and sensor noise. 
+	Unfortunately, validating control techniques on full scale rockets is prohibitively costly and high-risk. There is a need for an inexpensive test vehicles that can allow experimentation with rocket guidance, navigation, and control. 
+	A gimballed thrust drone with electric motors and propellers are a good choice for replicating rocket dynamics on a much smaller budget. A couple of very inexpensive designs have been preposed and implemented  \citep{cheapTVC}, \citep{TVCDrone}.
+
+	Thrust vector control, which uses a gimbal to angle the direction of engine thrust and control the rocket's position and attitude, is an important control method for rockets.
+	Vertical takeoff and landing (VTOL) milestones like NASA's Lunar Landing Research Vehicle (LLRV) which allowed Apollo astronauts to practice lunar landings, SpaceX's Falcon 9 landings, and the future Artemis III mission that aims to land and return astronauts from the moon illustrate the value of propulsive VTOL with TVC. 
+	The drone design by \cite{TVCDrone} allows experimentation with of control algorithms for VTOL and VTC. We have designed a similar drone based on their images and design descriptions. Within this context there are still many details and choices to explore. 
+
+	Our drone implements VTC and VTOL using a nonlinear model predictive control (NMPC) algorithm.
+	NMPC algorithms can handle nonlinear rocket dynamics and manage constraints like gimbal angle range, servo rates, and thrust limits. NMPC optimizes control inputs across a finite time horizon at each time step. In this sense it creates a {\em plan} of control inputs allowing it to anticipate future control requirements. Revising the plan at each time step allows it to respond to disturbances. The main downside of NMPC is its high computational load. NMPC solves a constrained nonlinear optimization  problem (NLP) at every control step, and as a result it is much slower than simple control algorithms like proportional integral derivative (PID) controllers or linear quadratic regulators (LQR).
+	There are a variety of ways to formulate an NMPC problem instance as a nonlinear programming problem. Different formulations may vary in their solution times and solution accuracy.
+	The  focus of this paper is experimenting with different choices of NLP formulations and evaluating their speed and accuracy.  Our goal is to run our control algorithm on a Raspberry Pi 5 at $50$Hz so solution speed will be very important.  We  compare three approaches: orthogonal collocation with Gauss-Radau nodes implemented in the {\bf do-mpc}  library \citep{do-mpc}, a Runge-Kutta multiple-shooter method, and a Chebyshev pseudospectral collocation approach. We compare the relative accuracy of these techniques and their relative efficiency.
 
 	
 
@@ -303,8 +311,10 @@ Next, we present three different ways to formulate this instance as a nonlinear 
 To use {\nmpc} the problem instance needs to be parameterized over the control trajectory, the differential equations for the system dynamics need to be integrated, and then the resulting problem can be optimized over control parameters. There are different ways to parameterize the problem and integrate it.  These choices will affect the size of the problem and the speed at which it can be solved. All these methods are using numerical methods to estimate the behaviour of differential equations. The accuracy of the estimation will vary depending on the method used and the coarseness of the parameterization. Typically there is a tradeoff between speed and accuracy.
 
 \subsection*{Orthogonal Collocation using {do-mpc}} 
-{\bf do-mpc} \citep{do-mpc}  is an open source Python library for model predictive control. It is very easy to use making it excellent for prototyping  MPC and NMPC algorithms.  
-The {\bf do-mpc} library formulates NMPC problems using orthogonal collocation. Orthagoanl collocation is a local method that divides the time horizon into finite elements and fits polynomials to each interval. The dynamics are enforced throughout each interval at a set of Radau nodes given by:
+Of all the methods we implemented, orthogonal collocation was the easiest. We used the open source {\bf do-mpc} Python library for model predictive control  \citep{do-mpc}   which implements MPC and NMPC using orthogonal collocation with Radau nodes.
+The {\bf do-mpc} library is ideal for prototyping  MPC and NMPC algorithms and requires minimal understanding of MPC and no understanding of orthogonal collocation to build functioning algorithms.
+
+Orthogonal collocation is a local method that divides the time horizon into finite elements and fits polynomials to each interval. The dynamics are enforced throughout each interval at a set of Radau nodes given by:
         \[
         \gamma_0=1,  \qquad \gamma_j = \gamma_{j-1} \frac{(K-j+1)(K+j+\alpha+\beta)}{j(j+\beta)}, \qquad j = 1,\ldots,K
         \]
