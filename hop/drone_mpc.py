@@ -12,16 +12,27 @@ class DroneMPC:
         self.model = model
         self.mpc = do_mpc.controller.MPC(self.model)
         
-        self.mpc.settings.n_horizon = mc.mpc_horizon
+        self.mpc.settings.n_horizon = 5
         self.mpc.settings.n_robust = 1
         self.mpc.settings.open_loop = 0
-        self.mpc.settings.t_step = self.dt
+        self.mpc.settings.t_step = self.dt * 20
         self.mpc.settings.state_discretization = 'collocation'
         self.mpc.settings.collocation_type = 'radau'
-        self.mpc.settings.collocation_deg = 2
+        self.mpc.settings.collocation_deg = 4
         self.mpc.settings.collocation_ni = 1
         self.mpc.settings.store_full_solution = True
         self.mpc.settings.nlpsol_opts = mc.ipopt_settings
+
+        # self.mpc.settings.n_horizon = mc.mpc_horizon
+        # self.mpc.settings.n_robust = 1
+        # self.mpc.settings.open_loop = 0
+        # self.mpc.settings.t_step = self.dt
+        # self.mpc.settings.state_discretization = 'collocation'
+        # self.mpc.settings.collocation_type = 'radau'
+        # self.mpc.settings.collocation_deg = 2
+        # self.mpc.settings.collocation_ni = 1
+        # self.mpc.settings.store_full_solution = True
+        # self.mpc.settings.nlpsol_opts = mc.ipopt_settings
 
         self.mpc.bounds['lower', '_u', 'u'] = [
             mc.outer_gimbal_range[0],

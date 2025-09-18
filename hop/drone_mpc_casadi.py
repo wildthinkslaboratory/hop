@@ -5,10 +5,14 @@ import numpy as np
 from hop.constants import Constants
 mc = Constants()
 
-class DroneNMPCSingleShoot:
+class DroneNMPCMultiShoot:
     def __init__(self):
 
         self.N = mc.mpc_horizon
+        self.dt = mc.dt
+
+        # self.N = 50
+        # self.dt = 0.04
 
         # First create our state variables and control variables
         p = ca.SX.sym('p', 3, 1)
@@ -116,8 +120,8 @@ class DroneNMPCSingleShoot:
         # first_u = U[:, 0]  
         # g   = ca.vertcat(g, (first_u[2] + 0.5*first_u[3]) - (U0[2] + 0.5*U0[3]))
         # g   = ca.vertcat(g, (first_u[2] - 0.5*first_u[3]) - (U0[2] - 0.5*U0[3]))
-        # self.lbg += [-mc.thrust_dot_limit * mc.dt] * 2
-        # self.ubg += [mc.thrust_dot_limit * mc.dt] * 2
+        # self.lbg += [-mc.thrust_dot_limit * self.dt] * 2
+        # self.ubg += [mc.thrust_dot_limit * self.dt] * 2
 
         cost = 0.0
         u_goal = ca.DM([0.0, 0.0, mc.hover_thrust, 0.0])
@@ -138,10 +142,10 @@ class DroneNMPCSingleShoot:
             # the state at time k.
             next_state = X[:, k+1]
             k1 = self.f(x_k, u_k)
-            k2 = self.f(x_k + mc.dt/2*k1, u_k)
-            k3 = self.f(x_k + mc.dt/2*k2, u_k)
-            k4 = self.f(x_k + mc.dt * k3, u_k)
-            next_state_RK4 = x_k + (mc.dt / 6) * (k1 + 2 * k2 + 2 * k3 + k4)
+            k2 = self.f(x_k + self.dt/2*k1, u_k)
+            k3 = self.f(x_k + self.dt/2*k2, u_k)
+            k4 = self.f(x_k + self.dt * k3, u_k)
+            next_state_RK4 = x_k + (self.dt / 6) * (k1 + 2 * k2 + 2 * k3 + k4)
             g = ca.vertcat(g, next_state - next_state_RK4)
             self.lbg += [0.0]*int(next_state.numel())
             self.ubg += [0.0]*int(next_state.numel())
@@ -157,8 +161,8 @@ class DroneNMPCSingleShoot:
             #     next_u = U[:, k+1]  
             #     g   = ca.vertcat(g, (next_u[2] + 0.5*next_u[3]) - (u_k[2] + 0.5*u_k[3]))
             #     g   = ca.vertcat(g, (next_u[2] - 0.5*next_u[3]) - (u_k[2] - 0.5*u_k[3]))
-            #     self.lbg += [-mc.thrust_dot_limit * mc.dt] * 2
-            #     self.ubg += [mc.thrust_dot_limit * mc.dt] * 2
+            #     self.lbg += [-mc.thrust_dot_limit * self.dt] * 2
+            #     self.ubg += [mc.thrust_dot_limit * self.dt] * 2
 
 
             # # build up rate of change constraints for servos 

@@ -11,7 +11,7 @@ import numpy as np
 import statistics as stats
 from hop.utilities import import_data
 from time import perf_counter
-from hop.drone_mpc_casadi import DroneNMPCSingleShoot
+from hop.drone_mpc_casadi import DroneNMPCMultiShoot
 from hop.drone_mpc_cgl import DroneNMPCwithCGL
 from animation import RocketAnimation
 import matplotlib.pyplot as plt
@@ -29,7 +29,7 @@ test_list = [
     "animation_up": [0, 1, 0],
     "animation_frame_rate": 0.4,
     "num_iterations": 250,
-    "title": "y115dxT"
+    "title": "y115dxOC"
   },
 ]
 
@@ -178,7 +178,7 @@ for test in test_list:
 
 
     # run the multiple shooter nmpc
-    ms_nmpc = DroneNMPCSingleShoot()
+    ms_nmpc = DroneNMPCMultiShoot()
     ms_nmpc.set_goal_state(xr)
     ms_nmpc.set_start_state(x_init)
     ms_nmpc_state_data = np.empty([num_iterations,13])

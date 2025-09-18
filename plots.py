@@ -146,16 +146,6 @@ def plot_state_for_comparison(tspan, data, title, plot_no):
 
     plt.xlabel('Time (sec)')
 
-def plot_time_comparison(tspan, d1, d2, d3, title, plot_no):
-    plt.figure(figsize=(6,3))
-    plt.figure(plot_no)
-    plt.plot(tspan, d1, label='OC', marker='+', linestyle='None', markersize=4)
-    plt.plot(tspan, d2, label='MS', marker='^', linestyle='None', markersize=4)
-    plt.plot(tspan, d3, label='CPS', marker='.', linestyle='None', markersize=4)
-    plt.ylabel('CPU Time (sec)')
-    plt.legend(loc='lower right')
-    plt.savefig("documents/time" + title  + ".pdf", format="pdf", bbox_inches="tight")
-
 
 
 def plot_control_for_comparison(tspan, control, title, plot_no):
@@ -228,7 +218,7 @@ def plot_state_for_paper(tspan, data, title, plot_no):
     plt.ylabel('$w$')
 
     plt.xlabel('Time (sec)')
-    plt.savefig("documents/state" + title + str(plot_no) + ".pdf", format="pdf", bbox_inches="tight")
+    plt.savefig("state" + title + str(plot_no) + ".pdf", format="pdf", bbox_inches="tight")
 
 
 
@@ -261,4 +251,15 @@ def plot_control_for_paper(tspan, control, title, plot_no):
 
 
     plt.xlabel('Time (sec)')
-    plt.savefig("documents/control" + title + str(plot_no) + ".pdf", format="pdf", bbox_inches="tight")
+    plt.savefig("control" + title + str(plot_no) + ".pdf", format="pdf", bbox_inches="tight")
+
+def plot_time_comparison(tspan, d1, d2, d3, title, plot_no):
+    plt.figure(figsize=(6,3))
+    plt.figure(plot_no)
+    plt.plot(tspan, d1, label='OC', marker='+', linestyle='None', markersize=4)
+    plt.plot(tspan, d2, label='MS', marker='^', linestyle='None', markersize=4)
+    plt.plot(tspan, d3, label='CPS', marker='.', linestyle='None', markersize=4)
+    plt.ylabel('CPU Time (sec)')
+    plt.legend(loc='lower right')
+    plt.savefig("time" + title  + ".pdf", format="pdf", bbox_inches="tight")
+
