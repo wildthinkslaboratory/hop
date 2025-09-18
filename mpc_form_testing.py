@@ -109,7 +109,7 @@ test_list_full = [
   }
 ]
 
-for test in test_list:
+for test in test_list_full:
 
     # set up the test case
     num_iterations = test['num_iterations']

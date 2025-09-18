@@ -244,7 +244,7 @@ def plot_control_for_paper(tspan, control, title, plot_no):
     plt.ylabel('$\\overline{P}$')
 
     plt.subplot(3, 1, 3)
-    plt.ylim(-0.02, 0.02)
+    # plt.ylim(-0.02, 0.02)
     # delta thrust
     plt.plot(tspan, control[:,3])
     plt.ylabel('$\\Delta P$')

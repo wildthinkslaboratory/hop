@@ -363,7 +363,7 @@ To map the average thrust command signal value to the actual thrust force value 
          \begin{equation}
          	 \sum_{k=0}^{N-1}  \Big[(x_k -  x_{r})^T Q (x_k - x_{r}) + (u_k -  u_{r})^T R (u_k - u_{r}) \Big] + (x_N -  x_{r})^T Q_f (x_N - x_{r})
          \end{equation}
-	Constraints on gimbal angles and thrust motors are encoded by adding a copy of the appropriate inequalities at each time step.
+	Constraints on gimbal angles and thrust motors are encoded by adding a copy of the appropriate inequalities at each time step. 	To improve performance of our multiple shooter method we implemented warm starts, shifting the previous solution forward one time step and using that as an initial guess for the problem at the current time step.
 	
 	Multiple shooting considers the state and control variables at every time step to be optimization variables so the full NLP vector is:
         \[
@@ -373,9 +373,9 @@ To map the average thrust command signal value to the actual thrust force value 
         \]
 	This can easily become computationally demanding for long horizons and high-dimensional systems. For a thrust vector drone system with a  horizon length of 100 time steps there are $13 * (100+1)+4*100=1713$ decision variables. While the number of variables is very high, the constraint matrix is typically very sparse since each constraint references only a small number of variables.
 
-	Multiple shooting is easy to implement using {\casadi}.  There are very few choices to toggle in producing the best multiple shooting implementation. Outside of specific NLP solver settings, the main choices are the length of your time steps and the length of your horizon.   
+	Multiple shooting is easy to implement using {\casadi}.  There are very few choices to toggle in producing the best multiple shooting implementation. Outside of specific NLP solver settings, the main choices are the length of your time steps and the length of your horizon.   Working with a time step of $\Delta t = 0.02$ we found that time horizons with $N \leq 50$  often produced trajectories that were irregular or did not converge. An $50 \leq N \leq 80$ produced mostly smooth graphs that converged however the convergence was a bit slow.  An $N \geq 80$ seemed to produce good quality graphs that converged promptly.
 	
-	To improve performance of our multiple shooter method we implemented warm starts, shifting the previous solution forward one time step and using that as an initial guess for the problem at the current time step.
+
 	
 
 \subsection*{Orthogonal Collocation using {do-mpc}} 
