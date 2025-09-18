@@ -373,7 +373,7 @@ To map the average thrust command signal value to the actual thrust force value 
         \]
 	This can easily become computationally demanding for long horizons and high-dimensional systems. For a thrust vector drone system with a  horizon length of 100 time steps there are $13 * (100+1)+4*100=1713$ decision variables. While the number of variables is very high, the constraint matrix is typically very sparse since each constraint references only a small number of variables.
 
-	Multiple shooting is easy to implement using {\casadi}.  There are very few choices to toggle in producing the best multiple shooting implementation. Outside of specific NLP solver settings, the main choices are the length of your time steps and the length of your horizon.   Working with a time step of $\Delta t = 0.02$ we found that time horizons with $N \leq 50$  often produced trajectories that were irregular or did not converge. An $50 \leq N \leq 80$ produced mostly smooth graphs that converged however the convergence was a bit slow.  An $N \geq 80$ seemed to produce good quality graphs that converged promptly.
+	Multiple shooting is easy to implement using {\casadi}.  There are very few choices to toggle in producing the best multiple shooting implementation. Outside of specific NLP solver settings, the main choices are the length of your time steps and the length of your horizon.   Working with a time step of $\Delta t = 0.02$ we found that time horizons with $N \leq 50$  often produced trajectories that were irregular or did not converge. An $50 \leq N \leq 80$ produced mostly smooth graphs that converged however the convergence was a bit slow.  An $N \geq 80$ seemed to produce good quality graphs that converged promptly. However, our goal for all implementations is to have a horizon of $2$ seconds. 
 	
 
 	
@@ -418,7 +418,7 @@ J=\Phi(z(t_f)) + \sum_{i=1}^{N}h_i\sum_{k=1}^{K}\omega_kL(z_{ik},u_{ik},t_{ik})
 \]
 Where the weights $\omega_k$ are determined by Radau quadrature, which integrates all polynomials up to $2s-1$. For a horizon of 100 time steps each with an interpolant polynomial order of two the total number of decision variables per time step is $13*(100*(2+1)+1)+4*100=4313.$
 
-Need to say clearly what horizon we used and why and the degree of quadrature.
+Fix the length of the time horizon to 2 seconds and choices: number of finite elements, number of collocation points.
 
 \subsection*{Chebyshev Pseudospectral Method}
 Multiple shooting is useful for its robustness to discontinuities and nonlinearity and its conceptual simplicity. However, thrust-vectoring dynamics are smooth and continuous, so many of the benefits of multiple shooting are unnecessary. Additionally, multiple shooting introduces a much larger NLP because it solves for the state and control variables at every point in the control horizon. By contrast, Chebyshev Pseudospectral Collocation is a global method that represents the trajectory of each state with a single interpolating polynomial of degree $N$ over the entire horizon, defined by its values at a set of $N+1$ nodes. It achieves spectral accuracy, with error decreasing exponentially as the number of nodes increases, while requiring far fewer decision variables than multiple shooting. For $N=6$ there are seven nodes and $7*13+7*4=119$ decision variables per time step. The dynamics are enforced by constraining the derivative of the interpolant at each node to the dynamic equations. Chebyshev–Gauss–Lobatto nodes are used to cluster more of the nodes towards the beginning and end of the horizon, mitigating the Runge Phenomenon, where polynomial interpolation develops large oscillations near the endpoints. The cosine distribution ensures accuracy and stability:
@@ -519,7 +519,8 @@ For $N=6$ the differentiation matrix is:
         \end{cases}
         \]
 
-Need to summarize our choices.  N=6.
+warm starts.
+Need to summarize our choices.  Spectral order, time horizon.
 
 \section*{Comparison of Methods}
 

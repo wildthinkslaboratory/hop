@@ -11,41 +11,27 @@ class DroneMPC:
         self.dt = dt
         self.model = model
         self.mpc = do_mpc.controller.MPC(self.model)
-        
-        # self.mpc.settings.n_horizon = 5
-        # self.mpc.settings.n_robust = 1
-        # self.mpc.settings.open_loop = 0
-        # self.mpc.settings.t_step = self.dt * 20
-        # self.mpc.settings.state_discretization = 'collocation'
-        # self.mpc.settings.collocation_type = 'radau'
-        # self.mpc.settings.collocation_deg = 4
-        # self.mpc.settings.collocation_ni = 1
-        # self.mpc.settings.store_full_solution = True
-        # self.mpc.settings.nlpsol_opts = mc.ipopt_settings
 
-        self.mpc.settings.n_horizon = mc.mpc_horizon
-        self.mpc.settings.n_robust = 1
-        self.mpc.settings.open_loop = 0
-        self.mpc.settings.t_step = self.dt
-        self.mpc.settings.state_discretization = 'collocation'
-        self.mpc.settings.collocation_type = 'radau'
-        self.mpc.settings.collocation_deg = 2
-        self.mpc.settings.collocation_ni = 1
-        self.mpc.settings.store_full_solution = True
+
         self.mpc.settings.nlpsol_opts = mc.ipopt_settings
+        self.mpc.settings.t_step = self.dt    # the length of a finite element ?
+        self.mpc.settings.n_horizon = mc.mpc_horizon 
+        self.mpc.settings.collocation_deg = 2  # the degree of polynomial and number of quadrature points per time step
+        self.mpc.settings.collocation_ni = 1
+
 
         self.mpc.bounds['lower', '_u', 'u'] = [
             mc.outer_gimbal_range[0],
             mc.inner_gimbal_range[0],
             -np.inf,
-            mc.diff_thrust_constraint[0]
+            -np.inf
         ]
 
         self.mpc.bounds['upper', '_u', 'u'] = [
             mc.outer_gimbal_range[1],
             mc.inner_gimbal_range[1],
             np.inf,
-            mc.diff_thrust_constraint[1]
+            np.inf
         ]
 
         self.mpc.bounds['lower', '_x', 'p'] = [-ca.inf, -ca.inf, 0]
@@ -72,23 +58,17 @@ class DroneMPC:
 
         x = ca.vertcat(self.model.x['p'], self.model.x['v'], self.model.x['q'], self.model.x['w'])
         x_error = x - x_r
-        lterm = x_error.T @ mc.Q @ x_error 
-        self.mpc.set_objective(lterm=lterm, mterm=lterm)
-        self.mpc.set_rterm(u=np.array([1, 1, 1, 1], dtype=float))
+        x_cost = x_error.T @ mc.Q @ x_error 
+        u_goal = ca.DM([0.0, 0.0, mc.hover_thrust, 0.0])
+        u_error = self.model.u['u'] - u_goal
+        u_cost = u_error.T @ mc.R @ u_error
+        cost = x_cost + u_cost
+        self.mpc.set_objective(lterm=cost, mterm=x_cost)
+
+        # this is rate change limitations for control
+        # self.mpc.set_rterm(u=np.array([1, 1, 1, 1], dtype=float))
 
 
         self.mpc.prepare_nlp()
-
-        # # this creates bounds on the rate of change of the servos
-        # ulist = self.mpc.opt_x['_u']
-        # for i in range(len(ulist)):
-        #     if not i == 0:
-        #         rate_constraint = self.mpc.opt_x['_u', i, 0][:2] - self.mpc.opt_x['_u', i-1, 0][:2]
-        #         self.mpc.nlp_cons.append(rate_constraint)
-        #         shape = rate_constraint.shape
-        #         self.mpc.nlp_cons_lb.append(-np.array([mc.theta_dot_constraint]*shape[0]).reshape(shape))
-        #         self.mpc.nlp_cons_ub.append(np.array([mc.theta_dot_constraint]*shape[0]).reshape(shape))
-
-
         self.mpc.create_nlp()
 

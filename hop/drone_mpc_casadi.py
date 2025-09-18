@@ -8,11 +8,11 @@ mc = Constants()
 class DroneNMPCMultiShoot:
     def __init__(self):
 
-        # self.N = mc.mpc_horizon
-        # self.dt = mc.dt
+        self.N = mc.mpc_horizon
+        self.dt = mc.dt
 
-        self.N = 100
-        self.dt = 0.02
+        # self.N = 80
+        # self.dt = mc.dt
 
         # First create our state variables and control variables
         p = ca.SX.sym('p', 3, 1)
@@ -97,17 +97,11 @@ class DroneNMPCMultiShoot:
         # n_u_vars = self.size_u() * (self.N+1)
 
         self.lbx[2: n_x_vars: self.size_x()] = 0     # keep z position above 0
-        
 
         self.lbx[n_x_vars:   num_vars: self.size_u()] = mc.outer_gimbal_range[0]     # outer gimbal lower bound
         self.lbx[n_x_vars+1: num_vars: self.size_u()] = mc.inner_gimbal_range[0]     # inner gimbal lower bound
-        # self.lbx[n_x_vars+2: num_vars: self.size_u()] = 0                            # average thrust lower bound
-        self.lbx[n_x_vars+3: num_vars: self.size_u()] = mc.diff_thrust_constraint[0] # delta thrust lower bound
-
         self.ubx[n_x_vars:   num_vars: self.size_u()] = mc.outer_gimbal_range[1]     # outer gimbal upper bound
         self.ubx[n_x_vars+1: num_vars: self.size_u()] = mc.inner_gimbal_range[1]     # inner gimbal upper bound
-        self.ubx[n_x_vars+3: num_vars: self.size_u()] = mc.diff_thrust_constraint[1] # delta thrust upper bound
-
 
         # g constraints contain an expression that is constrained by an upper and lower bound
         self.lbg = []   # will hold lower bounds for g constraints
@@ -116,12 +110,6 @@ class DroneNMPCMultiShoot:
         g = X[:, 0] - X0  
         self.lbg += [0.0]*int(g.numel())
         self.ubg += [0.0]*int(g.numel())
-
-        # first_u = U[:, 0]  
-        # g   = ca.vertcat(g, (first_u[2] + 0.5*first_u[3]) - (U0[2] + 0.5*U0[3]))
-        # g   = ca.vertcat(g, (first_u[2] - 0.5*first_u[3]) - (U0[2] - 0.5*U0[3]))
-        # self.lbg += [-mc.thrust_dot_limit * self.dt] * 2
-        # self.ubg += [mc.thrust_dot_limit * self.dt] * 2
 
         cost = 0.0
         u_goal = ca.DM([0.0, 0.0, mc.hover_thrust, 0.0])
@@ -156,14 +144,6 @@ class DroneNMPCMultiShoot:
             self.lbg += [-ca.inf]*2
             self.ubg += [0.0]*2
 
-            # build up rate of change constraints for thrust 
-            # if k < self.N-1:
-            #     next_u = U[:, k+1]  
-            #     g   = ca.vertcat(g, (next_u[2] + 0.5*next_u[3]) - (u_k[2] + 0.5*u_k[3]))
-            #     g   = ca.vertcat(g, (next_u[2] - 0.5*next_u[3]) - (u_k[2] - 0.5*u_k[3]))
-            #     self.lbg += [-mc.thrust_dot_limit * self.dt] * 2
-            #     self.ubg += [mc.thrust_dot_limit * self.dt] * 2
-
 
             # # build up rate of change constraints for servos 
             # if k < self.N-1:
@@ -193,8 +173,6 @@ class DroneNMPCMultiShoot:
         opts = mc.ipopt_settings
 
         self.solver = ca.nlpsol('solver', 'ipopt', nlp_prob, opts)
-        
-        
         
         # We create our initial guess for a solution.
         # Later we'll use the previous solution as our new solution guess.

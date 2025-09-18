@@ -90,31 +90,20 @@ class DroneNMPCwithCGL:
 
         self.lbx[2: n_x_vars: self.size_x()] = 0     # keep z position above 0
 
-
         self.lbx[n_x_vars:   num_vars: self.size_u()] = mc.outer_gimbal_range[0]     # outer gimbal lower bound
         self.lbx[n_x_vars+1: num_vars: self.size_u()] = mc.inner_gimbal_range[0]     # inner gimbal lower bound
-
-        # self.lbx[n_x_vars+2: num_vars: self.size_u()] = 0                            # average thrust lower bound
-
-        self.lbx[n_x_vars+3: num_vars: self.size_u()] = mc.diff_thrust_constraint[0] # delta thrust lower bound
-
         self.ubx[n_x_vars:   num_vars: self.size_u()] = mc.outer_gimbal_range[1]     # outer gimbal upper bound
         self.ubx[n_x_vars+1: num_vars: self.size_u()] = mc.inner_gimbal_range[1]     # inner gimbal upper bound
-        self.ubx[n_x_vars+3: num_vars: self.size_u()] = mc.diff_thrust_constraint[1] # delta thrust upper bound
-
 
         tau_2_time = (self.T/2)
         D = chebyshev_D(self.N)
         D_ca = ca.DM(D)
-
         w = weights(self.N)
-
 
         # g constraints contain an expression that is constrained by an upper and lower bound
         self.lbg = []   # will hold lower bounds for g constraints
         self.ubg = []   # will hold upper bounds for g constraints
     
-
         # equations of motion constraints
         g = X[:, 0] - X0
         self.lbg += [0.0]*int(g.numel())
@@ -127,13 +116,11 @@ class DroneNMPCwithCGL:
             x_k = X[:, j]
             u_k = U[:, j]
 
-
             # cost function
             state_cost = (x_k - self.x_goal).T @ mc.Q @ (x_k - self.x_goal)
             control_cost = (u_k - u_goal).T @ mc.R @ (u_k - u_goal)
             running_cost = state_cost + control_cost 
             cost = cost + w[j] * running_cost
-
 
             # dynamics constraints
             f_k = self.f(x_k, u_k)
@@ -142,17 +129,17 @@ class DroneNMPCwithCGL:
             self.ubg += [0.0]*int(self.size_x())
 
 
-            # upper thrust limit constraints         
-            # g   = ca.vertcat(g, (u_k[2] + 0.5*u_k[3]) - mc.prop_thrust_constraint)
-            # g   = ca.vertcat(g, (u_k[2] - 0.5*u_k[3]) - mc.prop_thrust_constraint)
+            # # upper thrust limit constraints         
+            # g   = ca.vertcat(g, w[j] * (u_k[2] + 0.5*u_k[3]) - mc.prop_thrust_constraint)
+            # g   = ca.vertcat(g, w[j] * (u_k[2] - 0.5*u_k[3]) - mc.prop_thrust_constraint)
             # self.lbg += [-ca.inf]*2
             # self.ubg += [0.0]*2
 
         
-        x_N = X[:, self.N]
-        e_N = x_N - self.x_goal
-        Qf = mc.Q
-        cost = cost + e_N.T @ Qf @ e_N
+        # x_N = X[:, self.N]
+        # e_N = x_N - self.x_goal
+        # Qf = mc.Q
+        # cost = cost + e_N.T @ Qf @ e_N
 
         cost = cost * tau_2_time
 
