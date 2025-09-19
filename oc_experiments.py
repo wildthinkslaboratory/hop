@@ -11,8 +11,9 @@ import numpy as np
 import statistics as stats
 from time import perf_counter
 import matplotlib.pyplot as plt
+from matplotlib import colors
 from plots import plot_time_comparison, plot_state_for_paper, plot_control_for_paper
-from math import log
+from hop.utilities import sig_figs
 mc = Constants()
 
 
@@ -118,10 +119,11 @@ test_list_full = [
   }
 ]
 
-times = np.zeros((5,7))
-accuracy = times
+
 collocations = [1, 2, 3, 4, 5]
-timesteps = [0.02, 0.04, 0.25, 0.5, 1.0, 2.0]
+timesteps = [0.02, 0.04, 0.08, 0.2, 0.25, 0.5, 0.8]
+times = np.zeros((len(collocations),len(timesteps)))
+accuracy = np.zeros((len(collocations),len(timesteps)))
 
 for test in test_list:
     # set up the test case
@@ -136,7 +138,7 @@ for test in test_list:
 
     mpc.mpc.settings.t_step = 0.02
     mpc.mpc.settings.n_horizon = 100
-    mpc.mpc.settings.collocation_deg = 2 
+    mpc.mpc.settings.collocation_deg = 5 
 
     estimator = StateFeedback(model.model)
     sim = Simulator(model.model)
@@ -209,22 +211,24 @@ for test in test_list:
             for i in range(num_iterations):
                 error = reference_data[i] - dompc_state_data[i]
                 state_error += error.T @ error
-            accuracy[c-1][n] = round(state_error, 3)
+
+            # round(x, -int(floor(log10(abs(x)))))
+            accuracy[c-1][n] = sig_figs(state_error, 2)
 
             # compute statistics for the timing of the nmpc calls
-            mean_time = round(stats.mean(dompc_time_data),3)
+            mean_time = sig_figs(stats.mean(dompc_time_data),2)
             max_time = round(max(dompc_time_data),3)
             times[c-1][n] = mean_time
             print(c, tstep, state_error, mean_time)
 
             # print timing results
-            print(test['title'])
-            print('mean: ', mean_time, ' max: ', max_time)
+            # print(test['title'])
+            # print('mean: ', mean_time, ' max: ', max_time)
 
 
-            plot_state_for_paper(tspan, dompc_state_data, test["title"], 1)
-            plot_control_for_paper(tspan, dompc_control_data, test["title"], 2)
-            plt.show()
+            # plot_state_for_paper(tspan, dompc_state_data, test["title"], 1)
+            # plot_control_for_paper(tspan, dompc_control_data, test["title"], 2)
+            # plt.show()
 
     header = '    '
     for t in timesteps:
@@ -237,53 +241,58 @@ for test in test_list:
             print(str(times[c][t]).rjust(8), end='')
         print()
 
-    c_labels = ['1', '2', '3', '4', '5']
-    t_labels = ['0.02', '0.04', '0.08', '0.25', '0.5', '1.0', '2.0']
+    c_labels = [str(c) for c in collocations]
+    t_labels = [str(t) for t in timesteps]
 
 
+    print(accuracy)
 
-    fig, ax = plt.subplots(2)
-    fig.set_figheight(12)
-    from matplotlib.colors import LogNorm
-    im = ax[0].imshow(times)
+    plt.figure(1)
+    fig, ax = plt.subplots()
+    fig.set_figheight(8)
+    im = ax.imshow(times, norm=colors.LogNorm(vmin=times.min(), vmax=times.max()), cmap='viridis')
 
-    ax[0].set_xticks(np.arange(len(t_labels)))
-    ax[0].set_yticks(np.arange(len(c_labels)))
-    ax[0].set_xticklabels(t_labels)
-    ax[0].set_yticklabels(c_labels)
+    ax.set_xticks(np.arange(len(t_labels)))
+    ax.set_yticks(np.arange(len(c_labels)))
+    ax.set_xticklabels(t_labels)
+    ax.set_yticklabels(c_labels)
 
     # Rotate the tick labels and set their alignment.
-    plt.setp(ax[0].get_xticklabels(), rotation=45, ha="right",
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
             rotation_mode="anchor")
 
     # Loop over data dimensions and create text annotations.
     for i in range(len(c_labels)):
         for j in range(len(t_labels)):
-            text = ax[0].text(j, i, str(times[i, j]),
+            text = ax.text(j, i, str(times[i, j]),
                         ha="center", va="center", color="w")
 
-    ax[0].set_title("Average CPU time")
+    ax.set_title("Average CPU time")
 
-    im2 = ax[1].imshow(accuracy)
+    plt.savefig("CPU.pdf", format="pdf", bbox_inches="tight")
 
-    ax[1].set_xticks(np.arange(len(t_labels)))
-    ax[1].set_yticks(np.arange(len(c_labels)))
-    ax[1].set_xticklabels(t_labels)
-    ax[1].set_yticklabels(c_labels)
+    plt.figure(2)
+    fig1, ax1 = plt.subplots()
+    im2 = ax1.imshow(accuracy, norm=colors.LogNorm(), cmap='viridis')
+
+    ax1.set_xticks(np.arange(len(t_labels)))
+    ax1.set_yticks(np.arange(len(c_labels)))
+    ax1.set_xticklabels(t_labels)
+    ax1.set_yticklabels(c_labels)
 
     # Rotate the tick labels and set their alignment.
-    plt.setp(ax[1].get_xticklabels(), rotation=45, ha="right",
+    plt.setp(ax1.get_xticklabels(), rotation=45, ha="right",
             rotation_mode="anchor")
 
-    # # Loop over data dimensions and create text annotations.
-    # for i in range(len(c_labels)):
-    #     for j in range(len(t_labels)):
-    #         text = ax[1].text(j, i, accuracy[i, j],
-    #                     ha="center", va="center", color="w")
+    # Loop over data dimensions and create text annotations.
+    for i in range(len(c_labels)):
+        for j in range(len(t_labels)):
+            text = ax1.text(j, i, accuracy[i, j],
+                        ha="center", va="center", color="w")
 
-    ax[1].set_title("Accuracy") 
+    ax1.set_title("Accuracy") 
 
-    # fig.tight_layout()
+    plt.savefig("Accuracy.pdf", format="pdf", bbox_inches="tight")
 
     
     plt.show()

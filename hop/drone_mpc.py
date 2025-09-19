@@ -14,10 +14,16 @@ class DroneMPC:
 
 
         self.mpc.settings.nlpsol_opts = mc.ipopt_settings
-        self.mpc.settings.t_step = self.dt    # the length of a finite element ?
-        self.mpc.settings.n_horizon = mc.mpc_horizon 
-        self.mpc.settings.collocation_deg = 2  # the degree of polynomial and number of quadrature points per time step
         self.mpc.settings.collocation_ni = 1
+
+        # self.mpc.settings.t_step = self.dt    # the length of a finite element ?
+        # self.mpc.settings.n_horizon = mc.mpc_horizon 
+        # self.mpc.settings.collocation_deg = 2  # the degree of polynomial and number of quadrature points per time step
+
+        self.mpc.settings.t_step = 0.25    # the length of a finite element ?
+        self.mpc.settings.n_horizon = 8 
+        self.mpc.settings.collocation_deg = 2  # the degree of polynomial and number of quadrature points per time step
+
 
 
         self.mpc.bounds['lower', '_u', 'u'] = [

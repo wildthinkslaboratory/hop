@@ -350,12 +350,12 @@ To map the average thrust command signal value to the actual thrust force value 
         
 	The cost function is defined to penalize deviation from reference state as well as deviation from reference control input. There is also a terminal cost that incentivizes long term stability by weighting the final state more heavily.
         \[
-        \vec{x}_r =
+        x_r =
         \begin{bmatrix}
         0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0
         \end{bmatrix}^{\!T},
         \qquad
-        \vec{u}_r =
+        u_r =
         \begin{bmatrix}
         0 & 0 & T_{\text{hover}} & 0
         \end{bmatrix}^{\!T}.
@@ -382,7 +382,11 @@ To map the average thrust command signal value to the actual thrust force value 
 Of all the methods we implemented, orthogonal collocation was the easiest. We used the open source {\bf do-mpc} Python library for model predictive control  \citep{do-mpc}   which implements MPC and NMPC using orthogonal collocation with Radau nodes.
 The {\bf do-mpc} library is ideal for prototyping  MPC and NMPC algorithms and requires minimal understanding of MPC and no understanding of orthogonal collocation to build functioning algorithms.
 
+Need to discuss our cost function and how to encode servo and thrust minimum and maximums.  We should note that with do-mpc you don't need to know any of this because the NLP constraints are generated automatically from the system dynamics. Warm starts are done automatically in do-mpc. cost function and other constraints are entered using continuous model variables and do-mpc adapts them to the chosen trajectory variables. You can specify degree of collocation and time step size.
+
 Orthogonal collocation is a local method that divides the time horizon into finite elements and fits polynomials to each interval. The dynamics are enforced throughout each interval at a set of Radau nodes given by:
+
+Terms not defined: $K$, $\beta$, $\alpha$
 \[
 \gamma_0=1,  \qquad \gamma_j = \gamma_{j-1} \frac{(K-j+1)(K+j+\alpha+\beta)}{j(j+\beta)}, \qquad j = 1,\ldots,K
 \]
@@ -390,6 +394,9 @@ When $P_K$ are the Gauss-Jacobi polynomials:
 \[
 P_K^{(\alpha, \beta)}(\tau) = \sum_{j=0}^{K}(-1)^{K-j}\gamma_j\tau^j
 \]
+
+Undefined terms $z^K(\tau)$
+
 Lagrange polynomials, $\ell_j(\tau)$, are used to interpolate the state trajectory $z^K(\tau)$:
 \[
 \ell_j(\tau)=\prod_{\substack{m=0 \\ m\neq j}}^{K}\frac{\tau-\tau_m}{\tau_j-\tau_m}
@@ -397,7 +404,10 @@ Lagrange polynomials, $\ell_j(\tau)$, are used to interpolate the state trajecto
 \[
 z^K(\tau)=\sum_{j=0}^{K}z_{ij}\ell_j(\tau)
 \]
-By differentiating the state trajectory and equating it with the dynamics ODEs, $f$, a dynamics constraint is formed:
+
+How is $z^K(\tau)$ related to $x(t)$ and $u(t)$? Define $h_i$.
+
+By differentiating the state trajectory and equating it with the dynamics     s$\dot{x} =  f(x(t),u(t))$, a dynamics constraint is formed:
 \[
 \sum_{j=0}^K z_{ij}\frac{d\ell_j(\tau_k)}{d\tau}=h_if(z_{ik},t_{ik}), 
 \qquad k=1,\dots,K.
@@ -409,6 +419,7 @@ z_{i+1,0}=\sum_{j=0}^{K}\ell_j(1)z^{ij}
 \[
 z_f=\sum_{j=0}^{K}\ell_j(1)z^{Nj}, \qquad z_{1,0} = z_0
 \]
+What is $\ i(\cdot)$. $L$, $\Phi$?
 The cost function is defined as:
 \[
 \substack{min \\ i(\cdot)}J=\Phi(z(t_f),t_f) + \int_{t_0}^{t_f}L(z(t),u(t),t)dt
@@ -416,9 +427,28 @@ The cost function is defined as:
 \[
 J=\Phi(z(t_f)) + \sum_{i=1}^{N}h_i\sum_{k=1}^{K}\omega_kL(z_{ik},u_{ik},t_{ik})
 \]
-Where the weights $\omega_k$ are determined by Radau quadrature, which integrates all polynomials up to $2s-1$. For a horizon of 100 time steps each with an interpolant polynomial order of two the total number of decision variables per time step is $13*(100*(2+1)+1)+4*100=4313.$
+Where the weights $\omega_k$ are determined by Radau quadrature, which integrates all polynomials up to $2s-1$. 
 
-Fix the length of the time horizon to 2 seconds and choices: number of finite elements, number of collocation points.
+
+Fix the length of the time horizon to 2 seconds and choices: number of finite elements, number of collocation points. Run a simulation for 200 iterations. Consider collocation degrees $c = 1, 2, \ldots, 5$ and time intervals $[0.02, 0.04, 0.08, 0.2, 0.25, 0.5, 0.8]$. Run with $5$ collocation points and $0.02$ time step and save state data. This is the most fine grained collocation scheme and has very nice curves that smooth and converge.  To compute the accuracy of a run we look at the squared error from this run summed over each iteration. On visual inspection this works well and accuracy less then $50$ are very good, smooth, converge promptly. So time step $0.25$ with $2$ collocation points is the best. 
+
+
+\begin{figure}[H]
+	\centering
+	\begin{subfigure}[b]{0.45\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{figures/Accuracy.pdf}
+		\caption{Accuracy metric for orthogonal collocation with different size time steps and collocation degrees.}
+	\end{subfigure}%
+	\hfill
+	\begin{subfigure}[b]{0.45\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{figures/CPU.pdf}
+		\caption{Average CPU time for orthogonal collocation with different size time steps and collocation degrees.}
+	\end{subfigure}
+	\label{fig:oc}
+\end{figure}
+
 
 \subsection*{Chebyshev Pseudospectral Method}
 Multiple shooting is useful for its robustness to discontinuities and nonlinearity and its conceptual simplicity. However, thrust-vectoring dynamics are smooth and continuous, so many of the benefits of multiple shooting are unnecessary. Additionally, multiple shooting introduces a much larger NLP because it solves for the state and control variables at every point in the control horizon. By contrast, Chebyshev Pseudospectral Collocation is a global method that represents the trajectory of each state with a single interpolating polynomial of degree $N$ over the entire horizon, defined by its values at a set of $N+1$ nodes. It achieves spectral accuracy, with error decreasing exponentially as the number of nodes increases, while requiring far fewer decision variables than multiple shooting. For $N=6$ there are seven nodes and $7*13+7*4=119$ decision variables per time step. The dynamics are enforced by constraining the derivative of the interpolant at each node to the dynamic equations. Chebyshev–Gauss–Lobatto nodes are used to cluster more of the nodes towards the beginning and end of the horizon, mitigating the Runge Phenomenon, where polynomial interpolation develops large oscillations near the endpoints. The cosine distribution ensures accuracy and stability:
