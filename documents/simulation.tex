@@ -80,21 +80,13 @@
 \maketitle
 	
 \section*{Introduction}	
-	This paper is  part of a larger project inspired by the small-scale rocket prototype presented by \cite{TVCDrone} which aims to study thrust vector control (TVC) and vertical take of and landing (VTOL) using a gimballed thrust drone with electric motors and propellers.  
-	
-	Rockets are inherently unstable. They have highly nonlinear, coupled dynamics,  and require fast control algorithms that respond quickly to disturbances and sensor noise. 
-	Unfortunately, validating control techniques on full scale rockets is prohibitively costly and high-risk. There is a need for inexpensive test vehicles that allow experimentation with rocket guidance, navigation, and control. 
-	A gimballed thrust drone with electric motors and propellers is a good choice for replicating rocket dynamics on a much smaller budget. A couple of very inexpensive designs have been preposed and implemented  \citep{cheapTVC}, \citep{TVCDrone}.
+	This paper is part of a larger project inspired by the small-scale rocket prototype presented by \cite{TVCDrone} which aims to study thrust vector control (TVC) and vertical takeoff and landing (VTOL) using a gimballed-thrust rocket prototype. 
+	VTOL milestones like NASA's Lunar Landing Research Vehicle (LLRV) which allowed Apollo astronauts to practice lunar landings, McDonnell Douglas’s DC-X (Delta Clipper), and SpaceX's Falcon 9 landings, and the planned Artemis III mission that aims to land and return astronauts from the moon illustrate the value of propulsive VTOL with TVC. 	
+	About the upright hover equilibrium, vertically flying rockets are open-loop unstable in attitude. They have highly nonlinear, coupled dynamics, and require fast control algorithms that respond quickly to disturbances and sensor noise. Unfortunately, validating control techniques on full-scale rockets is prohibitively costly and high-risk. There is a need for inexpensive test vehicles that allow experimentation with rocket guidance, navigation, and control. 
+	A gimballed-thrust drone with electric motors and propellers is a good choice for replicating rocket dynamics on a much smaller budget. A couple of low-cost designs have been proposed and implemented  \citep{cheapTVC}, \citep{TVCDrone}. The drone design by \cite{TVCDrone} allows experimentation with control algorithms for VTOL and TVC. We have designed a similar drone based on their images and design descriptions, and there remain many details and design choices to explore.
 
-	Thrust vector control, which uses a gimbal to angle the direction of engine thrust and control the rocket's position and attitude, is an important control method for rockets.
-	Vertical takeoff and landing (VTOL) milestones like NASA's Lunar Landing Research Vehicle (LLRV) which allowed Apollo astronauts to practice lunar landings, SpaceX's Falcon 9 landings, and the future Artemis III mission that aims to land and return astronauts from the moon illustrate the value of propulsive VTOL with TVC. 
-	The drone design by \cite{TVCDrone} allows experimentation with of control algorithms for VTOL and VTC. We have designed a similar drone based on their images and design descriptions. Within this context there are still many details and choices to explore. 
-
-	Our drone implements VTC and VTOL using a nonlinear model predictive control (NMPC) algorithm \citep{nmpc}.
-	NMPC algorithms can handle nonlinear rocket dynamics and manage constraints like gimbal angle range, servo rates, and thrust limits. NMPC optimizes control inputs across a finite time horizon at each time step. In this sense it creates a {\em plan} of control inputs allowing it to anticipate future control requirements. Revising the plan at each time step allows it to respond to disturbances. The main downside of NMPC is its high computational load. NMPC solves a constrained nonlinear optimization  problem (NLP) at every control step, and as a result it is much slower than simple control algorithms like proportional integral derivative (PID) controllers or linear quadratic regulators (LQR).
-	There are a variety of ways to formulate an NMPC problem instance as a nonlinear programming problem. Different formulations may vary in their solution times and solution accuracy.
-	The  focus of this paper is experimenting with different choices of NLP formulations and evaluating their speed and accuracy.  Our goal is to run our control algorithm on a Raspberry Pi 5 at $50$Hz so solution speed will be very important.  
-	
+	Our drone implements TVC and VTOL using a nonlinear model predictive control (NMPC) algorithm \citep{nmpc}, allowing it to handle nonlinear rocket dynamics and manage constraints like gimbal angle range, servo rates, and thrust limits. NMPC optimizes control inputs across a finite time horizon at each time step. In this sense it optimizes a control sequence, allowing it to anticipate future control requirements. Revising the sequence at each time step allows it to respond to disturbances. The main downside of NMPC is its high computational load. NMPC solves a constrained Optimal Control Problem (OCP) that is transcribed into a finite dimensional nonlinear optimization problem (NLP) at every control step, and as a result it is much slower than simple control algorithms like proportional integral derivative (PID) controllers or linear quadratic regulators (LQR).
+	There are a variety of ways to formulate an NMPC problem instance as a nonlinear programming problem. Different formulations may vary in their computation times and solution accuracy. The focus of this paper is experimenting with different choices of NLP formulations and evaluating their speed and accuracy.  Our goal is to run our control algorithm on a Raspberry Pi 5 at $50$ Hz so solution speed will be very important.
 	{\em We  compare three approaches: a Runge-Kutta multiple-shooter method, an orthogonal collocation with Gauss-Radau nodes implemented in the {\bf do-mpc}  library \citep{do-mpc},  and a Chebyshev pseudospectral collocation approach. We compare the relative accuracy of these techniques and their relative efficiency.}
 
 	
@@ -160,7 +152,7 @@ $\vec{M_z}$ is the moment about the body z axis due to differential thrust.
         M_z
         \end{bmatrix}
         \]
-The body frame moment vector is the sum of the torque due to thrust vector acting through the moment arm and the torque generated by the differential thrust. $l$ is the length of the moment arm acting from the center of mass to the point $\vec{F_b}$ acts on the drone. 
+The body frame moment vector is the sum of the torque due to thrust vector acting through the moment arm and the torque generated by the differential thrust. $l$ is the length of the moment arm acting from the center of mass to the point $\vec{F_b}$ acts on the drone in body coordinates. 
         \[
 	\vec{l} =
         \begin{bmatrix}
@@ -273,8 +265,8 @@ To map the average thrust command signal value to the actual thrust force value 
 
 \section*{Nonlinear Model Predictive Control (NMPC)}
 
-	Model predictive control (\mpc) is a control algorithm that solves a linear optimization problem at each time step.
-	An {\mpc} solution yields a series of control inputs over a finite time horizon, creating a {\em plan} of actions that can anticipate and adjust to future issues. For example, the optimal speed for a car at a given instance might change if the algorithm knew that it was entering a curve in the road in the next few time steps.  The control values for the first  step of the plan is applied to the system and then the plan is revised at the next time step, allowing the method to react to disturbances and noise. Nonlinear model predictive control (\nmpc) is a variant of {\mpc} that allows nonlinear constraints. 
+	Model predictive control (\mpc) is a control algorithm that solves an optimization problem at each time step.
+	An {\mpc} solution yields a series of control inputs over a finite time horizon, creating a {\em plan} of actions that can anticipate and adjust to future issues. For example, the optimal speed for a car at a given instance might change if the algorithm knew that it was entering a curve in the road in the next few time steps. The control values for the first step of the plan is applied to the system and then the plan is revised at the next time step, allowing the method to react to disturbances and noise. Nonlinear model predictive control (\nmpc) is a variant of {\mpc} that can handle nonlinear dynamics. 
 
 	Generally, given a set of continuous time nonlinear differential equations $\dot{x} = f(x(t),u(t))$  and an initial state $x_0$, the finite horizon {\nmpc} optimization problem is
 	\begin{align*}
@@ -284,8 +276,7 @@ To map the average thrust command signal value to the actual thrust force value 
 	\end{align*}
 	The solution $u(t)$ is a real valued function that minimizes the cost function over time interval $[0, t_f]$. The constraints require that  $u(t)$ and $x(t)$ obey the system dynamics $\dot{x} =  f(x(t),u(t)) $ and the  initial state $x(0)$ must be equal to the current state $x_0$.   Given this framework, it is easy to add additional constraints that enforce system limitation such as minimum or maximum control values.
 
-	The biggest advantage of using {\nmpc} to control our thrust vector drone is the allowance of nonlinear constraints. LQR and standard {\mpc} methods  require linear system dynamics.
-	 Equations (\ref{eqMotion1}-\ref{eqMotion4}) are strongly nonlinear, but can be linearized around the fixed point in which the drone is vertically balanced.  However, the linearized equations quickly become inaccurate if the drone moves away from the fixed point by tilting or rotating.  Working directly with the nonlinear equations allows more accurate predictions of the drone behavior. The {\nmpc} framework also allows us to enforce the mechanical limitations of our thrust motors and gimbal servos.  Libraries like {\casadi} \citep{casadi} and {\dompc} \citep{do-mpc} make {\nmpc} easy to implement in practice.
+	 Equations (\ref{eqMotion1}-\ref{eqMotion4}) are strongly nonlinear, but can be linearized around the fixed point in which the drone is vertically balanced as in LQR and Linear {\mpc}.  However, the linearized equations quickly become inaccurate if the drone moves away from the fixed point by tilting or rotating.  Working directly with the nonlinear equations allows more accurate predictions of the drone behavior. The {\nmpc} framework also allows us to enforce the mechanical limitations of our thrust motors and gimbal servos.  Libraries like {\casadi} \citep{casadi} and {\dompc} \citep{do-mpc} make {\nmpc} easy to implement in practice.
  
  	An {\nmpc} instance for the thrust vector drone is a minimization problem of the form
 	\begin{align}
@@ -301,11 +292,11 @@ To map the average thrust command signal value to the actual thrust force value 
 	  %	  & 	-\dot{\theta}_{max} \leq \dot{\theta}_1 \leq \dot{\theta}_{max} \\
 	  %	  &  	-\dot{\theta}_{max} \leq \dot{\theta}_2 \leq \dot{\theta}_{max}\\ 
 	\end{align}
-	The cost function (\ref{nmpc:cost}) minimizes both  the squared error between the current state $x(t)$ and the goal state $x_{ref}$ weighted by diagonal matrix $Q$ and the error between the current control $u(t)$ and the goal control $u_{ref}$ weighted by diagonal matrix $R$. 
+	The cost function (\ref{nmpc:cost}) minimizes both the squared error between the current state $x(t)$ and the goal state $x_{ref}$ weighted by diagonal matrix $Q$ and the error between the current control $u(t)$ and the goal control $u_{ref}$ weighted by diagonal matrix $R$. 
 	\begin{equation*}
 		\ell(x(t),u(t))= (x(t)-x_{ref})^T Q (x(t)-x_{ref}) + (u(t)-u_{ref})^T R (u(t)-u_{ref}) 
 	\end{equation*}
-	We also add a termial cost 
+	We also add a terminal cost 
 	\begin{equation*}
 		\phi(x_f) = (x(t_f)-x_{ref})^T Q_f (x(t_f)-x_{ref})
 	\end{equation*}
@@ -316,7 +307,7 @@ To map the average thrust command signal value to the actual thrust force value 
 
 \section*{NLP Formulations}
 
-	To solve the continuous time optimal {\nmpc} instance it is formulated as a discrete time finite dimensional nonlinear programming problem (NLP) and solved by a standard NLP solver.  NLP solvers are well established, highly optimized methods that originated in the field of operations research. Unfortunately, despite the availability of efficient solvers for these problems, NLP solutions for {\nmpc} problem instances may be too slow to produce control inputs for a thrust vector drone which requires a fast response time. This is a prime drawback of {\mpc} and {\nmpc} algorithms over LQR and PID  methods which can be computed very quickly.
+	To solve the continuous time optimal {\nmpc} instance it is formulated as a discrete time finite dimensional nonlinear problem (NLP) and solved by a standard NLP solver.  NLP solvers are well established, highly optimized methods that originated in the field of operations research. Unfortunately, despite the availability of efficient solvers for these problems, NLP solutions for {\nmpc} problem instances may be too slow to produce control inputs for a thrust vector drone which requires a fast response time. This is a prime drawback of {\mpc} and {\nmpc} algorithms over LQR and PID  methods which can be computed very quickly.
 	Ideally, we'd like to run our control algorithm at $50$Hz on a Raspberry Pi 5.  To meet this timing restriction we need to build an {\nmpc} instance that can be solved efficiently. 
 
 	An NLP problem over a finite set of decision variables $w$ has the form 
@@ -329,7 +320,7 @@ To map the average thrust command signal value to the actual thrust force value 
 	In practice, the distinction between equality and inequality constraints is moot since an equality constraint can be written as two inequality constraints  and  an inequality constraint can be written as an equality constraints with the introduction of a slack variable. 
 
 	To turn our {\nmpc} problem into an NLP problem  the continuous time functions $x(t)$ and $u(t)$ are parameterized into a finite set of discrete variables over the control trajectory.  Then differential equations for the system dynamics are discretized using a numerical integration method.  There are a many ways to do this and the choices we make will affect the size of the problem, the speed at which it can be solved, and the accuracy of the numerical approximation. Typically there is a tradeoff between speed and accuracy.  
-	Next we explore three different ways to formulate our {\nmpc} problem as an NLP and compare and contrast their ability produce viable control trajectories and their relative efficiency.  These three methods are in no way exhaustive. We chose to implement pseudospectral collocation because it was shown to be effective in an earlier paper on thrust vector drones \citep{TVCDrone} and we chose multiple shooting and orthagonal collocation because they were very easy to implement.
+	Next we explore three different ways to formulate our {\nmpc} problem as an NLP and compare and contrast their ability produce viable control trajectories and their relative efficiency.  These three methods are in no way exhaustive. We chose to implement pseudospectral collocation because it was shown to be effective in an earlier paper on thrust vector drones \citep{TVCDrone} and we chose multiple shooting and orthogonal collocation because they were very easy to implement.
 
 
 \subsection*{Multiple Shooting (with Runge–Kutta discretization)}
@@ -384,9 +375,8 @@ The {\bf do-mpc} library is ideal for prototyping  MPC and NMPC algorithms and r
 
 Need to discuss our cost function and how to encode servo and thrust minimum and maximums.  We should note that with do-mpc you don't need to know any of this because the NLP constraints are generated automatically from the system dynamics. Warm starts are done automatically in do-mpc. cost function and other constraints are entered using continuous model variables and do-mpc adapts them to the chosen trajectory variables. You can specify degree of collocation and time step size.
 
-Orthogonal collocation is a local method that divides the time horizon into finite elements and fits polynomials to each interval. The dynamics are enforced throughout each interval at a set of Radau nodes given by:
+Orthogonal collocation is a local method that divides the time horizon into finite elements and fits polynomials to each interval. The dynamics are enforced throughout each interval at a set of Gauss-Radau nodes which are the zeros of a Jacobi polynomial $P_K^(\alpha,\beta)$ of degree $K$ and one endpoint, in this case the right endpoint. The Jacobi parameters $\alpha$ and $\beta$ determine the distribution of nodes throughout the interval, and a right-Radau formulation corresponds to $\alpha=1$, $\beta=0$.
 
-Terms not defined: $K$, $\beta$, $\alpha$
 \[
 \gamma_0=1,  \qquad \gamma_j = \gamma_{j-1} \frac{(K-j+1)(K+j+\alpha+\beta)}{j(j+\beta)}, \qquad j = 1,\ldots,K
 \]
@@ -427,7 +417,7 @@ The cost function is defined as:
 \[
 J=\Phi(z(t_f)) + \sum_{i=1}^{N}h_i\sum_{k=1}^{K}\omega_kL(z_{ik},u_{ik},t_{ik})
 \]
-Where the weights $\omega_k$ are determined by Radau quadrature, which integrates all polynomials up to $2s-1$. 
+Where the weights $\omega_k$ are determined by Radau quadrature, which integrates all polynomials up to $2s-2$. 
 
 
 Fix the length of the time horizon to 2 seconds and choices: number of finite elements, number of collocation points. Run a simulation for 200 iterations. Consider collocation degrees $c = 1, 2, \ldots, 5$ and time intervals $[0.02, 0.04, 0.08, 0.2, 0.25, 0.5, 0.8]$. Run with $5$ collocation points and $0.02$ time step and save state data. This is the most fine grained collocation scheme and has very nice curves that smooth and converge.  To compute the accuracy of a run we look at the squared error from this run summed over each iteration. On visual inspection this works well and accuracy less then $50$ are very good, smooth, converge promptly. So time step $0.25$ with $2$ collocation points is the best. 
@@ -578,7 +568,7 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{figures/state45dz1.pdf}
-		\caption{orthagonal collocation}
+		\caption{orthogonal collocation}
 	\end{subfigure}%
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
@@ -599,7 +589,7 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{figures/control45dz4.pdf}
-		\caption{orthagonal collocation}
+		\caption{orth0gonal collocation}
 	\end{subfigure}%
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
@@ -629,7 +619,7 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{figures/statex1z1vx1.pdf}
-		\caption{orthagonal collocation}
+		\caption{orthogonal collocation}
 	\end{subfigure}%
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
@@ -650,7 +640,7 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{figures/controlx1z1vx4.pdf}
-		\caption{orthagonal collocation}
+		\caption{orthogonal collocation}
 	\end{subfigure}%
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
@@ -679,7 +669,7 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{figures/statey115dx1.pdf}
-		\caption{orthagonal collocation}
+		\caption{orthogonal collocation}
 	\end{subfigure}%
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
@@ -700,7 +690,7 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{figures/controly115dx4.pdf}
-		\caption{orthagonal collocation}
+		\caption{orthogonal collocation}
 	\end{subfigure}%
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
@@ -732,7 +722,7 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{figures/statehover1.pdf}
-		\caption{orthagonal collocation}
+		\caption{orthogonal collocation}
 	\end{subfigure}%
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
@@ -753,7 +743,7 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{figures/controlhover4.pdf}
-		\caption{orthagonal collocation}
+		\caption{orthogonal collocation}
 	\end{subfigure}%
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
@@ -793,13 +783,13 @@ All of the methods provide good quality solutions with state values that behaved
 				initial state equal to goal state & 0.062    &            0.056  & 0.002 \\ 
 			\hline
 		\end{tabular}
-		\caption{Comparison of average CPU time in seconds for solution of NLP for a series of  simulations. Methods include orthagonal collocation (OC),  multiple shooter (MS), and Chebyshev pseudospectral method (CPS). }
+		\caption{Comparison of average CPU time in seconds for solution of NLP for a series of  simulations. Methods include orthogonal collocation (OC),  multiple shooter (MS), and Chebyshev pseudospectral method (CPS). }
 		\label{table:CPU}
 	\end{center}
 
 \end{table}
 
- Our goal is to run our control algorithm at $50$Hz on the raspberry Pi 5. The CPU speed of the Pi is 2.4GHz while our experiments were run on a machine with a CPU speed of 3.49GHz. To meet our goal of 50Hz on the Pi we need a solution time on the experiment machine of less than $0.014$ seconds. Table (\ref{table:CPU}) summarizes the average CPU time for solution of the NLP problem for each simulation and each method.  The run times for the orthagonal collocation and multiple shooter are both too slow to meet our  $50$Hz target.  Additional changes such as reducing the length of the horizon or relaxing convergence criteria might improve these times somewhat, but they are unlikely to provide the performance needed for this application of NMPC.  The Chebyshev pseudospectral method is substantially faster and comfortably meets our $0.014$ solution time while providing solution graphs with comparable quality.
+ Our goal is to run our control algorithm at $50$Hz on the Raspberry Pi 5. The CPU speed of the Pi is 2.4GHz while our experiments were run on a machine with a CPU speed of 3.49GHz. To meet our goal of 50Hz on the Pi we need a solution time on the experiment machine of less than $0.014$ seconds. Table (\ref{table:CPU}) summarizes the average CPU time for solution of the NLP problem for each simulation and each method.  The run times for the orthogonal collocation and multiple shooter are both too slow to meet our  $50$Hz target.  Additional changes such as reducing the length of the horizon or relaxing convergence criteria might improve these times somewhat, but they are unlikely to provide the performance needed for this application of NMPC.  The Chebyshev pseudospectral method is substantially faster and comfortably meets our $0.014$ solution time while providing solution graphs with comparable quality.
 
 \section*{Conclusions}
 We implemented three different formulations of the NPL problem for an NMPC algorithm controlling a thrust vector drone and compared their solution quality and relative efficiency. All methods produced good quality solutions while only the Chebyshev pseudospectral method provided solutions that are efficient enough to control the drone on a Raspberry Pi 5. Further real-world experiments are required to determine if the solutions produced provide good control in practice.
