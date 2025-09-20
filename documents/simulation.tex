@@ -1,17 +1,18 @@
 \documentclass[]{article}
-\usepackage[utf8]{inputenc}
-\usepackage{multicol}
 \usepackage{amsmath}
 \usepackage{amsthm}
 \usepackage{amssymb}
-\usepackage{bm}
-\usepackage{physics}
 \usepackage{graphicx}
 \usepackage{float}
+\usepackage{listings}
 \usepackage{caption}
 \usepackage{subcaption}
-%\usepackage[round]{natbib}
-%\bibliographystyle{unsrtnat}
+\usepackage[round]{natbib}
+\bibliographystyle{unsrtnat}
+
+%\usepackage{multicol}
+%\usepackage{bm}
+%\usepackage{physics}
 
 % this just sets up the page size and margins
 \setlength{\topmargin}{0pt}
@@ -21,12 +22,10 @@
 \setlength{\textheight}{8.5in}
 \setlength{\headheight}{0pt}
 
-
-
-
-
-% this is a bunch of stuff that allows python style code snippits
-% Default fixed font does not support bold face
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  This is all the stuff for Python code snippets
+%
 \DeclareFixedFont{\ttb}{T1}{txtt}{bx}{n}{10} % for bold
 \DeclareFixedFont{\ttm}{T1}{txtt}{m}{n}{10}  % for normal
 % Custom colors
@@ -36,9 +35,6 @@
 \definecolor{deepgreen}{rgb}{0,0.5,0}
 
 \setcounter{MaxMatrixCols}{15}
-
-
-\usepackage{listings}
 
 % Python style for highlighting
 \newcommand\pythonstyle{\lstset{
@@ -54,12 +50,6 @@
 		tabsize=4
 }}
 
-\newcommand{\mpc}{MPC}
-\newcommand{\nmpc}{NMPC}
-\newcommand{\pdiff}{P_{\Delta}}
-\newcommand{\pavg}{\overline{P}}
-
-
 % Python environment
 \lstnewenvironment{python}[1][]
 {
@@ -71,6 +61,17 @@
 % Python for inline
 \newcommand\pythoninline[1]{{\pythonstyle\lstinline!#1!}}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\newcommand{\mpc}{MPC}
+\newcommand{\nmpc}{NMPC}
+\newcommand{\pdiff}{P_{\Delta}}
+\newcommand{\pavg}{\overline{P}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\casadi}{CasADi}
+\newcommand{\dompc}{{\bf do-mpc}}
+
 \title{Comparison of Direct Methods for NMPC  Applied to  a Thrust Vector Drone}
 \author{Izzy Mones and Heidi Dixon}
 %\date{}
@@ -78,61 +79,70 @@
 \begin{document}
 \maketitle
 	
-	\section*{Introduction}	
-	\begin{enumerate}
-		\item 
-		Rockets are inherently unstable. They have highly nonlinear, coupled dynamics, and must have highly responsive control algorithms to respond quickly to disturbances and sensor noise. Thrust Vector Control (TVC) is a method of directing a rocket by controlling the direction of engine thrust. By using a gimbal to angle the thrust vector, the rocket's position and attitude can be controlled. Validating control techniques on full scale rockets is prohibitively costly and high-risk, so there is a need for an inexpensive test vehicle that can allow experimentation with rocket GNC. A gimballed thrust drone with electric motors and propellers are a good choice for replicating rocket dynamics on a much smaller budget. This project is directly inspired by the small-scale rocket prototype presented by Linseny et al. (2023). We have designed a similar drone based on their images and design descriptions. Within this context there are many details and choices to explore. 
-		Vertical Takeoff and Landing (VTOL) milestones like NASA's Lunar Landing Research Vehicle (LLRV) which allowed Apollo astronauts to practice lunar landings, SpaceX's Falcon 9 landings, and the future Artemis III mission that aims to land and return astronauts from the Moon illustrate the value of propulsive VTOL with TVC and place our small-scale project in context.
-		
-		NMPC was chosen for our control algorithm for its ability to handle nonlinear rocket dynamics, manage constraints like gimbal angle range, servo rates, and thrust limits, and its robustness to disturbances. The main downside of NMPC is its high computational load. NMPC solves a constrained nonlinear optimization problem at every control step, and as a result it is much slower than simple control algorithms like PID or LQR. For controlling rockets some methods of formulating the NLP are sluggish or unacceptably time consuming. The main focus of this paper is experimenting with different choice of NLP formulations and evaluating their speed and accuracy. We  compare three approaches: Orthogonal Collocation with Gauss-Radau nodes implemented in the $\text{do\_mpc}$ library, a Runge-Kutta multiple-shooter method, and a Chebyshev Pseudospectral Collocation approach.
+\section*{Introduction}	
+	This paper is  part of a larger project inspired by the small-scale rocket prototype presented by \cite{TVCDrone} which aims to study thrust vector control (TVC) and vertical take of and landing (VTOL) using a gimballed thrust drone with electric motors and propellers.  
+	
+	Rockets are inherently unstable. They have highly nonlinear, coupled dynamics,  and require fast control algorithms that respond quickly to disturbances and sensor noise. 
+	Unfortunately, validating control techniques on full scale rockets is prohibitively costly and high-risk. There is a need for inexpensive test vehicles that allow experimentation with rocket guidance, navigation, and control. 
+	A gimballed thrust drone with electric motors and propellers is a good choice for replicating rocket dynamics on a much smaller budget. A couple of very inexpensive designs have been preposed and implemented  \citep{cheapTVC}, \citep{TVCDrone}.
 
-	\end{enumerate}
+	Thrust vector control, which uses a gimbal to angle the direction of engine thrust and control the rocket's position and attitude, is an important control method for rockets.
+	Vertical takeoff and landing (VTOL) milestones like NASA's Lunar Landing Research Vehicle (LLRV) which allowed Apollo astronauts to practice lunar landings, SpaceX's Falcon 9 landings, and the future Artemis III mission that aims to land and return astronauts from the moon illustrate the value of propulsive VTOL with TVC. 
+	The drone design by \cite{TVCDrone} allows experimentation with of control algorithms for VTOL and VTC. We have designed a similar drone based on their images and design descriptions. Within this context there are still many details and choices to explore. 
+
+	Our drone implements VTC and VTOL using a nonlinear model predictive control (NMPC) algorithm \citep{nmpc}.
+	NMPC algorithms can handle nonlinear rocket dynamics and manage constraints like gimbal angle range, servo rates, and thrust limits. NMPC optimizes control inputs across a finite time horizon at each time step. In this sense it creates a {\em plan} of control inputs allowing it to anticipate future control requirements. Revising the plan at each time step allows it to respond to disturbances. The main downside of NMPC is its high computational load. NMPC solves a constrained nonlinear optimization  problem (NLP) at every control step, and as a result it is much slower than simple control algorithms like proportional integral derivative (PID) controllers or linear quadratic regulators (LQR).
+	There are a variety of ways to formulate an NMPC problem instance as a nonlinear programming problem. Different formulations may vary in their solution times and solution accuracy.
+	The  focus of this paper is experimenting with different choices of NLP formulations and evaluating their speed and accuracy.  Our goal is to run our control algorithm on a Raspberry Pi 5 at $50$Hz so solution speed will be very important.  
+	
+	{\em We  compare three approaches: a Runge-Kutta multiple-shooter method, an orthogonal collocation with Gauss-Radau nodes implemented in the {\bf do-mpc}  library \citep{do-mpc},  and a Chebyshev pseudospectral collocation approach. We compare the relative accuracy of these techniques and their relative efficiency.}
+
 	
 
 	
 \section*{Thrust Vector Drone Equations of Motion}
 	
-The system state $\vec{x}$ includes translational position $\vec{p} = [x, y,  z]$ and velocity $\vec{v} = [v_x, v_y, v_z ]$  in the world frame, the attitude represented as a unit quaternion $\vec{q} = [q_x, q_y,  q_z, q_w]$ and the angular velocity in the body frame $ \vec{\omega} = [\omega_x, \omega_y, \omega_z]$. The control variables include the two gimbal angles $\theta_1, \theta_2 $, the average thrust between the two propellers $\pavg$ and the differential thrust between the propellers $\pdiff$ to control the rotation about the body z axis.
-\begin{gather*}
-	\vec{x} =
-	\begin{bmatrix}
-		x & y & z & v_x & v_y & v_z & q_x & q_y & q_z & q_w & \omega_x & \omega_y & \omega_z
-	\end{bmatrix}^T \\
-	        \vec{u} =
-	        \begin{bmatrix}
-		        \theta_1 & \theta_2 & \pavg & \pdiff
-		        \end{bmatrix}^T
-\end{gather*}
-The equations of motion are represented as a series of first-order vector differential equations:
-\begin{gather}
-        	\dot{\vec{p}}  = \vec{v}         \label{eqMotion1}	\\
-        	\dot{\vec{v}}  = \frac{1}{m}R(\vec{q})\vec{F_b}+\vec{g}  \label{eqMotion2} \\
-        	\dot{\vec{q}} = \frac{1}{2}Q(\vec{\omega})\vec{q}  \label{eqMotion3} \\
-        	\dot{\vec{\omega}} = I^{-1}\!\left(\vec{M_b} - \vec{\omega} \times (I\,\vec{\omega})\right) \label{eqMotion4}
-\end{gather}
-where $m$ is the mass of the drone and $\vec{g} = [0, 0, -9.81]^T$ is the acceleration due to gravity.
-\begin{figure}[H]
-	\centering
-	\includegraphics[width=0.7\textwidth]{graph3d.jpg}
-	\caption{Three-dimensional thrust decomposition for a 2-axis gimballed drone.}
-	\label{fig:3dgraph}
-\end{figure}
-\begin{figure}[H]
-        	\centering
-        	\begin{subfigure}[b]{0.48\textwidth}
-        		\centering
-        		\includegraphics[width=\textwidth]{graph2.jpg}
-        		\caption{Thrust decomposition in the inner gimbal axis plane.}
-        	\end{subfigure}
-        	\begin{subfigure}[b]{0.48\textwidth}
-        		\centering
-        		\includegraphics[width=\textwidth]{graph3.jpg}
-        		\caption{Thrust decomposition in the x–z plane.}
-        	\end{subfigure}
-        	\caption{Two-dimensional thrust decompositions for a 2-axis gimballed drone.}
-        	\label{fig:3dDecomp}
-\end{figure}
-Using vector decomposition we can find the thrust vector in body coordinates in terms of the gimbal angles $\theta_1$ and $\theta_2$ and magnitude of the thrust $T$ acting on the drone.
+	The system state $\vec{x}$ includes translational position $\vec{p} = [x, y,  z]$ and velocity $\vec{v} = [v_x, v_y, v_z ]$  in the world frame, the attitude represented as a unit quaternion $\vec{q} = [q_x, q_y,  q_z, q_w]$ and the angular velocity in the body frame $ \vec{\omega} = [\omega_x, \omega_y, \omega_z]$. The control variables include the two gimbal angles $\theta_1, \theta_2 $, the average thrust between the two propellers $\pavg$ and the differential thrust between the propellers $\pdiff$ to control the rotation about the body $z$ axis.
+	\begin{gather*}
+		\vec{x} =
+		\begin{bmatrix}
+			x & y & z & v_x & v_y & v_z & q_x & q_y & q_z & q_w & \omega_x & \omega_y & \omega_z
+		\end{bmatrix}^T \\
+		\vec{u} =
+		\begin{bmatrix}
+			\theta_1 & \theta_2 & \pavg & \pdiff
+		\end{bmatrix}^T
+	\end{gather*}
+	The equations of motion are represented as a series of first-order vector differential equations:
+	\begin{gather}
+		\dot{\vec{p}}  = \vec{v}         \label{eqMotion1}	\\
+		\dot{\vec{v}}  = \frac{1}{m}R(\vec{q})\vec{F_b}+\vec{g}  \label{eqMotion2} \\
+		\dot{\vec{q}} = \frac{1}{2}Q(\vec{\omega})\vec{q}  \label{eqMotion3} \\
+		\dot{\vec{\omega}} = I^{-1}\!\left(\vec{M_b} - \vec{\omega} \times (I\,\vec{\omega})\right) \label{eqMotion4}
+	\end{gather}
+	where $m$ is the mass of the drone and $\vec{g} = [0, 0, -9.81]^T$ is the acceleration due to gravity.
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.7\textwidth]{figures/graph3d.jpg}
+		\caption{Three-dimensional thrust decomposition for a 2-axis gimballed drone.}
+		\label{fig:3dgraph}
+	\end{figure}
+	\begin{figure}[H]
+		\centering
+		\begin{subfigure}[b]{0.48\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{figures/graph2.jpg}
+			\caption{Thrust decomposition in the inner gimbal axis plane.}
+		\end{subfigure}
+		\begin{subfigure}[b]{0.48\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{figures/graph3.jpg}
+			\caption{Thrust decomposition in the x–z plane.}
+		\end{subfigure}
+		\caption{Two-dimensional thrust decompositions for a 2-axis gimballed drone.}
+		\label{fig:3dDecomp}
+	\end{figure}
+	Using vector decomposition we can find the thrust vector in body coordinates in terms of the gimbal angles $\theta_1$ and $\theta_2$ and magnitude of the thrust $T$ acting on the drone.
 \[
 \vec{F_b} = T
 \begin{bmatrix}
@@ -261,109 +271,91 @@ To map the average thrust command signal value to the actual thrust force value 
 	
 
 
-\section*{NMPC}
+\section*{Nonlinear Model Predictive Control (NMPC)}
 
-Model predictive control (\mpc) is a control algorithm that solves a linear optimization problem at each time step. 
-The set of instance constraints can be used to enforce the system dynamics and restrict the values of control inputs or state variables.  For example, {\mpc} constraints can be used to eliminate solutions that violate minimum or maximum control values or require control values to change faster than mechanically possible.  This gives {\mpc} algorithms more control over the types of solutions produced than linear quadratic regulators (LQR) or proportional integral derivative (PID) controllers.  
-Unlike LQR and PID methods which are designed to find an optimal control input for a given moment in time, an {\mpc} solution considers a series of control inputs over a finite time horizon.  This allows {\mpc} solutions to create a {\em plan} of actions that can anticipate and adjust to future issues. For example, the optimal speed for a car at a given instance might change if the algorithm knew that it was entering a curve in the road in the next few time steps.
-The ability to anticipate future conditions allows {\mpc} to construct more robust solutions. The control plan is rebuilt at each timestep allowing the method to react to disturbances and noise.
-Nonlinear model predictive control (\nmpc) is a variant of {\mpc} that allows nonlinear constraints. 
+	Model predictive control (\mpc) is a control algorithm that solves a linear optimization problem at each time step.
+	An {\mpc} solution yields a series of control inputs over a finite time horizon, creating a {\em plan} of actions that can anticipate and adjust to future issues. For example, the optimal speed for a car at a given instance might change if the algorithm knew that it was entering a curve in the road in the next few time steps.  The control values for the first  step of the plan is applied to the system and then the plan is revised at the next time step, allowing the method to react to disturbances and noise. Nonlinear model predictive control (\nmpc) is a variant of {\mpc} that allows nonlinear constraints. 
 
-The biggest advantage of using {\nmpc} to control our thrust vector drone is the allowance of nonlinear constraints. LQR and standard {\mpc} methods  require linear system dynamics.
- Equations (\ref{eqMotion1}-\ref{eqMotion4}) are strongly nonlinear, but can be linearized around the fixed point in which the drone is vertically balanced.  However, the linearized equations quickly become inaccurate if the drone moves away from the fixed point by tilting or rotating.  Working directly with the nonlinear equations allows more accurate predictions of the drone behavior. Like {\mpc}, {\nmpc}  allows us to enforce the mechanical limitations of our thrust motors and gimbal servos. An {\nmpc} instance for the thrust vector drone is a minimization problem of the form
-\begin{align}
-	   \min_{u(t)} \; & \int_{t_0}^{t_f} \ell(x,u,t)\,dt \;+\; \phi(x_f) \label{nmpc:cost} \\
-	  	  \text{s.t.} \;\; & \dot{\vec{x}} = f(\vec{x},\vec{u})  \label{nmpc:eq_mot} \\
-	  &	-\theta_{max} \leq \theta_1 \leq \theta_{max} \label{nmpc:gimbal1} \\
-	  & 	-\theta_{max} \leq \theta_2 \leq \theta_{max} \label{nmpc:gimbal2} \\
-%	  & 	-\dot{\theta}_{max} \leq \dot{\theta}_1 \leq \dot{\theta}_{max} \\
-%	  &  	-\dot{\theta}_{max} \leq \dot{\theta}_2 \leq \dot{\theta}_{max}\\ 
-	  & 	T_{min}  \leq \pavg + \pdiff/2 \leq T_{max} \label{nmpc:thrust1} \\
-	  &    T_{min} \leq  \pavg - \pdiff/2 \leq T_{max} \label{nmpc:thrust2} \\
-%	  &       T_{diff_{min}} \leq \pdiff \leq T_{diff_{max}} \label{nmpc:thrust3} \\
-	  &        0 \leq z. \label{nmpc:vert}
-\end{align}
-The cost function (\ref{nmpc:cost}) minimizes both  the squared error between the current state $x(t)$ and the goal state $x_{ref}$ weighted by diagonal matrix $Q$ and the error between the current control $u(t)$ and the goal control $u_{ref}$ weighted by diagonal matrix $R$. 
-        
-        \begin{equation*}
-        		\ell(x,u,t) = (x(t)-x_{ref})^T Q (x(t)-x_{ref}) + (u(t)-u_{ref})^T R (u(t)-u_{ref}) 
-        \end{equation*}
-We also add a termial cost 
-        \begin{equation*}
-        	\phi(x_f) = (x(t_f)-x_{ref})^T Q_f (x(t_f)-x_{ref})
-        \end{equation*}
-The constraint (\ref{nmpc:eq_mot}) enforces the equations of motion which in our case are differential equations defined in (\ref{eqMotion1}-\ref{eqMotion4}). The problem instance also enforces minimum and maximum gimbal angles (\ref{nmpc:gimbal1},\ref{nmpc:gimbal2}), minimum and maximum values for each thrust motor (\ref{nmpc:thrust1}, \ref{nmpc:thrust2}) and restrictons on the drone's vertical height (\ref{nmpc:vert}).
+	Generally, given a set of continuous time nonlinear differential equations $\dot{x} = f(x(t),u(t))$  and an initial state $x_0$, the finite horizon {\nmpc} optimization problem is
+	\begin{align*}
+		\min_{u(t)} \; & \int_{0}^{t_f} \ell(x(t),u(t))\,dt  \\
+		\text{s.t.} \;\; & \dot{x} =  f(x(t),u(t)) \\
+		& x(0) = x_0 
+	\end{align*}
+	The solution $u(t)$ is a real valued function that minimizes the cost function over time interval $[0, t_f]$. The constraints require that  $u(t)$ and $x(t)$ obey the system dynamics $\dot{x} =  f(x(t),u(t)) $ and the  initial state $x(0)$ must be equal to the current state $x_0$.   Given this framework, it is easy to add additional constraints that enforce system limitation such as minimum or maximum control values.
 
-To solve the {\nmpc} instance at each time step, it is formulated as a nonlinear programming problem (NLP) and solved by a standard NLP solver.  NLP solvers are well established, highly optimized methods that originated in the field of operations research. Unfortunately, despite the availability of efficient solvers for these problem, NLP solutions for {\nmpc} problem instances may be too slow to produce control inputs for a thrust vector drone which requires a fast response time. This is a prime drawback of {\mpc} and {\nmpc} algorithms over LQR and PID  methods which can be computed very quickly.
+	The biggest advantage of using {\nmpc} to control our thrust vector drone is the allowance of nonlinear constraints. LQR and standard {\mpc} methods  require linear system dynamics.
+	 Equations (\ref{eqMotion1}-\ref{eqMotion4}) are strongly nonlinear, but can be linearized around the fixed point in which the drone is vertically balanced.  However, the linearized equations quickly become inaccurate if the drone moves away from the fixed point by tilting or rotating.  Working directly with the nonlinear equations allows more accurate predictions of the drone behavior. The {\nmpc} framework also allows us to enforce the mechanical limitations of our thrust motors and gimbal servos.  Libraries like {\casadi} \citep{casadi} and {\dompc} \citep{do-mpc} make {\nmpc} easy to implement in practice.
+ 
+ 	An {\nmpc} instance for the thrust vector drone is a minimization problem of the form
+	\begin{align}
+	   \min_{u(t)} \; &  \int_{0}^{t_f} \ell(x(t),u(t))\,dt  \;+\; \phi(x_f) \label{nmpc:cost} \\
+	   \text{s.t.} \;\; 	&  \dot{x} =  f(x(t),u(t))  \nonumber \\ 
+	   				& x(0) = x_0 \nonumber \\
+	   				&	-\theta_{max} \leq \theta_1 \leq \theta_{max} \label{nmpc:gimbal1} \\
+	   				& 	-\theta_{max} \leq \theta_2 \leq \theta_{max} \label{nmpc:gimbal2} \\
+	   				& 	T_{min}  \leq \pavg + \pdiff/2 \leq T_{max} \label{nmpc:thrust1} \\
+	   				&    T_{min} \leq  \pavg - \pdiff/2 \leq T_{max} \label{nmpc:thrust2} \\
+	   				&        0 \leq z. \label{nmpc:vert}
+	  %	  &       T_{diff_{min}} \leq \pdiff \leq T_{diff_{max}} \label{nmpc:thrust3} \\
+	  %	  & 	-\dot{\theta}_{max} \leq \dot{\theta}_1 \leq \dot{\theta}_{max} \\
+	  %	  &  	-\dot{\theta}_{max} \leq \dot{\theta}_2 \leq \dot{\theta}_{max}\\ 
+	\end{align}
+	The cost function (\ref{nmpc:cost}) minimizes both  the squared error between the current state $x(t)$ and the goal state $x_{ref}$ weighted by diagonal matrix $Q$ and the error between the current control $u(t)$ and the goal control $u_{ref}$ weighted by diagonal matrix $R$. 
+	\begin{equation*}
+		\ell(x(t),u(t))= (x(t)-x_{ref})^T Q (x(t)-x_{ref}) + (u(t)-u_{ref})^T R (u(t)-u_{ref}) 
+	\end{equation*}
+	We also add a termial cost 
+	\begin{equation*}
+		\phi(x_f) = (x(t_f)-x_{ref})^T Q_f (x(t_f)-x_{ref})
+	\end{equation*}
+	The problem instance also enforces minimum and maximum gimbal angles (\ref{nmpc:gimbal1},\ref{nmpc:gimbal2}), minimum and maximum values for each thrust motor (\ref{nmpc:thrust1}, \ref{nmpc:thrust2}) and restrictons on the drone's vertical height (\ref{nmpc:vert}).
 
-Ideally, we'd like to run our control algorithm at $50$Hz on a Raspberry Pi 5.  To meet this timing restriction we need to build an {\nmpc} instance that can be solved efficiently. Given an {\nmpc} problem instance, there are a variety of known ways to formulate the instance as nonlinear programming problem.  
-Next, we present three different ways to formulate this instance as a nonlinear programming problem and then compare the quality of  solutions produced and their relative computational efficiency.
+
 
 
 \section*{NLP Formulations}
 
-To use {\nmpc} the problem instance needs to be parameterized over the control trajectory, the differential equations for the system dynamics need to be integrated, and then the resulting problem can be optimized over control parameters. There are different ways to parameterize the problem and integrate it.  These choices will affect the size of the problem and the speed at which it can be solved. All these methods are using numerical methods to estimate the behaviour of differential equations. The accuracy of the estimation will vary depending on the method used and the coarseness of the parameterization. Typically there is a tradeoff between speed and accuracy.
+	To solve the continuous time optimal {\nmpc} instance it is formulated as a discrete time finite dimensional nonlinear programming problem (NLP) and solved by a standard NLP solver.  NLP solvers are well established, highly optimized methods that originated in the field of operations research. Unfortunately, despite the availability of efficient solvers for these problems, NLP solutions for {\nmpc} problem instances may be too slow to produce control inputs for a thrust vector drone which requires a fast response time. This is a prime drawback of {\mpc} and {\nmpc} algorithms over LQR and PID  methods which can be computed very quickly.
+	Ideally, we'd like to run our control algorithm at $50$Hz on a Raspberry Pi 5.  To meet this timing restriction we need to build an {\nmpc} instance that can be solved efficiently. 
 
-\subsection*{Orthogonal Collocation using {do-mpc}} 
-{\em do-mpc} \cite{doi:10.1137/1.9780898719383}  Orthogonal collocation is a local method that divides the time horizon into finite elements and fits polynomials to each interval. The dynamics are enforced throughout each interval at a set of Radau nodes given by:
-        \[
-        \gamma_0=1,  \qquad \gamma_j = \gamma_{j-1} \frac{(K-j+1)(K+j+\alpha+\beta)}{j(j+\beta)}, \qquad j = 1,\ldots,K
-        \]
-When $P_K$ are the Gauss-Jacobi polynomials:
-        \[
-        P_K^{(\alpha, \beta)}(\tau) = \sum_{j=0}^{K}(-1)^{K-j}\gamma_j\tau^j
-        \]
-Lagrange polynomials, $\ell_j(\tau)$, are used to interpolate the state trajectory $z^K(\tau)$:
-        \[
-	\ell_j(\tau)=\prod_{\substack{m=0 \\ m\neq j}}^{K}\frac{\tau-\tau_m}{\tau_j-\tau_m}
-        \]        
-        \[
-	z^K(\tau)=\sum_{j=0}^{K}z_{ij}\ell_j(\tau)
-        \]
-By differentiating the state trajectory and equating it with the dynamics ODEs, $f$, a dynamics constraint is formed:
-        \[
-        \sum_{j=0}^K z_{ij}\frac{d\ell_j(\tau_k)}{d\tau}=h_if(z_{ik},t_{ik}), 
-        \qquad k=1,\dots,K.
-        \]
-Continuity constraints are used to fit an interval polynomial's endpoint with the first point of the next interval. There are two additional continuity constraints for enforcing the overall horizon's start and endpoint continuity.
-        \[
-	z_{i+1,0}=\sum_{j=0}^{K}\ell_j(1)z^{ij}
-        \]
-        \[
-	z_f=\sum_{j=0}^{K}\ell_j(1)z^{Nj}, \qquad z_{1,0} = z_0
-        \]
-        The cost function is defined as:
-        \[
-        	\substack{min \\ i(\cdot)}J=\Phi(z(t_f),t_f) + \int_{t_0}^{t_f}L(z(t),u(t),t)dt
-        \]
-        \[
-        J=\Phi(z(t_f)) + \sum_{i=1}^{N}h_i\sum_{k=1}^{K}\omega_kL(z_{ik},u_{ik},t_{ik})
-        \]
-Where the weights $\omega_k$ are determined by Radau quadrature, which integrates all polynomials up to $2s-1$. For a horizon of 100 time steps each with an interpolant polynomial order of two the total number of decision variables per time step is $13*(100*(2+1)+1)+4*100=4313.$
+	An NLP problem over a finite set of decision variables $w$ has the form 
+	\begin{align}
+		\min_{w \in \R^n} \; &  F(w) \label{nlp:opt} \\
+		\text{s.t.} \;\; & G(x_0, w) = 0 \label{nlp:equality} \\
+		&	H(w) \leq 0 \label{nlp:inequality}
+	\end{align}
+	It has an optimization function (\ref{nlp:opt}),  a set of equality constraints (\ref{nlp:equality}) and a set of inequality constraints (\ref{nlp:inequality}).
+	In practice, the distinction between equality and inequality constraints is moot since an equality constraint can be written as two inequality constraints  and  an inequality constraint can be written as an equality constraints with the introduction of a slack variable. 
+
+	To turn our {\nmpc} problem into an NLP problem  the continuous time functions $x(t)$ and $u(t)$ are parameterized into a finite set of discrete variables over the control trajectory.  Then differential equations for the system dynamics are discretized using a numerical integration method.  There are a many ways to do this and the choices we make will affect the size of the problem, the speed at which it can be solved, and the accuracy of the numerical approximation. Typically there is a tradeoff between speed and accuracy.  
+	Next we explore three different ways to formulate our {\nmpc} problem as an NLP and compare and contrast their ability produce viable control trajectories and their relative efficiency.  These three methods are in no way exhaustive. We chose to implement pseudospectral collocation because it was shown to be effective in an earlier paper on thrust vector drones \citep{TVCDrone} and we chose multiple shooting and orthagonal collocation because they were very easy to implement.
+
 
 \subsection*{Multiple Shooting (with Runge–Kutta discretization)}
-For multiple shooting, we divide our time horizon into $N$ evenly spaced nodes $\{ t_0, t_1, \ldots, t_N \}$ of length $\Delta t$. The initial state is constrained and at each node we make a copy of our state $x_k$ and control $u_k$ variables. Within each time step $[ t_k, t_{k+1}]$ we forward integrate our differential equations $f$ using Runge-Kutta to create a constraint that enforces the change of state between time steps with the system dynamics. 
-
-        \begin{eqnarray}
-        \nonumber
-        x_0 & = & X_0 \\[6pt] \nonumber
-        k_1 & = & f(x_k, u_k, t_k), \\[6pt] \nonumber
-        k_2 & = & f\!\left(x_k + \tfrac{\Delta t}{2} k_1,\, u_k,\, t_k + \tfrac{\Delta t}{2}\right), \\[6pt] \nonumber
-        k_3 & = & f\!\left(x_k + \tfrac{\Delta t}{2} k_2,\, u_k,\, t_k + \tfrac{\Delta t}{2}\right), \\[6pt] \nonumber
-        k_4 & = & f\!\left(x_k + \Delta t\, k_3,\, u_k,\, t_k + \Delta t\right), \\[10pt]
-        x_{k+1} - \Big(x_k + \tfrac{\Delta t}{6}(k_1 + 2k_2 + 2k_3 + k_4)\Big) &=& 0, 
-        \qquad k = 0,\dots, N-1.
-        \label{eq:rkstate}
-        \end{eqnarray}
+	For multiple shooting, we divide our time horizon into $N$ evenly spaced nodes $\{ t_0, t_1, \ldots, t_N \}$ of length $\Delta t$ and we make copies of our state $x_k$ and control $u_k$ variables for each time step.  The initial state is initialized to the current state
+	\begin{equation*}
+		x_0 - X_0 = 0.
+	\end{equation*}
+	Using the system dynamics $\dot{x} =  f(x(t),u(t))$ and Runge-Kutta within each time step $[t_k, t_{k+1}]$ we forward integrate our differential equations 
+	\begin{eqnarray}
+	 	k_1 & = & f(x_k, u_k, t_k), \nonumber \\[6pt] \nonumber 
+	 	k_2 & = & f\!\left(x_k + \tfrac{\Delta t}{2} k_1,\, u_k,\, t_k + \tfrac{\Delta t}{2}\right), \\[6pt] \nonumber
+	 	k_3 & = & f\!\left(x_k + \tfrac{\Delta t}{2} k_2,\, u_k,\, t_k + \tfrac{\Delta t}{2}\right), \\[6pt] \nonumber
+	 	k_4 & = & f\!\left(x_k + \Delta t\, k_3,\, u_k,\, t_k + \Delta t\right), \\[10pt]
+	 	x_{k+1} - \Big(x_k + \tfrac{\Delta t}{6}(k_1 + 2k_2 + 2k_3 + k_4)\Big) &=& 0, 
+	 	\qquad k = 0,\dots, N-1. \label{eq:rkstate}
+     \end{eqnarray}
+     to create constraints (\ref{eq:rkstate}) that enforce the change of state between time steps.
         
-The cost function is defined to penalize deviation from reference state as well as deviation from reference control input. There is also a terminal cost that incentivizes long term stability by weighting the final state more heavily.
+	The cost function is defined to penalize deviation from reference state as well as deviation from reference control input. There is also a terminal cost that incentivizes long term stability by weighting the final state more heavily.
         \[
-        \vec{x}_r =
+        x_r =
         \begin{bmatrix}
         0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0
         \end{bmatrix}^{\!T},
         \qquad
-        \vec{u}_r =
+        u_r =
         \begin{bmatrix}
         0 & 0 & T_{\text{hover}} & 0
         \end{bmatrix}^{\!T}.
@@ -371,14 +363,93 @@ The cost function is defined to penalize deviation from reference state as well 
          \begin{equation}
          	 \sum_{k=0}^{N-1}  \Big[(x_k -  x_{r})^T Q (x_k - x_{r}) + (u_k -  u_{r})^T R (u_k - u_{r}) \Big] + (x_N -  x_{r})^T Q_f (x_N - x_{r})
          \end{equation}
-Multiple shooting considers the state and control variables at every time step to be optimization variables so the full NLP vector is:
+	Constraints on gimbal angles and thrust motors are encoded by adding a copy of the appropriate inequalities at each time step. 	To improve performance of our multiple shooter method we implemented warm starts, shifting the previous solution forward one time step and using that as an initial guess for the problem at the current time step.
+	
+	Multiple shooting considers the state and control variables at every time step to be optimization variables so the full NLP vector is:
         \[
         \begin{bmatrix}
         x_0 & u_0 & x_1 & u_1 & ... & x_{N-1} & u_{N-1} & x_N
         \end{bmatrix}
         \]
-This can easily become computationally demanding for long horizons and high-dimensional systems. For a horizon length of 100 time steps there are $13 * (100+1)+4*100=1713$ decision variables per time step.
- 
+	This can easily become computationally demanding for long horizons and high-dimensional systems. For a thrust vector drone system with a  horizon length of 100 time steps there are $13 * (100+1)+4*100=1713$ decision variables. While the number of variables is very high, the constraint matrix is typically very sparse since each constraint references only a small number of variables.
+
+	Multiple shooting is easy to implement using {\casadi}.  There are very few choices to toggle in producing the best multiple shooting implementation. Outside of specific NLP solver settings, the main choices are the length of your time steps and the length of your horizon.   Working with a time step of $\Delta t = 0.02$ we found that time horizons with $N \leq 50$  often produced trajectories that were irregular or did not converge. An $50 \leq N \leq 80$ produced mostly smooth graphs that converged however the convergence was a bit slow.  An $N \geq 80$ seemed to produce good quality graphs that converged promptly. However, our goal for all implementations is to have a horizon of $2$ seconds. 
+	
+
+	
+
+\subsection*{Orthogonal Collocation using {do-mpc}} 
+Of all the methods we implemented, orthogonal collocation was the easiest. We used the open source {\bf do-mpc} Python library for model predictive control  \citep{do-mpc}   which implements MPC and NMPC using orthogonal collocation with Radau nodes.
+The {\bf do-mpc} library is ideal for prototyping  MPC and NMPC algorithms and requires minimal understanding of MPC and no understanding of orthogonal collocation to build functioning algorithms.
+
+Need to discuss our cost function and how to encode servo and thrust minimum and maximums.  We should note that with do-mpc you don't need to know any of this because the NLP constraints are generated automatically from the system dynamics. Warm starts are done automatically in do-mpc. cost function and other constraints are entered using continuous model variables and do-mpc adapts them to the chosen trajectory variables. You can specify degree of collocation and time step size.
+
+Orthogonal collocation is a local method that divides the time horizon into finite elements and fits polynomials to each interval. The dynamics are enforced throughout each interval at a set of Radau nodes given by:
+
+Terms not defined: $K$, $\beta$, $\alpha$
+\[
+\gamma_0=1,  \qquad \gamma_j = \gamma_{j-1} \frac{(K-j+1)(K+j+\alpha+\beta)}{j(j+\beta)}, \qquad j = 1,\ldots,K
+\]
+When $P_K$ are the Gauss-Jacobi polynomials:
+\[
+P_K^{(\alpha, \beta)}(\tau) = \sum_{j=0}^{K}(-1)^{K-j}\gamma_j\tau^j
+\]
+
+Undefined terms $z^K(\tau)$
+
+Lagrange polynomials, $\ell_j(\tau)$, are used to interpolate the state trajectory $z^K(\tau)$:
+\[
+\ell_j(\tau)=\prod_{\substack{m=0 \\ m\neq j}}^{K}\frac{\tau-\tau_m}{\tau_j-\tau_m}
+\]        
+\[
+z^K(\tau)=\sum_{j=0}^{K}z_{ij}\ell_j(\tau)
+\]
+
+How is $z^K(\tau)$ related to $x(t)$ and $u(t)$? Define $h_i$.
+
+By differentiating the state trajectory and equating it with the dynamics     s$\dot{x} =  f(x(t),u(t))$, a dynamics constraint is formed:
+\[
+\sum_{j=0}^K z_{ij}\frac{d\ell_j(\tau_k)}{d\tau}=h_if(z_{ik},t_{ik}), 
+\qquad k=1,\dots,K.
+\]
+Continuity constraints are used to fit an interval polynomial's endpoint with the first point of the next interval. There are two additional continuity constraints for enforcing the overall horizon's start and endpoint continuity.
+\[
+z_{i+1,0}=\sum_{j=0}^{K}\ell_j(1)z^{ij}
+\]
+\[
+z_f=\sum_{j=0}^{K}\ell_j(1)z^{Nj}, \qquad z_{1,0} = z_0
+\]
+What is $\ i(\cdot)$. $L$, $\Phi$?
+The cost function is defined as:
+\[
+\substack{min \\ i(\cdot)}J=\Phi(z(t_f),t_f) + \int_{t_0}^{t_f}L(z(t),u(t),t)dt
+\]
+\[
+J=\Phi(z(t_f)) + \sum_{i=1}^{N}h_i\sum_{k=1}^{K}\omega_kL(z_{ik},u_{ik},t_{ik})
+\]
+Where the weights $\omega_k$ are determined by Radau quadrature, which integrates all polynomials up to $2s-1$. 
+
+
+Fix the length of the time horizon to 2 seconds and choices: number of finite elements, number of collocation points. Run a simulation for 200 iterations. Consider collocation degrees $c = 1, 2, \ldots, 5$ and time intervals $[0.02, 0.04, 0.08, 0.2, 0.25, 0.5, 0.8]$. Run with $5$ collocation points and $0.02$ time step and save state data. This is the most fine grained collocation scheme and has very nice curves that smooth and converge.  To compute the accuracy of a run we look at the squared error from this run summed over each iteration. On visual inspection this works well and accuracy less then $50$ are very good, smooth, converge promptly. So time step $0.25$ with $2$ collocation points is the best. 
+
+
+\begin{figure}[H]
+	\centering
+	\begin{subfigure}[b]{0.45\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{figures/Accuracy.pdf}
+		\caption{Accuracy metric for orthogonal collocation with different size time steps and collocation degrees.}
+	\end{subfigure}%
+	\hfill
+	\begin{subfigure}[b]{0.45\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{figures/CPU.pdf}
+		\caption{Average CPU time for orthogonal collocation with different size time steps and collocation degrees.}
+	\end{subfigure}
+	\label{fig:oc}
+\end{figure}
+
+
 \subsection*{Chebyshev Pseudospectral Method}
 Multiple shooting is useful for its robustness to discontinuities and nonlinearity and its conceptual simplicity. However, thrust-vectoring dynamics are smooth and continuous, so many of the benefits of multiple shooting are unnecessary. Additionally, multiple shooting introduces a much larger NLP because it solves for the state and control variables at every point in the control horizon. By contrast, Chebyshev Pseudospectral Collocation is a global method that represents the trajectory of each state with a single interpolating polynomial of degree $N$ over the entire horizon, defined by its values at a set of $N+1$ nodes. It achieves spectral accuracy, with error decreasing exponentially as the number of nodes increases, while requiring far fewer decision variables than multiple shooting. For $N=6$ there are seven nodes and $7*13+7*4=119$ decision variables per time step. The dynamics are enforced by constraining the derivative of the interpolant at each node to the dynamic equations. Chebyshev–Gauss–Lobatto nodes are used to cluster more of the nodes towards the beginning and end of the horizon, mitigating the Runge Phenomenon, where polynomial interpolation develops large oscillations near the endpoints. The cosine distribution ensures accuracy and stability:
 	\[
@@ -478,12 +549,15 @@ For $N=6$ the differentiation matrix is:
         \end{cases}
         \]
 
+warm starts.
+Need to summarize our choices.  Spectral order, time horizon.
+
 \section*{Comparison of Methods}
 
-To compare our different formulations for the NLP problem, we ran a series of simulations each with the drone beginning in a unique and perturbed starting state. In all cases, the drone goal state was to be vertically balanced and motionless at the point $(x,y,z) = (0, 0, 0)$ in three dimensional space. We initially ran a set of seven different simulations. The results for all the simulations were similar in both quality of solutions and timing results, so we present only four of those simulations here.  For each simulation, we computed the average time required to solve the NLP problem at each iteration. The quality of the solutions produced by each method was assessed by comparing the state and control graphs through time. All experiements were run on a Macbook Pro  3.49GHz Apple M2 chip with 8GB RAM. Code was implemented in Python 3.13 using CasADI 3.7.1 \cite{Andersson2018}. 
+To compare our different formulations for the NLP problem, we ran a series of simulations each with the drone beginning in a unique and perturbed starting state. In all cases, the drone goal state was to be vertically balanced and motionless at the point $(x,y,z) = (0, 0, 0)$ in three dimensional space. We initially ran a set of seven different simulations. The results for all the simulations were similar in both quality of solutions and timing results, so we present only four of those simulations here.  For each simulation, we computed the average time required to solve the NLP problem at each iteration. The quality of the solutions produced by each method was assessed by comparing the state and control graphs through time. All experiements were run on a Macbook Pro  3.49GHz Apple M2 chip with 8GB RAM. Code was implemented in Python 3.13 using CasADI 3.7.1 \citep{Andersson2018}. 
 	
 	\subsection*{NLP Solver}
-	To solve our non-linear programming (NLP) problems we used the \texttt{ipopt} solver that comes installed with CasADi 3.7.1.  This solver requires an additional subroutine to  solve sparse matrix systems. We experimented with the \texttt{mumps}  solver that comes with CasADi, and also tried using the  \texttt{ma27} and  \texttt{ma57} solvers  from HSL (Harwell Subroutine Library) \cite{hsl}. All solvers were compiled with Apple clang version 17.0.0. The HSL \texttt{ma27} solver produced the most efficient solutions overall. All solvers and experiments were run with the same solver settings.
+	To solve our non-linear programming (NLP) problems we used the \texttt{ipopt} solver \citep{ipopt} that comes installed with CasADi 3.7.1.  This solver requires an additional subroutine to  solve sparse matrix systems. We experimented with the \texttt{mumps}  solver that comes with CasADi, and also tried using the  \texttt{ma27} and  \texttt{ma57} solvers  from HSL (Harwell Subroutine Library) \citep{hsl}. All solvers were compiled with Apple clang version 17.0.0. The HSL \texttt{ma27} solver produced the most efficient solutions overall. All solvers and experiments were run with the same solver settings.
 	\vspace{\baselineskip}
 	\begin{python}
         ipopt_settings = {
@@ -503,17 +577,17 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 	\centering
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{state45dz1.pdf}
+		\includegraphics[width=\textwidth]{figures/state45dz1.pdf}
 		\caption{orthagonal collocation}
 	\end{subfigure}%
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{state45dz3.pdf}
+		\includegraphics[width=\textwidth]{figures/state45dz3.pdf}
 		\caption{multiple shooter}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{state45dz2.pdf}
+		\includegraphics[width=\textwidth]{figures/state45dz2.pdf}
 		\caption{Chebyshev pseudospectral}
 	\end{subfigure}
 	\caption{State data on a simulation requiring a $45^{\circ}$ rotation about the $z$ axis.}
@@ -524,17 +598,17 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 	\centering
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{control45dz4.pdf}
+		\includegraphics[width=\textwidth]{figures/control45dz4.pdf}
 		\caption{orthagonal collocation}
 	\end{subfigure}%
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{control45dz6.pdf}
+		\includegraphics[width=\textwidth]{figures/control45dz6.pdf}
 		\caption{multiple shooter}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{control45dz5.pdf}
+		\includegraphics[width=\textwidth]{figures/control45dz5.pdf}
 		\caption{Chebyshev pseudospectral}
 	\end{subfigure}
 	\caption{Control data on a simulation requiring a $45^{\circ}$ rotation about the $z$ axis.}
@@ -544,7 +618,7 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=\textwidth]{time45dz.pdf}
+	\includegraphics[width=\textwidth]{figures/time45dz.pdf}
 	\caption{CPU time for simulation requiring a $45^{\circ}$ rotation about the $z$ axis.}
 	\label{fig:time45z}
 \end{figure}
@@ -554,17 +628,17 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 	\centering
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{statex1z1vx1.pdf}
+		\includegraphics[width=\textwidth]{figures/statex1z1vx1.pdf}
 		\caption{orthagonal collocation}
 	\end{subfigure}%
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{statex1z1vx3.pdf}
+		\includegraphics[width=\textwidth]{figures/statex1z1vx3.pdf}
 		\caption{multiple shooter}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{statex1z1vx2.pdf}
+		\includegraphics[width=\textwidth]{figures/statex1z1vx2.pdf}
 		\caption{Chebyshev pseudospectral}
 	\end{subfigure}
 	\caption{State data on a simulation with initial conditions: $x = 1$, $z=1$, $v_x = 0.5$ }
@@ -575,17 +649,17 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 	\centering
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{controlx1z1vx4.pdf}
+		\includegraphics[width=\textwidth]{figures/controlx1z1vx4.pdf}
 		\caption{orthagonal collocation}
 	\end{subfigure}%
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{controlx1z1vx6.pdf}
+		\includegraphics[width=\textwidth]{figures/controlx1z1vx6.pdf}
 		\caption{multiple shooter}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{controlx1z1vx5.pdf}
+		\includegraphics[width=\textwidth]{figures/controlx1z1vx5.pdf}
 		\caption{Chebyshev pseudospectral}
 	\end{subfigure}
 	\caption{Control data on a simulation with initial conditions: $x = 1$, $z=1$, $v_x = 0.5$}
@@ -595,7 +669,7 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=\textwidth]{time45dz.pdf}
+	\includegraphics[width=\textwidth]{figures/time45dz.pdf}
 	\caption{CPU time for a simulation with initial conditions: $x = 1$, $z=1$, $v_x = 0.5$}
 	\label{fig:timex1z1vx}
 \end{figure}
@@ -604,17 +678,17 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 	\centering
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{statey115dx1.pdf}
+		\includegraphics[width=\textwidth]{figures/statey115dx1.pdf}
 		\caption{orthagonal collocation}
 	\end{subfigure}%
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{statey115dx3.pdf}
+		\includegraphics[width=\textwidth]{figures/statey115dx3.pdf}
 		\caption{multiple shooter}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{statey115dx2.pdf}
+		\includegraphics[width=\textwidth]{figures/statey115dx2.pdf}
 		\caption{Chebyshev pseudospectral}
 	\end{subfigure}
 	\caption{State data on a simulation with initial conditions: $y = 1$,$15^{\circ}$ rotation about $x$ axis.}
@@ -625,17 +699,17 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 	\centering
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{controly115dx4.pdf}
+		\includegraphics[width=\textwidth]{figures/controly115dx4.pdf}
 		\caption{orthagonal collocation}
 	\end{subfigure}%
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{controly115dx6.pdf}
+		\includegraphics[width=\textwidth]{figures/controly115dx6.pdf}
 		\caption{multiple shooter}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{controly115dx5.pdf}
+		\includegraphics[width=\textwidth]{figures/controly115dx5.pdf}
 		\caption{Chebyshev pseudospectral}
 	\end{subfigure}
 	\caption{Control data on a simulation with initial conditions: $y = 1$,$15^{\circ}$ rotation about $x$ axis.}
@@ -645,7 +719,7 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=\textwidth]{timey115dx.pdf}
+	\includegraphics[width=\textwidth]{figures/timey115dx.pdf}
 	\caption{CPU time for simulation with initial conditions: $y = 1$,$15^{\circ}$ rotation about $x$ axis.}
 	\label{fig:timey115dx}
 \end{figure}
@@ -657,17 +731,17 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 	\centering
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{statehover1.pdf}
+		\includegraphics[width=\textwidth]{figures/statehover1.pdf}
 		\caption{orthagonal collocation}
 	\end{subfigure}%
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{statehover3.pdf}
+		\includegraphics[width=\textwidth]{figures/statehover3.pdf}
 		\caption{multiple shooter}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{statehover2.pdf}
+		\includegraphics[width=\textwidth]{figures/statehover2.pdf}
 		\caption{Chebyshev pseudospectral}
 	\end{subfigure}
 	\caption{State data on a simulation with initial state equal to goal state.}
@@ -678,17 +752,17 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 	\centering
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{controlhover4.pdf}
+		\includegraphics[width=\textwidth]{figures/controlhover4.pdf}
 		\caption{orthagonal collocation}
 	\end{subfigure}%
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{controlhover6.pdf}
+		\includegraphics[width=\textwidth]{figures/controlhover6.pdf}
 		\caption{multiple shooter}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{controlhover5.pdf}
+		\includegraphics[width=\textwidth]{figures/controlhover5.pdf}
 		\caption{Chebyshev pseudospectral}
 	\end{subfigure}
 	\caption{Control data on a simulation with initial state equal to goal state.}
@@ -698,7 +772,7 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=\textwidth]{timehover.pdf}
+	\includegraphics[width=\textwidth]{figures/timehover.pdf}
 	\caption{CPU time for simulation with initial state equal to goal state.}
 	\label{fig:timehover}
 \end{figure}
@@ -733,7 +807,7 @@ We implemented three different formulations of the NPL problem for an NMPC algor
 	
 %	\nocite{*}
 %	
-\bibliographystyle{plain}
+
 \bibliography{references.bib}
 \end{document}
 

@@ -29,7 +29,7 @@ def chebyshev_segments(N, T):
     return diffs
 
     
-
+# Clenshaw-Curtis quadrature weights
 def weights(N):
     j = np.arange(N+1)
     theta = np.pi * j / N

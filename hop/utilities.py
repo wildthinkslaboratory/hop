@@ -26,3 +26,15 @@ def import_data(filename):
     with open(filename, 'r') as file:
         data = json.load(file)
     return data
+
+
+from math import floor, log10
+
+
+def sig_figs(x: float, precision: int):
+
+    x = float(x)
+    precision = int(precision)
+    if x == 0.0:
+        return x
+    return round(x, -int(floor(log10(abs(x)))) + (precision - 1))

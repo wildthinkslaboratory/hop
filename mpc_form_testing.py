@@ -1,3 +1,6 @@
+#
+# This runs drone simulations, plots results and gives timing summaries
+#
 from hop.drone_model import DroneModel
 from hop.drone_mpc import DroneMPC
 from hop.constants import Constants
@@ -8,7 +11,7 @@ import numpy as np
 import statistics as stats
 from hop.utilities import import_data
 from time import perf_counter
-from hop.drone_mpc_casadi import DroneNMPCSingleShoot
+from hop.drone_mpc_casadi import DroneNMPCMultiShoot
 from hop.drone_mpc_cgl import DroneNMPCwithCGL
 from animation import RocketAnimation
 import matplotlib.pyplot as plt
@@ -16,7 +19,9 @@ from plots import plot_state_for_comparison, plot_control_for_comparison, plot_t
 
 mc = Constants()
 
-tests = [
+
+# If you just want to run a single test you can loop over this list
+test_list = [
   {
     "x0": [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
     "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
@@ -24,11 +29,12 @@ tests = [
     "animation_up": [0, 1, 0],
     "animation_frame_rate": 0.4,
     "num_iterations": 250,
-    "title": "y115dxT"
+    "title": "y115dxOC"
   },
 ]
 
-tests_full = [
+# Here is the full set of tests if you want to run all the simulations
+test_list_full = [
   {
     "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
     "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
@@ -103,7 +109,7 @@ tests_full = [
   }
 ]
 
-for test in tests:
+for test in test_list_full:
 
     # set up the test case
     num_iterations = test['num_iterations']
@@ -111,7 +117,9 @@ for test in tests:
     xr = ca.DM(test['xr'])
     tspan = np.arange(0,num_iterations* mc.dt,mc.dt)
 
-    # first we set up the old nmpc solver
+
+    # first we set up the do-mpc solver
+    # it uses orthagonal collocation
     model = DroneModel()
     mpc = DroneMPC(mc.dt, model.model)
     estimator = StateFeedback(model.model)
@@ -126,9 +134,8 @@ for test in tests:
     dompc_control_data = np.empty([num_iterations,4])
     dompc_time_data = []
     x0 = x_init
-    # second set up the new nmpc solver
 
-    # run old solver
+    # run do-mpc solver
     print('running do-mpc solver')
     for k in range(num_iterations):
         start_time = perf_counter()
@@ -143,62 +150,67 @@ for test in tests:
         dompc_time_data.append(step_time)
         
 
-    specmpc = DroneNMPCwithCGL()
-    specmpc.set_goal_state(xr)
-    specmpc.set_start_state(x_init)
-    specmpc_state_data = np.empty([num_iterations,13])
-    specmpc_control_data = np.empty([num_iterations,4])
-    specmpc_time_data = []
+    # set up the Chebyshev pseudospectral nmpc solver
+    cheb_nmpc = DroneNMPCwithCGL()
+    cheb_nmpc.set_goal_state(xr)
+    cheb_nmpc.set_start_state(x_init)
+    cheb_nmpc_state_data = np.empty([num_iterations,13])
+    cheb_nmpc_control_data = np.empty([num_iterations,4])
+    cheb_nmpc_time_data = []
     x0 = x_init
     u0 = np.zeros(4)
-    # u0 = np.array([0.0, 0.0, 5.67, 0.0])
 
-    print('running spectral mpc solver')
+
+    print('running Chebyshev pseudospectral nmpc solver')
     for k in range(num_iterations):
 
         start_time = perf_counter()
         # Solve the NMPC for the current state x_current
-        u0 = specmpc.make_step(x0, u0)
+        u0 = cheb_nmpc.make_step(x0, u0)
         step_time = perf_counter() - start_time
 
         # Propagate the system using the discrete dynamics f (Euler forward integration)
-        x0 = x0 + mc.dt* specmpc.f(x0,u0)
+        x0 = x0 + mc.dt* cheb_nmpc.f(x0,u0)
         
-        specmpc_state_data[k] = np.reshape(x0, (13,))
-        specmpc_control_data[k] = np.reshape(u0, (4,))
-        specmpc_time_data.append(step_time)
+        cheb_nmpc_state_data[k] = np.reshape(x0, (13,))
+        cheb_nmpc_control_data[k] = np.reshape(u0, (4,))
+        cheb_nmpc_time_data.append(step_time)
 
-    ssmpc = DroneNMPCSingleShoot()
-    ssmpc.set_goal_state(xr)
-    ssmpc.set_start_state(x_init)
-    ssmpc_state_data = np.empty([num_iterations,13])
-    ssmpc_control_data = np.empty([num_iterations,4])
-    ssmpc_time_data = []
+
+    # run the multiple shooter nmpc
+    ms_nmpc = DroneNMPCMultiShoot()
+    ms_nmpc.set_goal_state(xr)
+    ms_nmpc.set_start_state(x_init)
+    ms_nmpc_state_data = np.empty([num_iterations,13])
+    ms_nmpc_control_data = np.empty([num_iterations,4])
+    ms_nmpc_time_data = []
     x0 = x_init
 
-    print('running single shoot mpc solver')
+    print('running multiple shooter nmpc solver')
     for k in range(num_iterations):
 
         start_time = perf_counter()
         # Solve the NMPC for the current state x_current
-        u0 = ssmpc.make_step(x0, u0)
+        u0 = ms_nmpc.make_step(x0, u0)
         step_time = perf_counter() - start_time
 
         # Propagate the system using the discrete dynamics f (Euler forward integration)
-        x0 = x0 + mc.dt* ssmpc.f(x0,u0)
+        x0 = x0 + mc.dt* ms_nmpc.f(x0,u0)
         
-        ssmpc_state_data[k] = np.reshape(x0, (13,))
-        ssmpc_control_data[k] = np.reshape(u0, (4,))
-        ssmpc_time_data.append(step_time)
+        ms_nmpc_state_data[k] = np.reshape(x0, (13,))
+        ms_nmpc_control_data[k] = np.reshape(u0, (4,))
+        ms_nmpc_time_data.append(step_time)
 
-    mean_time = [round(t,3) for t in [stats.mean(dompc_time_data), stats.mean(specmpc_time_data), stats.mean(ssmpc_time_data)]]
-    max_time = [round(t,3) for t in [max(dompc_time_data), max(specmpc_time_data),  max(ssmpc_time_data)]]
+    # compute statistics for the timing of the nmpc calls
+    mean_time = [round(t,3) for t in [stats.mean(dompc_time_data), stats.mean(cheb_nmpc_time_data), stats.mean(ms_nmpc_time_data)]]
+    max_time = [round(t,3) for t in [max(dompc_time_data), max(cheb_nmpc_time_data),  max(ms_nmpc_time_data)]]
     bad_times = [len([b for b in dompc_time_data if b > 0.014]), 
-                 len([b for b in specmpc_time_data if b > 0.014]), 
-                 len([b for b in ssmpc_time_data if b > 0.014])]
+                 len([b for b in cheb_nmpc_time_data if b > 0.014]), 
+                 len([b for b in ms_nmpc_time_data if b > 0.014])]
     
+    # print timing results
     print(test['title'])
-    print("          {: >20} {: >20} {: >20}".format('do-mpc', 'spectral', 'sing shoot'))
+    print("          {: >20} {: >20} {: >20}".format('do-mpc', 'pseudospectral', 'multiple shoot'))
     print("-----------------------------------------------------------------------------------------")
     print("mean      {: >20} {: >20} {: >20}".format(*mean_time))
     print("max       {: >20} {: >20} {: >20}".format(*max_time))
@@ -206,27 +218,16 @@ for test in tests:
 
 
     plot_state_for_paper(tspan, dompc_state_data, test["title"], 1)
-    plot_state_for_paper(tspan, specmpc_state_data, test["title"], 2)
-    plot_state_for_paper(tspan, ssmpc_state_data, test["title"], 3)
+    plot_state_for_paper(tspan, cheb_nmpc_state_data, test["title"], 2)
+    plot_state_for_paper(tspan, ms_nmpc_state_data, test["title"], 3)
+
 
     plot_control_for_paper(tspan, dompc_control_data, test["title"], 4)
-    plot_control_for_paper(tspan, specmpc_control_data, test["title"], 5)
-    plot_control_for_paper(tspan, ssmpc_control_data, test["title"], 6)
+    plot_control_for_paper(tspan, cheb_nmpc_control_data, test["title"], 5)
+    plot_control_for_paper(tspan, ms_nmpc_control_data, test["title"], 6)
 
-    # plot_state_for_comparison(tspan, dompc_state_data, test["title"], 1)
-    # plot_state_for_comparison(tspan, specmpc_state_data, test["title"], 2)
-    # plot_state_for_comparison(tspan, ssmpc_state_data, test["title"], 3)
-
-    # plot_control_for_comparison(tspan, dompc_control_data, test["title"], 4)
-    # plot_control_for_comparison(tspan, specmpc_control_data, test["title"], 5)
-    # plot_control_for_comparison(tspan, ssmpc_control_data, test["title"], 6)
-
-    plot_time_comparison(tspan, dompc_time_data, ssmpc_time_data, specmpc_time_data, test["title"], 7)
+    plot_time_comparison(tspan, dompc_time_data, ms_nmpc_time_data, cheb_nmpc_time_data, test["title"], 7)
     plt.show()
-
-    # input("Press [enter] to continue.")
-    # rc = RocketAnimation(test['animation_forward'], test['animation_up'], test['animation_frame_rate'])
-    # rc.animate(tspan, specmpc_state_data, specmpc_control_data)
 
 
 

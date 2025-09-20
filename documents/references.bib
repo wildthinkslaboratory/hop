@@ -1,4 +1,4 @@
-@Article{Andersson2018,
+@Article{casadi,
 	Author = {Joel A E Andersson and Joris Gillis and Greg Horn
 	and James B Rawlings and Moritz Diehl},
 	Title = {{CasADi} -- {A} software framework for nonlinear optimization
@@ -39,3 +39,67 @@
 	pages={1996-2002},
 	keywords={Rockets;Trajectory tracking;Prototypes;Optimal control;Prediction algorithms;Real-time systems;Hardware},
 	doi={10.1109/ICRA46639.2022.9811938}}
+	
+@article{do-mpc,
+	title = {do-mpc: Towards FAIR nonlinear and robust model predictive control},
+	journal = {Control Engineering Practice},
+	volume = {140},
+	pages = {105676},
+	year = {2023},
+	issn = {0967-0661},
+	doi = {https://doi.org/10.1016/j.conengprac.2023.105676},
+	url = {https://www.sciencedirect.com/science/article/pii/S0967066123002459},
+	author = {Felix Fiedler and Benjamin Karg and Lukas Lüken and Dean Brandner and Moritz Heinlein and Felix Brabender and Sergio Lucia},
+	keywords = {Nonlinear model predictive control, Learning-based control, Robust control},
+	abstract = {Over the last decades, model predictive control (MPC) has shown outstanding performance for control tasks from various domains. This performance has further improved in recent years with advanced MPC schemes for nonlinear systems under uncertainty including economic control objectives. These recent improvements often fail to bridge the gap between MPC researchers and control practitioners in academia and industry, where classical control approaches and traditional linear MPC still dominate most applications. This is despite the fact that advanced MPC controllers can lead to significant energy savings, yield improvements, safer operation and other benefits. In this work, we identify four main obstacles hindering the widespread adoption of advanced MPC methods. These are the unavailability of models, the challenges associated with deploying complex controllers on physical systems, the scarcity of rapid prototyping tools for advanced methods and the limited reproducibility and reusability of advanced MPC controllers and their results. We find that the FAIR principles (findable, accessible, interoperable, reusable) for scientific data-management and research software can play an important role in tackling these obstacles. Following these guidelines, we discuss FAIR solutions and present the open-source software do-mpc as a concrete implementation. The presented solutions include interoperability with neural network toolboxes to simplify nonlinear system identification, interoperability with the OPC UA communication protocol for deployment, and a reproducible data-sampling framework for transparent controller validation, system identification and approximate MPC. The potential of the proposed solutions is illustrated with several simulation studies.}
+}
+
+
+
+@article{ipopt,
+	author = {W\"{a}chter, Andreas and Biegler, Lorenz T.},
+	title = {On the implementation of an interior-point filter line-search algorithm for large-scale nonlinear programming},
+	year = {2006},
+	issue_date = {March 2006},
+	publisher = {Springer-Verlag},
+	address = {Berlin, Heidelberg},
+	volume = {106},
+	number = {1},
+	issn = {0025-5610},
+	abstract = {We present a primal-dual interior-point algorithm with a filter line-search method for nonlinear programming. Local and global convergence properties of this method were analyzed in previous work. Here we provide a comprehensive description of the algorithm, including the feasibility restoration phase for the filter method, second-order corrections, and inertia correction of the KKT matrix. Heuristics are also considered that allow faster performance. This method has been implemented in the IPOPT code, which we demonstrate in a detailed numerical study based on 954 problems from the CUTEr test set. An evaluation is made of several line-search options, and a comparison is provided with two state-of-the-art interior-point codes for nonlinear programming.},
+	journal = {Math. Program.},
+	month = mar,
+	pages = {25–57},
+	numpages = {33},
+	keywords = {49M37, 65K05, 90C30, 90C51, Barrier method, Filter method, Interior-point method, Line search, Nonconvex constrained optimization, Nonlinear programming}
+}
+
+@unknown{cheapTVC,
+	author = {Spannagl, Lukas and Hampp, Elias and Carron, Andrea and Sieber, Jerome and Pascucci, Carlo and Zgraggen, Aldo and Domahidi, Alexander and Zeilinger, Melanie},
+	year = {2021},
+	month = {03},
+	pages = {},
+	title = {Design, Optimal Guidance and Control of a Low-cost Re-usable Electric Model Rocket},
+	doi = {10.48550/arXiv.2103.04709}
+}
+
+@article{nmpc,
+	title={Model predictive control: Theory and practice - A survey},
+	author={Carlos E. Garcia and David M. Prett and Manfred Morari},
+	journal={Autom.},
+	year={1989},
+	volume={25},
+	pages={335-348},
+	url={https://api.semanticscholar.org/CorpusID:3443742}
+}
+
+@article{unknown,
+	author = {Tamimi, Jasem and Li, Pu},
+	year = {2009},
+	month = {07},
+	pages = {},
+	title = {Nonlinear Model Predictive Control Using Multiple Shooting Combined with Collocation on Finite Elements},
+	volume = {7},
+	journal = {IFAC Proceedings Volumes (IFAC-PapersOnline)},
+	doi = {10.3182/20090712-4-TR-2008.00114}
+}
