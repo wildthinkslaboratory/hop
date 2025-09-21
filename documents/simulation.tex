@@ -87,7 +87,7 @@
 
 	Our drone implements TVC and VTOL using a nonlinear model predictive control (NMPC) algorithm \citep{nmpc}, allowing it to handle nonlinear rocket dynamics and manage constraints like gimbal angle range, servo rates, and thrust limits. NMPC optimizes control inputs across a finite time horizon at each time step. In this sense it optimizes a control sequence, allowing it to anticipate future control requirements. Revising the sequence at each time step allows it to respond to disturbances. The main downside of NMPC is its high computational load. NMPC solves a constrained Optimal Control Problem (OCP) that is transcribed into a finite dimensional nonlinear optimization problem (NLP) at every control step, and as a result it is much slower than simple control algorithms like proportional integral derivative (PID) controllers or linear quadratic regulators (LQR).
 	There are a variety of ways to formulate an NMPC problem instance as a nonlinear programming problem. Different formulations may vary in their computation times and solution accuracy. The focus of this paper is experimenting with different choices of NLP formulations and evaluating their speed and accuracy.  Our goal is to run our control algorithm on a Raspberry Pi 5 at $50$ Hz so solution speed will be very important.
-	{\em We  compare three approaches: a Runge-Kutta multiple-shooter method, an orthogonal collocation with Gauss-Radau nodes implemented in the {\bf do-mpc}  library \citep{do-mpc},  and a Chebyshev pseudospectral collocation approach. We compare the relative accuracy of these techniques and their relative efficiency.}
+	We  compare three approaches: a Runge-Kutta multiple-shooter method, an orthogonal collocation with Gauss-Radau nodes implemented in the {\bf do-mpc}  library \citep{do-mpc},  and a Chebyshev pseudospectral collocation approach. We compare the relative accuracy of these techniques and their relative efficiency.
 
 	
 
@@ -252,7 +252,7 @@ $T_1$ and $T_2$ denote the normalized brushless motor command signals, ranging f
 	\[
 		T_2 = \pavg - \pdiff/2
 	\]
-To map the average thrust command signal value to the actual thrust force value in Newtons used in the thrust-vector decomposition a second-order polynomial fit is experimentally determined. Similarly, a linear relationship is used to map the differential thrust to the moment about the body frame z axis.
+To map the average thrust command signal value to the actual thrust force value in Newtons used in the thrust-vector decomposition a second-order polynomial fit is experimentally determined. Similarly, a linear relationship is used to map the differential thrust to the moment about the body frame $z$ axis.
 	\[
 		T = a\pavg^2+b\pavg+c
 	\]
@@ -589,7 +589,7 @@ To compare our different formulations for the NLP problem, we ran a series of si
 
 \subsection*{Results}
 We begin with our first simulation which requires the drone to perform a $45^{\circ}$ rotation about the $z$ axis to achieve the goal state. 
-Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each of our methods: orthagoal collocation, multiple shooter, and Chebyshev pseudospectral. The figures  (\ref{fig:statex1z1vx}), (\ref{fig:statey115dx}) and (\ref{fig:statehover}) show similar graphs for our other three simulations.  Comparison graphs of the control variables are given in figures (\ref{fig:control45z}), (\ref{fig:controlx1z1vx}), (\ref{fig:controly115dx}) and (\ref{fig:controlhover}). Finally, graphs comparing the CPU time for NLP calls throughout the simulations are given in figures (\ref{fig:time45z}), (\ref{fig:timex1z1vx}), (\ref{fig:timey115dx}) and (\ref{fig:timehover}). 
+Figure (\ref{fig:state45z}) shows a graph of the drone's state through time for each of our methods:  multiple shooter, orthogonal collocation, and Chebyshev pseudospectral. The figures  (\ref{fig:statex1z1vx}), (\ref{fig:statey115dx}) and (\ref{fig:statehover}) show similar graphs for our other three simulations.  Comparison graphs of the control variables are given in figures (\ref{fig:control45z}), (\ref{fig:controlx1z1vx}), (\ref{fig:controly115dx}) and (\ref{fig:controlhover}). Finally, graphs comparing the CPU time for NLP calls throughout the simulations are given in figures (\ref{fig:time45z}), (\ref{fig:timex1z1vx}), (\ref{fig:timey115dx}) and (\ref{fig:timehover}). 
  
 \begin{figure}[H]
 	\centering
@@ -796,7 +796,9 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state overtime for each
 \end{figure}
 
 
-All of the methods provide good quality solutions with state values that behaved smoothly and converged to the desired goal state. The graphs of control variables were generally smooth, but all methods occasionally constructed solutions where the  average thrust $\overline{P}$ seemed more irregular than required to reach the goal state.  Real world experiments on the drone will be needed to determine if solutions with these irregularities will negatively affect performance in practice.
+All of the methods provide good quality solutions with state values that behaved smoothly and converged to the desired goal state.  The control graphs produced by Chebyshev's pseudospectral method were somewhat irregular and produced chatter when it attempted to hover. You can see from the timing graph in Figure (\ref{fig:timehover}) that time required to solve the NLP problem for the Chebyshev pseudospectral method spikes up during the hover simulation suggesting that the NLP solver was having difficulty converging to an optimal solution. Real world experiments on the drone will be needed to determine if solutions with these irregularities will negatively affect performance in practice. The orthogonal collocation method used by {\dompc} produced the most reliably well behaved graphs.  
+
+
 
 
 \begin{table}[h!]	
@@ -811,16 +813,18 @@ All of the methods provide good quality solutions with state values that behaved
 				initial state equal to goal state &            0.049  & 0.005    & 0.004 \\ 
 			\hline
 		\end{tabular}
-		\caption{Comparison of average CPU time in seconds for solution of NLP for a series of  simulations. Methods include orthogonal collocation (OC),  multiple shooter (MS), and Chebyshev pseudospectral method (CPS). }
+		\caption{Comparison of average CPU time in seconds for solution of NLP for a series of  simulations. Methods include  multiple shooter (MS), orthogonal collocation (OC), and Chebyshev pseudospectral method (CPS). }
 		\label{table:CPU}
 	\end{center}
 
 \end{table}
 
- Our goal is to run our control algorithm at $50$Hz on the Raspberry Pi 5. The CPU speed of the Pi is 2.4GHz while our experiments were run on a machine with a CPU speed of 3.49GHz. To meet our goal of 50Hz on the Pi we need a solution time on the experiment machine of less than $0.014$ seconds. Table (\ref{table:CPU}) summarizes the average CPU time for solution of the NLP problem for each simulation and each method.  The run times for the orthogonal collocation and multiple shooter are both too slow to meet our  $50$Hz target.  Additional changes such as reducing the length of the horizon or relaxing convergence criteria might improve these times somewhat, but they are unlikely to provide the performance needed for this application of NMPC.  The Chebyshev pseudospectral method is substantially faster and comfortably meets our $0.014$ solution time while providing solution graphs with comparable quality.
+ Our goal is to run our control algorithm at $50$Hz on the Raspberry Pi 5. The CPU speed of the Pi is 2.4GHz while our experiments were run on a machine with a CPU speed of 3.49GHz. To meet our goal of 50Hz on the Pi we need a solution time on the experiment machine of less than $0.014$ seconds. Table (\ref{table:CPU}) summarizes the average CPU time for solution of the NLP problem for each simulation and each method.  
+ 
+ The run times for multiple shooter are too slow to meet our  $50$Hz target.  Additional changes such as reducing the length of the horizon or relaxing convergence criteria might improve these times somewhat, but they are unlikely to provide the performance needed for this application of NMPC.  Orthogonal collocation and  Chebyshev pseudospectral method both comfortably  meet our $0.014$ solution time. Chebyshev's pseudospectral method was slightly faster but produced graphs that were at times irregular.  We conclude that {\dompc}'s orthogonal collocation method is the best fit for our TVC drone implementation.
 
 \section*{Conclusions}
-We implemented three different formulations of the NPL problem for an NMPC algorithm controlling a thrust vector drone and compared their solution quality and relative efficiency. All methods produced good quality solutions while only the Chebyshev pseudospectral method provided solutions that are efficient enough to control the drone on a Raspberry Pi 5. Further real-world experiments are required to determine if the solutions produced provide good control in practice.
+We implemented three different formulations of the NPL problem for an NMPC algorithm controlling a thrust vector drone and compared their solution quality and relative efficiency. All methods produced good quality solutions but the multiple shooter implementation was too slow to be practical for solving the thrust vector drone NMPC problem on a Raspberry Pi 5. Both Chebyshev pseudospectral and orthogonal collocation produced solutions fast enough for deployment on the Raspberry Pi 5. Chebyshev pseudospectral collocation was the slightly faster than orthogonal collocation, but orthogonal collocation produced smoother more reliable curves making it the best choice for formulating NMPC instances for the thrust vector drone.  Further real-world experiments are required to determine if the solutions produced here will provide good control in practice.
 	
 	
 %	\nocite{*}
