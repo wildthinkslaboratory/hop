@@ -185,6 +185,13 @@ def plot_control_for_comparison(tspan, control, title, plot_no):
 #
 ##########################################################################
 
+state_lims = {
+    '45dz': [[-0.1, 1.2], [-0.005, 0.025], [-0.2, 1.2], [-0.15, 0.05]],
+    'x1z1vx': [[-0.6, 1.4], [-1.0, 0.6], [-0.2, 1.2], [-1.0, 0.6]],
+    'y115dx': [[-1.0, 1.1], [-2.0, 1.0], [-0.2, 1.2], [-2.0, 0.5]],
+    'hover': [[-0.5, 0.5], [-0.5, 0.5], [-0.2, 1.2], [-0.5, 0.5]]
+
+}
 def plot_state_for_paper(tspan, data, title, plot_no):
 
     plt.figure(figsize=(6,8))
@@ -192,27 +199,28 @@ def plot_state_for_paper(tspan, data, title, plot_no):
     # plt.rcParams['xtick.labelsize'] = 10
 
     plt.figure(plot_no)
+
     plt.subplot(4, 1, 1)
-    # plt.ylim(-0.5, 0.5)
+    plt.ylim(state_lims[title][0])
     for i in range(3):
         plt.plot(tspan, data[:,i])
     plt.ylabel('$x$')
 
+
     plt.subplot(4, 1, 2)
-    # plt.yticks(np.arange(-0.01, 0.02, step=0.005))
+    plt.ylim(state_lims[title][1])
     for i in range(3):
         plt.plot(tspan, data[:,i+3])
     plt.ylabel('$v$')
 
     plt.subplot(4, 1, 3)
+    plt.ylim(state_lims[title][2])
     for i in range(4):
         plt.plot(tspan, data[:,i+6])
     plt.ylabel('$q$')
 
     plt.subplot(4, 1, 4)
-    # plt.yticks(np.arange(-0.2, 0.2, step=0.05))
-    # plt.ylim(-0.02, 0.02)
-
+    plt.ylim(state_lims[title][3])
     for i in range(3):
         plt.plot(tspan, data[:,i+10])
     plt.ylabel('$w$')
@@ -221,6 +229,12 @@ def plot_state_for_paper(tspan, data, title, plot_no):
     plt.savefig("state" + title + str(plot_no) + ".pdf", format="pdf", bbox_inches="tight")
 
 
+control_lims = {
+    '45dz': [[-0.5, 0.5], [5.83, 5.9], [-1.8, 0.3]],
+    'x1z1vx': [[-3.0, 10.0], [5.0, 6.2], [-0.3, 0.3]],
+    'y115dx': [[-3.0, 13.0], [5.0, 11.0], [-1.0, 1.0]],
+    'hover': [[-0.2, 0.2], [5.6, 7.0], [-0.02, 0.02]]
+}
 
 def plot_control_for_paper(tspan, control, title, plot_no):
 
@@ -233,19 +247,20 @@ def plot_control_for_paper(tspan, control, title, plot_no):
     
     # gimbal angles
     plt.subplot(3, 1, 1)
-    # plt.ylim(-0.05, 0.05)
+    plt.ylim(control_lims[title][0])
     for i in range(2):
         plt.plot(tspan, control[:,i])
     plt.ylabel('$\\theta$')
 
-    plt.subplot(3, 1, 2)
     # average thrust
+    plt.subplot(3, 1, 2)
+    plt.ylim(control_lims[title][1])
     plt.plot(tspan, control[:,2])
     plt.ylabel('$\\overline{P}$')
 
-    plt.subplot(3, 1, 3)
-    # plt.ylim(-0.02, 0.02)
     # delta thrust
+    plt.subplot(3, 1, 3)
+    plt.ylim(control_lims[title][2])
     plt.plot(tspan, control[:,3])
     plt.ylabel('$\\Delta P$')
 
