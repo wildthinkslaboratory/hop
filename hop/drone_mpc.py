@@ -52,7 +52,7 @@ class DroneMPC:
         self.mpc.set_nl_cons('upper_pwm_max', P_upper, ub=thrust_limit)
         self.mpc.set_nl_cons('lower_pwm_max', P_lower, ub=thrust_limit)
 
-        self.mpc.settings.supress_ipopt_output()
+        # self.mpc.settings.supress_ipopt_output()
         
 
 

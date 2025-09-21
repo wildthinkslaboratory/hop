@@ -1,29 +1,39 @@
+running do-mpc solver
+running Chebyshev pseudospectral nmpc solver
+running multiple shooter nmpc solver
 45dz
-                        do-mpc             spectral           sing shoot
+                        do-mpc       pseudospectral       multiple shoot
 -----------------------------------------------------------------------------------------
-mean                     0.063                0.002                0.056
-max                      0.138                0.009                0.082
-bad times                  500                    0                  500
+mean                     0.005                0.002                 0.05
+max                      0.007                0.004                0.069
+bad times                    0                    0                  500
 
-
-hover
-                        do-mpc             spectral           sing shoot
------------------------------------------------------------------------------------------
-mean                     0.062                0.002                0.056
-max                      0.157                0.004                0.075
-bad times                  200                    0                  200
-
-
+running do-mpc solver
+running Chebyshev pseudospectral nmpc solver
+running multiple shooter nmpc solver
 x1z1vx
-                        do-mpc             spectral           sing shoot
+                        do-mpc       pseudospectral       multiple shoot
 -----------------------------------------------------------------------------------------
-mean                     0.059                0.003                0.046.        0.004
-max                      0.083                0.011                0.078
-bad times                  200                    0                  200
+mean                     0.004                0.004                0.045
+max                      0.009                0.025                0.075
+bad times                    0                    1                  200
 
+running do-mpc solver
+running Chebyshev pseudospectral nmpc solver
+running multiple shooter nmpc solver
 y115dx
-                        do-mpc             spectral           sing shoot
+                        do-mpc       pseudospectral       multiple shoot
 -----------------------------------------------------------------------------------------
-mean                     0.063                0.004                 0.06
-max                      0.141                0.009                0.471
-bad times                  250                    0                  250
+mean                     0.004                0.004                0.054
+max                       0.01                0.018                0.618
+bad times                    0                    1                  250
+
+running do-mpc solver
+running Chebyshev pseudospectral nmpc solver
+running multiple shooter nmpc solver
+hover
+                        do-mpc       pseudospectral       multiple shoot
+-----------------------------------------------------------------------------------------
+mean                     0.005                0.004                0.049
+max                      0.006                0.031                0.062
+bad times                    0                    5                  200

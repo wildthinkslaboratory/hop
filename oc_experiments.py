@@ -120,8 +120,10 @@ test_list_full = [
 ]
 
 
-collocations = [1, 2, 3, 4, 5]
-timesteps = [0.02, 0.04, 0.08, 0.2, 0.25, 0.5, 0.8]
+collocations = [1, 2]
+# collocations = [1, 2, 3, 4, 5]
+timesteps = [0.02, 0.25 ]
+# timesteps = [0.02, 0.04, 0.08, 0.2, 0.25, 0.5, 0.8]
 times = np.zeros((len(collocations),len(timesteps)))
 accuracy = np.zeros((len(collocations),len(timesteps)))
 
@@ -269,7 +271,7 @@ for test in test_list:
 
     ax.set_title("Average CPU time")
 
-    plt.savefig("CPU.pdf", format="pdf", bbox_inches="tight")
+    # plt.savefig("CPU.pdf", format="pdf", bbox_inches="tight")
 
     plt.figure(2)
     fig1, ax1 = plt.subplots()
@@ -292,7 +294,7 @@ for test in test_list:
 
     ax1.set_title("Accuracy") 
 
-    plt.savefig("Accuracy.pdf", format="pdf", bbox_inches="tight")
+    # plt.savefig("Accuracy.pdf", format="pdf", bbox_inches="tight")
 
     
     plt.show()

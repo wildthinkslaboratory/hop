@@ -129,17 +129,17 @@ class DroneNMPCwithCGL:
             self.ubg += [0.0]*int(self.size_x())
 
 
-            # # upper thrust limit constraints         
-            # g   = ca.vertcat(g, w[j] * (u_k[2] + 0.5*u_k[3]) - mc.prop_thrust_constraint)
-            # g   = ca.vertcat(g, w[j] * (u_k[2] - 0.5*u_k[3]) - mc.prop_thrust_constraint)
-            # self.lbg += [-ca.inf]*2
-            # self.ubg += [0.0]*2
+            # upper thrust limit constraints         
+            g   = ca.vertcat(g, (u_k[2] + 0.5*u_k[3]) - mc.prop_thrust_constraint)
+            g   = ca.vertcat(g, (u_k[2] - 0.5*u_k[3]) - mc.prop_thrust_constraint)
+            self.lbg += [-ca.inf]*2
+            self.ubg += [0.0]*2
 
         
-        # x_N = X[:, self.N]
-        # e_N = x_N - self.x_goal
-        # Qf = mc.Q
-        # cost = cost + e_N.T @ Qf @ e_N
+        x_N = X[:, self.N]
+        e_N = x_N - self.x_goal
+        Qf = mc.Q
+        cost = cost + e_N.T @ Qf @ e_N
 
         cost = cost * tau_2_time
 
