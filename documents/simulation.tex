@@ -72,7 +72,7 @@
 \newcommand{\casadi}{CasADi}
 \newcommand{\dompc}{{\bf do-mpc}}
 
-\title{Comparison of Direct Methods for NMPC  Applied to  a Thrust Vector Drone}
+\title{Comparison of Direct Methods for NMPC Applied to a Thrust Vector Drone}
 \author{Izzy Mones and Heidi Dixon}
 %\date{}
 
@@ -403,7 +403,7 @@ When $P_K$ are the Gauss-Jacobi polynomials:
 P_K^{(\alpha, \beta)}(\tau) = \sum_{j=0}^{K}(-1)^{K-j}\gamma_j\tau^j
 \]
 
-Lagrange polynomials, $\ell_j(\tau)$, are used to interpolate the state trajectory $z^K(\tau)$:
+Lagrange polynomials, $\ell_j(\tau)$, are used to interpolate the state trajectory $z^K(\tau)$, where $z_{ij}$ is the state at the $i$th interval and the $j$th node:
 \[
 \ell_j(\tau)=\prod_{\substack{m=0 \\ m\neq j}}^{K}\frac{\tau-\tau_m}{\tau_j-\tau_m}
 \]        
@@ -438,7 +438,8 @@ h_i=t_{i}-t_{i-1} \qquad t=t_{i-1} + h_i\tau \qquad dt= h_i d\tau
 \int_{t_0}^{t_f} L(z(t),u(t),t)dt = \sum_{i=1}^N \int_{t_{i-1}}^{t_i} L(z(t),u(t),t)dt=\sum_{i=1}^N h_i \int_{0}^{1} L(z(t_{i-1} + h_i\tau),u(t_{i-1} + h_i\tau),t_{i-1} + h_i\tau) d\tau
 \]
 
-Using the Gauss–Radau quadrature rule (a variant of Gaussian quadrature, exact for polynomials up to degree $2K-1$), we can substitute a quadrature sum of the cost at each given node for the integral of the running cost over the interval.
+Using the Gauss–Radau quadrature rule (a variant of Gaussian quadrature, exact for polynomials up to degree $2K-1$, we can substitute a quadrature sum of the cost at each given node for the integral of the running cost over the interval.
+
 
 \[
 \int_a^b f(\tau)\,d\tau \;\approx\; \sum_{k=1}^K \omega_k f(\tau_k)
