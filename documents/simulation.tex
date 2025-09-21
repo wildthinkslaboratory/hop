@@ -375,7 +375,7 @@ The {\bf do-mpc} library is ideal for prototyping  MPC and NMPC algorithms and r
 
 Need to discuss our cost function and how to encode servo and thrust minimum and maximums.  We should note that with do-mpc you don't need to know any of this because the NLP constraints are generated automatically from the system dynamics. Warm starts are done automatically in do-mpc. cost function and other constraints are entered using continuous model variables and do-mpc adapts them to the chosen trajectory variables. You can specify degree of collocation and time step size.
 
-Orthogonal collocation is a local method that divides the time horizon into finite elements and fits polynomials to each interval. The dynamics are enforced throughout each interval at a set of $K+1$ Gauss-Radau nodes: the $K$ interior nodes, which are the roots of a Jacobi polynomial $P_K^{(\alpha,\beta)}$ of degree $K$, and one additional endpoint node, in this case the right endpoint, $\tau=1$. The Jacobi parameters $\alpha$ and $\beta$ determine the distribution of nodes throughout the interval, and a right-Radau formulation corresponds to $\alpha=1$, $\beta=0$.
+Orthogonal collocation is a local method that divides the time horizon into finite elements and fits polynomials to each interval. The dynamics are enforced throughout each interval at a set of $K$ Gauss-Radau nodes: the $K-1$ interior nodes, which are the roots of a Jacobi polynomial $P_{K-1}^{(\alpha,\beta)}$, and one additional endpoint node, in this case the right endpoint, $\tau=1$. The Jacobi parameters $\alpha$ and $\beta$ determine the distribution of nodes throughout the interval, and a right-Radau formulation corresponds to $\alpha=1$, $\beta=0$.
 
 \[
 \gamma_0=1,  \qquad \gamma_j = \gamma_{j-1} \frac{(K-j+1)(K+j+\alpha+\beta)}{j(j+\beta)}, \qquad j = 1,\ldots,K
@@ -393,7 +393,7 @@ Lagrange polynomials, $\ell_j(\tau)$, are used to interpolate the state trajecto
 z^K(\tau)=\sum_{j=0}^{K}z_{ij}\ell_j(\tau)
 \]
 
-By differentiating the state trajectory and equating it with the dynamics s$\dot{x} =  f(x(t),u(t))$, a dynamics constraint is formed:
+By differentiating the state trajectory and equating it with the dynamics $\dot{x} =  f(x(t),u(t))$, a dynamics constraint is formed:
 \[
 h_i=t_{i}-t_{i-1}
 \]
@@ -403,32 +403,33 @@ h_i=t_{i}-t_{i-1}
 \]
 Continuity constraints are used to fit an interval polynomial's endpoint with the first point of the next interval. There are two additional continuity constraints for enforcing the overall horizon's start and endpoint continuity.
 \[
-z_{i+1,0}=\sum_{j=0}^{K}\ell_j(1)z^{ij}
+z_{i+1,0}=\sum_{j=0}^{K}\ell_j(1)z_{ij}
 \]
 \[
-z_f=\sum_{j=0}^{K}\ell_j(1)z^{Nj}, \qquad z_{1,0} = z_0
+z_f=\sum_{j=0}^{K}\ell_j(1)z_{Nj}, \qquad z_{1,0} = z_0
 \]
 The continuous Bolza cost function is defined as:
 \[
 \substack {min \\ {x(t), u(t)}}J=\Phi(z(t_f),t_f) + \int_{t_0}^{t_f}L(z(t),u(t),t)dt
 \]
-Where $\Phi(z(t_f)$ is the Mayer term or terminal cost and $L(z_{ik},u_{ik},t_{ik})$ is the running cost. We then use a change of variables to convert from t to $\tau$. Using the general Gaussian Quadrature rule, we can substitute a quadrature sum of the cost at each given node for the integral of the running cost over the interval.
+Where $\Phi(z(t_f),t_f)$ is the Mayer term or terminal cost. From here onward the $t_f$ input will not be included because our system has a fixed horizon. $L(z(t),u(t),t)$ is the running cost in continuous time. We will first discretize the system and then use a change of variables to convert from t to $\tau$. 
 \[
 h_i=t_{i}-t_{i-1} \qquad t=t_{i-1} + h_i\tau \qquad dt= h_i d\tau
 \]
 \[
 \int_{t_0}^{t_f} L(z(t),u(t),t)dt = \sum_{i=1}^N \int_{t_{i-1}}^{t_i} L(z(t),u(t),t)dt=\sum_{i=1}^N h_i \int_{0}^{1} L(z(t_{i-1} + h_i\tau),u(t_{i-1} + h_i\tau),t_{i-1} + h_i\tau) d\tau
 \]
-\[
-t_{ik} =  t_{i-1} + h_i\tau_k \qquad z_{ik} = z_i^{K}(\tau_k) \qquad u_{ik} = u_i^{K}(\tau_k)\]
+Using the Gauss–Radau quadrature rule (a variant of Gaussian quadrature, exact for polynomials up to degree $2K−1$), we can substitute a quadrature sum of the cost at each given node for the integral of the running cost over the interval.
 
 \[
 \int_a^b f(\tau)\,d\tau \;\approx\; \sum_{k=1}^K \omega_k f(\tau_k)
 \]
 \[
-J\approx\Phi(z(t_f)) + \sum_{i=1}^{N}h_i\sum_{k=1}^{K}\omega_kL(z_{ik},u_{ik},t_{ik})
+t_{ik} =  t_{i-1} + h_i\tau_k \qquad z_{ik} = z_i^{K}(\tau_k) \qquad u_{ik} = u_i^{K}(\tau_k)\]
+\[
+J\approx\Phi(z_f) + \sum_{i=1}^{N}h_i\sum_{k=1}^{K}\omega_kL(z_{ik},u_{ik},t_{ik})
 \]
-The weights $\omega_k$ are determined by Radau quadrature, which integrates all polynomials up to $2s-2$ with zero error. 
+The weights $\omega_k$ are determined by Radau quadrature, which integrates all polynomials up to $2K-1$ with zero error. 
 
 
 Fix the length of the time horizon to 2 seconds and choices: number of finite elements, number of collocation points. Run a simulation for 200 iterations. Consider collocation degrees $c = 1, 2, \ldots, 5$ and time intervals $[0.02, 0.04, 0.08, 0.2, 0.25, 0.5, 0.8]$. Run with $5$ collocation points and $0.02$ time step and save state data. This is the most fine grained collocation scheme and has very nice curves that smooth and converge.  To compute the accuracy of a run we look at the squared error from this run summed over each iteration. On visual inspection this works well and accuracy less then $50$ are very good, smooth, converge promptly. So time step $0.25$ with $2$ collocation points is the best. 
