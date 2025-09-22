@@ -37,3 +37,47 @@ hover
 mean                     0.005                0.004                0.049
 max                      0.006                0.031                0.062
 bad times                    0                    5                  200
+
+
+On Pi
+
+running do-mpc solver
+running Chebyshev pseudospectral nmpc solver
+running multiple shooter nmpc solver
+hover
+                        do-mpc       pseudospectral       multiple shoot
+-----------------------------------------------------------------------------------------
+mean                     0.016                0.009                0.115
+max                      0.016                 0.01                 0.14
+bad times                  200                    0                  200
+
+running do-mpc solver
+running Chebyshev pseudospectral nmpc solver
+running multiple shooter nmpc solver
+45dz
+                        do-mpc       pseudospectral       multiple shoot
+-----------------------------------------------------------------------------------------
+mean                     0.015                0.008                0.113
+max                      0.019                0.009                0.141
+bad times                  500                    0                  500
+
+running do-mpc solver
+running Chebyshev pseudospectral nmpc solver
+running multiple shooter nmpc solver
+x1z1vx
+                        do-mpc       pseudospectral       multiple shoot
+-----------------------------------------------------------------------------------------
+mean                     0.012                0.011                0.102
+max                      0.017                0.029                0.161
+bad times                   40                   48                  200
+
+
+running do-mpc solver
+running Chebyshev pseudospectral nmpc solver
+running multiple shooter nmpc solver
+y115dx
+                        do-mpc       pseudospectral       multiple shoot
+-----------------------------------------------------------------------------------------
+mean                     0.015                0.012                0.124
+max                      0.025                0.028                1.465
+bad times                  249                   72                  250
