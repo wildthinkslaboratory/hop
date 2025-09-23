@@ -3,26 +3,27 @@ from hop.offboard_node import OffBoardNode
 from hop.constants import Constants
 mc = Constants()
 
-class ServoTest(OffBoardNode):
+class TestServos(OffBoardNode):
 
     def __init__(self):
-        super().__init__('servo calibration', timelimit=100, dt=mc.dt)
+        super().__init__('test_servos', timelimit=100, dt=mc.dt)
 
 
     def timer_callback(self):
 
         # manage key presses
         if self.key == 'u':
+            self.key = ''
             self.pwm_servos[0] += 0.1
-            self.pwm_servos[1] += 0.1
-            if self.logging_on:
-                self.get_logger().info('motor pwm ' + str(self.pwm_motors))
+            # self.pwm_servos[1] += 0.1
+            self.get_logger().info('motor pwm ' + str(self.pwm_servos))
+
             
         elif self.key == 'j':
+            self.key = ''
             self.pwm_servos[0] -= 0.1
-            self.pwm_servos[1] -= 0.1
-            if self.logging_on:
-                self.get_logger().info('motor pwm ' + str(self.pwm_motors))
+            # self.pwm_servos[1] -= 0.1
+            self.get_logger().info('motor pwm ' + str(self.pwm_servos))
 
         elif not self.key == '':
             raise SystemExit
@@ -35,15 +36,15 @@ class ServoTest(OffBoardNode):
 
 def main(args=None):
     rclpy.init(args=args)
-    nmpc = MotorTest()
-    nmpc.logging_on = True
+    servo_test = TestServos()
+    servo_test.logging_on = False
 
     try:
-        rclpy.spin(nmpc)
+        rclpy.spin(servo_test)
     except SystemExit:
         pass
     finally:
-        nmpc.destroy_node()
+        servo_test.destroy_node()
         rclpy.shutdown()
 
 if __name__ == '__main__':
