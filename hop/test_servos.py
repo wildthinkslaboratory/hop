@@ -3,10 +3,10 @@ from hop.offboard_node import OffBoardNode
 from hop.constants import Constants
 mc = Constants()
 
-class MotorTest(OffBoardNode):
+class ServoTest(OffBoardNode):
 
     def __init__(self):
-        super().__init__('nmpc_controller', timelimit=100, dt=mc.dt)
+        super().__init__('servo calibration', timelimit=100, dt=mc.dt)
 
 
     def timer_callback(self):
