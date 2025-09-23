@@ -38,9 +38,9 @@ class NMPC(OffBoardNode):
         gimbal_angles[0] = np.clip(gimbal_angles[0], mc.outer_gimbal_range[0], mc.outer_gimbal_range[1])
         gimbal_angles[1] = np.clip(gimbal_angles[1],  mc.inner_gimbal_range[0], mc.inner_gimbal_range[1])
 
-        outer_angle_pwm = gimbal_angles[0] / 20
+        outer_angle_pwm = gimbal_angles[0] / 43
 
-        inner_angle_pwm = gimbal_angles[1] / 13.5
+        inner_angle_pwm = gimbal_angles[1] / 43
         return outer_angle_pwm, inner_angle_pwm
     
     def get_thrust_pwm(self, thrust_values):
