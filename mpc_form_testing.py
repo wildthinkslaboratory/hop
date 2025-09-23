@@ -23,13 +23,13 @@ mc = Constants()
 # If you just want to run a single test you can loop over this list
 test_list = [
   {
-    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "x0": [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
     "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [0.0, -0.2, -1],
+    "animation_forward": [-1, -0.1, -0.2],
     "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.8,
-    "num_iterations": 200,
-    "title": "hover"
+    "animation_frame_rate": 0.4,
+    "num_iterations": 250,
+    "title": "y115dx"
   },
 ]
 
@@ -150,7 +150,7 @@ test_list_full_paper = [
   },
 ]
 
-for test in test_list_full_paper:
+for test in test_list:
 
     # set up the test case
     num_iterations = test['num_iterations']

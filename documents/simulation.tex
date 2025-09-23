@@ -72,8 +72,8 @@
 \newcommand{\casadi}{CasADi}
 \newcommand{\dompc}{{\bf do-mpc}}
 
-\title{Comparison of Direct Methods for NMPC Applied to a Thrust Vector Drone}
-\author{Izzy Mones and Heidi Dixon}
+\title{Comparison of Direct Methods for NMPC Applied to a Thrust-Vector-Controlled Drone}
+\author{Isidore Mones and Heidi Dixon}
 %\date{}
 
 \begin{document}
@@ -809,10 +809,10 @@ All of the methods provide good quality solutions with state values that behaved
 			\hline
 			initial state & MS & OC & CPS \\
 			\hline
-			$45^{\circ}$ rotation about $z$ axis &      0.113 & 0.015 &   0.008 \\ 
-			$x = 1$, $z=1$, $v_x = 0.5$  &        0.102 & 0.012          &  0.011 \\ 
-			$y = 1$,$15^{\circ}$ rotation about $x$ axis &      0.124 & 0.015          & 0.014 \\ 
-				initial state equal to goal state &            0.115  & 0.016    & 0.009 \\ 
+			$45^{\circ}$ rotation about $z$ axis &      0.112 & 0.015 &   0.008 \\ 
+			$x = 1$, $z=1$, $v_x = 0.5$  &        0.101 & 0.012          &  0.012 \\ 
+			$y = 1$,$15^{\circ}$ rotation about $x$ axis &      0.12 & 0.015          & 0.014 \\ 
+				initial state equal to goal state &            0.114  & 0.016    & 0.009 \\ 
 			\hline
 		\end{tabular}
 		\caption{Comparison of average CPU time in seconds for solution of NLP for a series of  simulations on the Raspberry Pi 5. Methods include  multiple shooter (MS), orthogonal collocation (OC), and Chebyshev pseudospectral method (CPS). }
