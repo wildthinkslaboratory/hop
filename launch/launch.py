@@ -9,10 +9,10 @@ def generate_launch_description():
             name='nmpc_controller'
         )
         ,
-            Node(
-            package='hop',
-            executable='test_servos',
-            name='test_servos'
-        )
+        # Node(
+        #     package='hop',
+        #     executable='test_servos',
+        #     name='test_servos'
+        # )
     ])
     

@@ -23,6 +23,7 @@ setup(
         'console_scripts': [
             'nmpc_controller = hop.nmpc_controller:main',
             'test_servos = hop.test_servos:main',
+            'test_motors = hop.test_motors:main',
         ],
     },
 )

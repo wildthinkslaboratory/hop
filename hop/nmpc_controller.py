@@ -40,7 +40,7 @@ class NMPC(OffBoardNode):
         self.control_translator()   
 
         # for attitude testing set both thrusters to 0.1 pwm
-        self.pwm_motors =  [0.1, 0.1]
+        self.pwm_motors =  [0.5, 0.5]
 
         super().timer_callback()
     
