@@ -143,7 +143,7 @@
 	\cos{\theta_1}\cos{\theta_2}
 \end{bmatrix}
 \]
-$\vec{M_z}$ is the moment about the body z axis due to differential thrust. 
+$\vec{M_z}$ is the moment about the body $z$ axis due to differential thrust. 
         \[
 	\vec{M_z} =
         \begin{bmatrix}
@@ -482,11 +482,11 @@ Visual inspection of all the graphs showed that  accuracy measures less then $50
 
 
 \subsection*{Chebyshev Pseudospectral Method}
-Multiple shooting is useful for its robustness to discontinuities and nonlinearity and its conceptual simplicity. However, thrust-vectoring dynamics are smooth and continuous, so many of the benefits of multiple shooting are unnecessary. Additionally, multiple shooting introduces a much larger NLP because it solves for the state and control variables at every point in the control horizon. By contrast, Chebyshev Pseudospectral Collocation is a global method that represents the trajectory of each state with a single interpolating polynomial of degree $N$ over the entire horizon, defined by its values at a set of $N+1$ nodes. It achieves spectral accuracy, with error decreasing exponentially as the number of nodes increases, while requiring far fewer decision variables than multiple shooting. For $N=6$ there are seven nodes and $7*13+7*4=119$ decision variables per time step. The dynamics are enforced by constraining the derivative of the interpolant at each node to the dynamic equations. Chebyshev–Gauss–Lobatto nodes are used to cluster more of the nodes towards the beginning and end of the horizon, mitigating the Runge Phenomenon, where polynomial interpolation develops large oscillations near the endpoints. The cosine distribution ensures accuracy and stability:
+Multiple shooting is useful for its robustness to discontinuities and nonlinearity and its conceptual simplicity. However, thrust-vectoring dynamics are smooth and continuous, so many of the benefits of multiple shooting are unnecessary. Additionally, multiple shooting introduces a much larger NLP because it solves for the state and control variables at every point in the control horizon. By contrast, Chebyshev pseudospectral collocation is a global method that represents the trajectory of each state with a single interpolating polynomial of degree $N$ over the entire horizon, defined by its values at a set of $N+1$ nodes. It achieves spectral accuracy, with error decreasing exponentially as the number of nodes increases, while requiring far fewer decision variables than multiple shooting. The dynamics are enforced by constraining the derivative of the interpolant at each node to the dynamic equations. Chebyshev–Gauss–Lobatto nodes are used to cluster more of the nodes towards the beginning and end of the horizon, mitigating the Runge Phenomenon, where polynomial interpolation develops large oscillations near the endpoints. The cosine distribution ensures accuracy and stability. Nodes $\tau_j$ are defined as
 	\[
-        \tau_j = \cos{(\frac{j\pi}{N})},\qquad j = 0,1,...,N
+        \tau_j = \cos{\Big(\frac{j\pi}{N}\Big)},\qquad j = 0,1,...,N
         \]
- These node values are defined from 1 to -1 instead of from time 0 to the end of the horizon. To determine the horizon time for a given tau a linear mapping is used:
+ These node values are defined from 1 to -1 instead of on the time horizon $[t_0 , t_f]$. To determine the horizon time for a given $\tau$ a linear mapping is used:
          \[
         t(\tau) = \frac{t_f-t_0}{2}\,\tau + \frac{t_f+t_0}{2}, 
         \qquad 
@@ -500,16 +500,16 @@ At each time step the dynamics are checked with:
         \frac{dx}{d\tau}(\tau_j) \;\approx\; \sum_{j=0}^N D_{ij}\,x(\tau_j), 
         \qquad i=0,\dots,N.
         \]
-Using the chain rule the $\tau$ and time derivatives can be related allowing the node differentiation matrix to be checked against the system dynamics $f(x_i,u_i)$.
+where $D_{ij}$ is the Chebyshev differentiation matrix that will be defined below. Using the chain rule the $\tau$ and time derivatives can be related allowing the node differentiation matrix to be checked against the system dynamics $f(x(t), u(t))$.
         \[
        \dot{x}(t_j)= \frac{2}{t_f-t_0}\sum_{j=0}^N D_{ij}\,x(\tau_j), 
         \]
         \[
-        \sum_{j=0}^N D_{ij}\,x_j 
-        = \frac{t_f-t_0}{2}\, f(x_i,u_i), 
+        \sum_{j=0}^N D_{ij}\,x(\tau_j)
+        = \frac{t_f-t_0}{2}\, f(x(t),u(t)), 
         \qquad i=1,\dots,N-1.
         \]
-Where D is a Chebyshev Differentiation Matrix defined by:
+Where $D$ is the Chebyshev differentiation matrix  defined by:
 	\[
        D_{N_{00}}=\frac{2N^2+1}{6}
         \]
@@ -542,8 +542,7 @@ For $N=6$ the differentiation matrix is:
         -\frac{1}{2} & 8-4\sqrt{3} & -\frac{4}{3} & 2 & -4 & 8+4\sqrt{3} &  -\frac{73}{6}
         \end{bmatrix}
         \]
-        
-        The chebyshev cost function is:
+        The Chebyshev cost function is:
         	\[
 	J=\frac{t_f-t_0}{2}\int_{t_0}^{t_f} \ell(x(t),u(t),t)\,dt \;+\; \phi(x(t_f))
         \]
@@ -580,12 +579,14 @@ For $N=6$ the differentiation matrix is:
         \end{cases}
         \]
 
-warm starts.
-Need to summarize our choices.  Spectral order, time horizon.
-
+%Why we chose this.
+%citations
+%warm starts. Thrust and gimbal constraints.
+%  Spectral order, time horizon.
+%For $N=6$ there are seven nodes and $7*13+7*4=119$ decision variables per time step. 
 \section*{Comparison of Methods}
 
-To compare our different formulations for the NLP problem, we ran a series of simulations each with the drone beginning in a unique and perturbed starting state. In all cases, the drone goal state was to be vertically balanced and motionless at the point $(x,y,z) = (0, 0, 0)$ in three dimensional space. We initially ran a set of seven different simulations. The results for all the simulations were similar in both quality of solutions and timing results, so we present only four of those simulations here.  For each simulation, we computed the average time required to solve the NLP problem at each iteration. The quality of the solutions produced by each method was assessed by comparing the state and control graphs through time. 
+To compare our different formulations for the NLP problem, we ran a series of simulations each with the drone beginning in a unique and perturbed starting state. In all cases, the drone goal state was to be vertically balanced and motionless at the point $(x,y,z) = (0, 0, 0)$ in three dimensional space. All experiements were run on a Macbook Pro  3.49GHz Apple M2 chip with 8GB RAM. We initially ran a set of seven different simulations. The results for all the simulations were similar in both quality of solutions and timing results, so we present only four of those simulations here.  For each simulation, we computed the average time required to solve the NLP problem at each iteration. The quality of the solutions produced by each method was assessed by comparing the state and control graphs through time. 
 
 
 \subsection*{Results}
@@ -797,7 +798,7 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state through time for 
 \end{figure}
 
 
-All of the methods provide good quality solutions with state values that behaved smoothly and converged to the desired goal state.  The control graphs produced by Chebyshev's pseudospectral method were somewhat irregular and produced chatter when it attempted to hover. You can see from the timing graph in Figure (\ref{fig:timehover}) that time required to solve the NLP problem for the Chebyshev pseudospectral method spikes up during the hover simulation suggesting that the NLP solver was having difficulty converging to an optimal solution. Real world experiments on the drone will be needed to determine if solutions with these irregularities will negatively affect performance in practice. The orthogonal collocation method used by {\dompc} produced the most reliably well behaved graphs.  
+All of the methods provide good quality solutions with state values that behaved smoothly and converged to the desired goal state.  The control graphs produced by Chebyshev's pseudospectral method were somewhat irregular and produced chatter when it attempted to hover. You can see from the timing graph in Figure (\ref{fig:timehover}) that time required to solve the NLP problem for the Chebyshev pseudospectral method spikes up during the hover simulation suggesting that the NLP solver was having difficulty converging to an optimal solution. It's possible that the Chebyshev pseudospectral formulation could be improved and the chatter removed, but more research is needed. Real world experiments on the drone will be needed to determine if solutions with these irregularities will negatively affect performance in practice. The orthogonal collocation method used by {\dompc} produced the most reliably well behaved graphs.  
 
 
 
@@ -808,21 +809,20 @@ All of the methods provide good quality solutions with state values that behaved
 			\hline
 			initial state & MS & OC & CPS \\
 			\hline
-			$45^{\circ}$ rotation about $z$ axis &      0.05 & 0.005 &   0.002 \\ 
-			$x = 1$, $z=1$, $v_x = 0.5$  &        0.045 &0.004          &  0.004 \\ 
-			$y = 1$,$15^{\circ}$ rotation about $x$ axis &      0.054 & 0.004          & 0.004\\ 
-				initial state equal to goal state &            0.049  & 0.005    & 0.004 \\ 
+			$45^{\circ}$ rotation about $z$ axis &      0.113 & 0.015 &   0.008 \\ 
+			$x = 1$, $z=1$, $v_x = 0.5$  &        0.102 & 0.012          &  0.011 \\ 
+			$y = 1$,$15^{\circ}$ rotation about $x$ axis &      0.124 & 0.015          & 0.014 \\ 
+				initial state equal to goal state &            0.115  & 0.016    & 0.009 \\ 
 			\hline
 		\end{tabular}
-		\caption{Comparison of average CPU time in seconds for solution of NLP for a series of  simulations. Methods include  multiple shooter (MS), orthogonal collocation (OC), and Chebyshev pseudospectral method (CPS). }
+		\caption{Comparison of average CPU time in seconds for solution of NLP for a series of  simulations on the Raspberry Pi 5. Methods include  multiple shooter (MS), orthogonal collocation (OC), and Chebyshev pseudospectral method (CPS). }
 		\label{table:CPU}
 	\end{center}
 
 \end{table}
 
- Our goal is to run our control algorithm at $50$Hz on the Raspberry Pi 5. The CPU speed of the Pi is 2.4GHz while our experiments were run on a machine with a CPU speed of 3.49GHz. To meet our goal of 50Hz on the Pi we need a solution time on the experiment machine of less than $0.014$ seconds. Table (\ref{table:CPU}) summarizes the average CPU time for solution of the NLP problem for each simulation and each method.  
- 
- The run times for multiple shooter are too slow to meet our  $50$Hz target.  Additional changes such as reducing the length of the horizon or relaxing convergence criteria might improve these times somewhat, but they are unlikely to provide the performance needed for this application of NMPC.  Orthogonal collocation and  Chebyshev pseudospectral method both comfortably  meet our $0.014$ solution time. Chebyshev's pseudospectral method was slightly faster but produced graphs that were at times irregular.  We conclude that {\dompc}'s orthogonal collocation method is the best fit for our TVC drone implementation.
+Finally, we ran our simulations on the Raspberry Pi 5 which has a CPU speed of 2.4GHz and 8GB of RAM. To meet our goal of 50Hz on the Pi we need a solution time of less than $0.02$ seconds. Table (\ref{table:CPU}) summarizes the average CPU time for solution of the NLP problem for each simulation and each method.  
+The run times for multiple shooter are too slow to meet our  $50$Hz target.  Additional changes such as reducing the length of the horizon or relaxing convergence criteria might improve these times somewhat, but they are unlikely to provide the performance needed for this application of NMPC.  Orthogonal collocation and  Chebyshev pseudospectral method both comfortably  meet our $0.02$ solution time. Chebyshev's pseudospectral method was slightly faster but produced graphs that were at times irregular.  We conclude that {\dompc}'s orthogonal collocation method is the best fit for our TVC drone implementation.
 
 \section*{Conclusions}
 We implemented three different formulations of the NPL problem for an NMPC algorithm controlling a thrust vector drone and compared their solution quality and relative efficiency. All methods produced good quality solutions but the multiple shooter implementation was too slow to be practical for solving the thrust vector drone NMPC problem on a Raspberry Pi 5. Both Chebyshev pseudospectral and orthogonal collocation produced solutions fast enough for deployment on the Raspberry Pi 5. Chebyshev pseudospectral collocation was the slightly faster than orthogonal collocation, but orthogonal collocation produced smoother more reliable curves making it the best choice for formulating NMPC instances for the thrust vector drone.  Further real-world experiments are required to determine if the solutions produced here will provide good control in practice.
