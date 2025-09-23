@@ -11,7 +11,7 @@ class Constants:
         self.gy = 0
         self.gz = -9.81
         self.m = 1.5
-        self.l = 0.28        
+        self.l = 0.18        
         self.Ixx = 0.06
         self.Iyy = 0.06
         self.Izz = 0.012
