@@ -18,20 +18,12 @@ class TestMotors(OffBoardNode):
             self.pwm_motors[1] += 0.1
             self.get_logger().info('motor pwm ' + str(self.pwm_motors))
 
-            
-        elif self.key == 'j':
-            self.key = ''
-            self.pwm_motors[0] -= 0.1
-            self.pwm_motors[1] -= 0.1
-            self.get_logger().info('motor pwm ' + str(self.pwm_motors))
-
         elif not self.key == '':
+            self.pwm_motors = [0.0, 0.0]
             raise SystemExit
         
         super().timer_callback()
     
-
-
         
 
 def main(args=None):
