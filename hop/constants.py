@@ -64,8 +64,8 @@ class Constants:
         self.xr = ca.vertcat(0.0,0.0,0.0, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0)
 
         self.ipopt_settings = {
-            "ipopt.max_iter": 100,                   # keep small; rely on warm starts
-            "ipopt.tol": 1e-3,                      # relax accuracy
+            "ipopt.max_iter": 100,                   
+            "ipopt.tol": 1e-3,                     
             "ipopt.acceptable_tol": 3e-2,
             'ipopt.print_level': 0,
             'ipopt.sb': 'yes',
@@ -73,6 +73,13 @@ class Constants:
             'ipopt.linear_solver': 'ma27',
             # 'ipopt.max_cpu_time': 0.014,  
         }
+
+        self.waypoints = [
+            np.array([0.0, 0.0, 0.0]),
+            np.array([0.0, 0.0, 0.5]),
+            np.array([0.5, 0.0, 0.5]),
+            np.array([0.5, 0.0, 0.0])
+        ]
 
     # This function makes it possible to print the Constants with print function
     # This way we can add our constants to our runs and simulation logs.

@@ -150,7 +150,7 @@ test_list_full_paper = [
   },
 ]
 
-for test in test_list:
+for test in test_list_full_paper:
 
     # set up the test case
     num_iterations = test['num_iterations']
@@ -188,9 +188,6 @@ for test in test_list:
     dompc_time_data = []
     x0 = x_init
 
-    p_goal = np.array([0.0, 0.0, 1.0])
-    mpc.set_waypoint(p_goal)
-
     # run do-mpc solver
     print('running do-mpc solver')
     for k in range(num_iterations):
@@ -224,7 +221,7 @@ for test in test_list:
 
         start_time = perf_counter()
         # Solve the NMPC for the current state x_current
-        u0 = cheb_nmpc.make_step(x0, u0, np.array([0.0, 0.0, 1.0]))
+        u0 = cheb_nmpc.make_step(x0, u0, np.array([0.0, 0.0, 0.0]))
         step_time = perf_counter() - start_time
 
         # Propagate the system using the discrete dynamics f (Euler forward integration)
@@ -262,9 +259,9 @@ for test in test_list:
     # compute statistics for the timing of the nmpc calls
     mean_time = [round(t,3) for t in [stats.mean(dompc_time_data), stats.mean(cheb_nmpc_time_data), stats.mean(ms_nmpc_time_data)]]
     max_time = [round(t,3) for t in [max(dompc_time_data), max(cheb_nmpc_time_data),  max(ms_nmpc_time_data)]]
-    bad_times = [len([b for b in dompc_time_data if b > 0.014]), 
-                 len([b for b in cheb_nmpc_time_data if b > 0.014]), 
-                 len([b for b in ms_nmpc_time_data if b > 0.014])]
+    bad_times = [len([b for b in dompc_time_data if b > 0.007]), 
+                 len([b for b in cheb_nmpc_time_data if b > 0.007]), 
+                 len([b for b in ms_nmpc_time_data if b > 0.007])]
     
     # print timing results
     print(test['title'])
