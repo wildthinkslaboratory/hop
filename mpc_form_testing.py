@@ -166,8 +166,20 @@ for test in test_list:
     estimator = StateFeedback(model.model)
     sim = Simulator(model.model)
     sim.set_param(t_step = mc.dt)
+
+    # this is annoying but necessary
+    # the model has a parameter for waypoints
+    # it's used in the mpc cost function only
+    # the simulator get's confused if it has undefined parameters
+    # so we give it a dummy function
+    p_template = sim.get_p_template()
+    def dummy(t_now):
+        p_template['p_goal'] = np.array([0.0, 0.0, 0.0])
+        return p_template
+    sim.set_p_fun(dummy)
+
     sim.setup()
-    mpc.set_goal_state(xr)
+    mpc.set_goal_state()
     mpc.set_start_state(x_init)
     sim.x0 = x_init
     estimator.x0 = x_init
@@ -176,13 +188,18 @@ for test in test_list:
     dompc_time_data = []
     x0 = x_init
 
+    p_goal = np.array([0.0, 0.0, 1.0])
+    mpc.set_waypoint(p_goal)
+
     # run do-mpc solver
     print('running do-mpc solver')
     for k in range(num_iterations):
         start_time = perf_counter()
+        # mpc.mpc.set_parameters(p={'p_ref': np.array([0.0, 0.0, 0.0])})
         u0 = mpc.mpc.make_step(x0)
         step_time = perf_counter() - start_time
 
+        
         y_next = sim.make_step(u0)
         x0 = estimator.make_step(y_next)
 
@@ -207,7 +224,7 @@ for test in test_list:
 
         start_time = perf_counter()
         # Solve the NMPC for the current state x_current
-        u0 = cheb_nmpc.make_step(x0, u0)
+        u0 = cheb_nmpc.make_step(x0, u0, np.array([0.0, 0.0, 1.0]))
         step_time = perf_counter() - start_time
 
         # Propagate the system using the discrete dynamics f (Euler forward integration)
@@ -232,7 +249,7 @@ for test in test_list:
 
         start_time = perf_counter()
         # Solve the NMPC for the current state x_current
-        u0 = ms_nmpc.make_step(x0, u0)
+        u0 = ms_nmpc.make_step(x0, u0, np.array([0.0, 0.0, 0.0]))
         step_time = perf_counter() - start_time
 
         # Propagate the system using the discrete dynamics f (Euler forward integration)

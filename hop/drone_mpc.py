@@ -52,17 +52,28 @@ class DroneMPC:
         self.mpc.set_nl_cons('upper_pwm_max', P_upper, ub=thrust_limit)
         self.mpc.set_nl_cons('lower_pwm_max', P_lower, ub=thrust_limit)
 
-        # self.mpc.settings.supress_ipopt_output()
-        
 
 
     def set_start_state(self, x0):
         self.mpc.x0 = x0
         self.mpc.set_initial_guess()
 
-    def set_goal_state(self, x_r):
+    def set_waypoint(self, p_goal):
+        self.p_goal['_p'] = p_goal
+
+    def set_goal_state(self):
 
         x = ca.vertcat(self.model.x['p'], self.model.x['v'], self.model.x['q'], self.model.x['w'])
+
+        self.p_goal = self.mpc.get_p_template(1)
+        self.p_goal['_p'] = np.array([0.0, 0.0, 0.0])
+
+        def p_fun(t_now):
+            return self.p_goal
+
+        self.mpc.set_p_fun(p_fun)
+
+        x_r = ca.vertcat(self.model.p['p_goal'], mc.xr[3:])
         x_error = x - x_r
         x_cost = x_error.T @ mc.Q @ x_error 
         u_goal = ca.DM([0.0, 0.0, mc.hover_thrust, 0.0])
@@ -72,9 +83,7 @@ class DroneMPC:
         self.mpc.set_objective(lterm=cost, mterm=x_cost)
 
         # this is rate change limitations for control
-        # self.mpc.set_rterm(u=np.array([1, 1, 1, 1], dtype=float))
+        self.mpc.set_rterm(u=np.array([0.01, 0.01, 0.01, 0.01], dtype=float))
 
-
-        self.mpc.prepare_nlp()
-        self.mpc.create_nlp()
-
+        print('run mpc setup')
+        self.mpc.setup()

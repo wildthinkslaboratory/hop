@@ -74,7 +74,8 @@ class DroneNMPCMultiShoot:
 
         X0 = ca.SX.sym('X0', self.size_x())            # these are variables representing our initial state
         U0 = ca.SX.sym('U0', self.size_u())
-        P0 = ca.vertcat(X0, U0)
+        p_goal = ca.SX.sym('p_goal', 3)
+        P0 = ca.vertcat(X0, U0, p_goal)
 
         # we make a copy of the state variables for each N+1 time steps
         X = ca.SX.sym('X', self.x.size1(), self.N+1)    
@@ -113,6 +114,9 @@ class DroneNMPCMultiShoot:
 
         cost = 0.0
         u_goal = ca.DM([0.0, 0.0, mc.hover_thrust, 0.0])
+
+        self.x_goal = ca.vertcat(p_goal, self.x_goal[3:])
+
         for k in range(self.N):
             x_k = X[:, k]    # state at time step k
             u_k = U[:, k]  # control at time step k
@@ -192,9 +196,9 @@ class DroneNMPCMultiShoot:
         self.first_iteration = True
 
 
-    def make_step(self, x, u):
+    def make_step(self, x, u, p_goal):
 
-        x = ca.vertcat(x,u)
+        x = ca.vertcat(x,u,p_goal)
         # if it's not the first iteration, use a warm start from previous solution.
         # we shift the trajectory forward by on time step and then just repeat
         # the last timestep twice

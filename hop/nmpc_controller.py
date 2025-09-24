@@ -17,7 +17,7 @@ class NMPC(OffBoardNode):
 
         self.model = DroneModel()
         self.mpc = DroneMPC(mc.dt, self.model.model)
-        self.mpc.set_goal_state(mc.xr)
+        self.mpc.set_goal_state()
         self.mpc.set_start_state(mc.x0)
 
     def timer_callback(self):
