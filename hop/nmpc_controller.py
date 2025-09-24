@@ -17,13 +17,26 @@ class NMPC(OffBoardNode):
 
         self.model = DroneModel()
         self.mpc = DroneMPC(mc.dt, self.model.model)
-        self.mpc.set_goal_state(mc.xr)
+        self.mpc.set_goal_state()
         self.mpc.set_start_state(mc.x0)
+
+        self.waypoint_i = 0
 
     def timer_callback(self):
 
         # quit if someone pressed a key
-        if not self.key == '':
+        if self.key == 'u':
+            self.key = ''
+            self.waypoint_i += 1
+            self.mpc.set_waypoint(mc.waypoints[self.waypoint_i])
+            self.get_logger().info('new waypoint ' + str(mc.waypoints[self.waypoint_i]))
+    
+        elif self.key == 'l':
+            self.key = ''
+            land = np.array([self.state[0], self.state[1], 0.0])
+            self.get_logger().info('landing ' + str(land))
+
+        elif not self.key == '':
             raise SystemExit
 
 

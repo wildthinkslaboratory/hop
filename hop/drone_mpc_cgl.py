@@ -73,7 +73,8 @@ class DroneNMPCwithCGL:
 
         X0 = ca.SX.sym('X0', self.x.size1())            # initial state
         U0 = ca.SX.sym('U0', self.size_u())
-        P0 = ca.vertcat(X0, U0)
+        p_goal = ca.SX.sym('p_goal', 3)
+        P0 = ca.vertcat(X0, U0, p_goal)
 
         X = ca.SX.sym('X', self.x.size1(), self.N+1)    
 
@@ -112,6 +113,7 @@ class DroneNMPCwithCGL:
         # cost function
         cost = 0.0
         u_goal = ca.DM([0.0, 0.0, mc.hover_thrust, 0.0])
+        self.x_goal = ca.vertcat(p_goal, self.x_goal[3:])
         for j in range(self.N + 1):
             x_k = X[:, j]
             u_k = U[:, j]
@@ -170,9 +172,9 @@ class DroneNMPCwithCGL:
         self.first_iteration = True
 
 
-    def make_step(self, x, u):
+    def make_step(self, x, u, p_goal):
 
-        x = ca.vertcat(x,u)
+        x = ca.vertcat(x,u,p_goal)
 
         if self.first_iteration:
             self.first_iteration = False
