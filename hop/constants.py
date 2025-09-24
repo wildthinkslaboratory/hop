@@ -23,9 +23,9 @@ class Constants:
         self.spectral_order = 6
         self.timelimit = 1 # in seconds
 
-        self.a = 0
-        self.b = 2.5
-        self.c = 0.1
+        self.a = 1.327
+        self.b = 0.284
+        self.c = -0.015
         self.d = 0.1
 
         self.outer_gimbal_range = [-20,20]
@@ -76,9 +76,8 @@ class Constants:
 
         self.waypoints = [
             np.array([0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.5]),
-            np.array([0.5, 0.0, 0.5]),
-            np.array([0.5, 0.0, 0.0])
+            np.array([0.0, 0.0, 0.25]),
+            np.array([0.0, 0.0, 0.0])
         ]
 
     # This function makes it possible to print the Constants with print function
