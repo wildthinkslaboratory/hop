@@ -23,16 +23,19 @@ class Constants:
         self.spectral_order = 6
         self.timelimit = 1 # in seconds
 
-        self.a = 1.327
-        self.b = 0.284
-        self.c = -0.015
-        self.d = 0.1
+        self.tcc = 1.6 # thrust curve constant 
+        # these values are based on the 21V data from 
+        # https://drive.google.com/file/d/1KMV0z-SipDZAr_uxRndRSnhmOHLBXNA5/view
+        self.a = 1.327 * self.tcc
+        self.b = 0.284 * self.tcc
+        self.c = -0.015 * self.tcc
+        self.d = 0.1 
 
         self.outer_gimbal_range = [-20,20]
         self.inner_gimbal_range = [-13.5,13.5]
         self.theta_dot_constraint = 6.16
         self.thrust_dot_limit = 20.0  # rate per second
-        self.hover_thrust = 5.67
+        self.hover_thrust = 2.529
 
         self.prop_thrust_constraint = 50.0
         self.diff_thrust_constraint = [-0.8,0.8]
@@ -62,11 +65,12 @@ class Constants:
         self.Q = ca.DM.eye(13)
         self.R = ca.diag([0.03, 0.03, 1, 0.03])
         self.xr = ca.vertcat(0.0,0.0,0.0, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0)
+        self.ur = ca.DM([0.0, 0.0, self.hover_thrust, 0.0])
 
         self.ipopt_settings = {
             "ipopt.max_iter": 100,                   
             "ipopt.tol": 1e-3,                     
-            "ipopt.acceptable_tol": 3e-2,
+            "ipopt.acceptable_tol": 1e-4,
             'ipopt.print_level': 0,
             'ipopt.sb': 'yes',
             'print_time': 0,

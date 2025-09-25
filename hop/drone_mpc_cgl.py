@@ -112,7 +112,6 @@ class DroneNMPCwithCGL:
 
         # cost function
         cost = 0.0
-        u_goal = ca.DM([0.0, 0.0, mc.hover_thrust, 0.0])
         self.x_goal = ca.vertcat(p_goal, self.x_goal[3:])
         for j in range(self.N + 1):
             x_k = X[:, j]
@@ -120,7 +119,7 @@ class DroneNMPCwithCGL:
 
             # cost function
             state_cost = (x_k - self.x_goal).T @ mc.Q @ (x_k - self.x_goal)
-            control_cost = (u_k - u_goal).T @ mc.R @ (u_k - u_goal)
+            control_cost = (u_k - mc.ur).T @ mc.R @ (u_k - mc.ur)
             running_cost = state_cost + control_cost 
             cost = cost + w[j] * running_cost
 
@@ -160,8 +159,9 @@ class DroneNMPCwithCGL:
         x_initial_guess = ca.DM([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
         X_init = np.tile(np.array(x_initial_guess).reshape(-1,1), (1, self.N+1))
 
-        # initial guess for controls is zero
-        U_init = np.zeros((self.size_u(), self.N+1))
+    
+        U_init = np.tile(mc.ur, self.N+1)
+        # U_init = np.zeros((self.size_u(), self.N+1))
 
         # glue this all together to make our initial guess
         self.init_guess = np.concatenate([X_init.reshape(-1, order='F'), U_init.reshape(-1, order='F')])
