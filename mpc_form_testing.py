@@ -19,6 +19,8 @@ from plots import plot_state_for_comparison, plot_control_for_comparison, plot_t
 
 mc = Constants()
 
+print(mc)
+quit()
 
 # If you just want to run a single test you can loop over this list
 test_list = [
@@ -192,7 +194,7 @@ for test in test_list_full_paper:
     print('running do-mpc solver')
     for k in range(num_iterations):
         start_time = perf_counter()
-        # mpc.mpc.set_parameters(p={'p_ref': np.array([0.0, 0.0, 0.0])})
+        # mpc.set_waypoint(np.array([0.0, 0.0, 0.0]))
         u0 = mpc.mpc.make_step(x0)
         step_time = perf_counter() - start_time
 

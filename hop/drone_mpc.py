@@ -83,6 +83,6 @@ class DroneMPC:
         self.mpc.set_objective(lterm=cost, mterm=x_cost)
 
         # this is rate change limitations for control
-        self.mpc.set_rterm(u=np.array([2, 2, 2, 2], dtype=float))
+        # self.mpc.set_rterm(u=np.array([2, 2, 2, 2], dtype=float))
 
         self.mpc.setup()
