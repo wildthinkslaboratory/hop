@@ -12,7 +12,7 @@ import statistics as stats
 from hop.utilities import import_data
 from time import perf_counter
 from hop.multiShooting import DroneNMPCMultiShoot
-from hop.drone_mpc_cgl import DroneNMPCwithCGL
+from hop.chebyshev_ps import DroneNMPCwithCGL
 from animation import RocketAnimation
 import matplotlib.pyplot as plt
 from plots import plot_state_for_comparison, plot_control_for_comparison, plot_time_comparison, plot_state_for_paper, plot_control_for_paper

@@ -1,6 +1,6 @@
+# These are helper functions for the Chebyshev pseudospectral collocation implementation
+
 import numpy as np
-
-
 # Chebyshev-Gauss-Lobatto nodes ordered from [-1,...,0,...,1]
 def chebyshev_points(N):
    return -np.cos(np.pi * np.arange(N+1) / N)
