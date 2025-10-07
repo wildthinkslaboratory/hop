@@ -2,7 +2,7 @@
 # This runs drone simulations, plots results and gives timing summaries
 #
 from hop.drone_model import DroneModel
-from hop.drone_mpc import DroneMPC
+from hop.dompc import DroneMPC
 from hop.constants import Constants
 from do_mpc.simulator import Simulator
 import casadi as ca
@@ -11,8 +11,8 @@ import numpy as np
 import statistics as stats
 from hop.utilities import import_data
 from time import perf_counter
-from hop.drone_mpc_casadi import DroneNMPCMultiShoot
-from hop.drone_mpc_cgl import DroneNMPCwithCGL
+from hop.multiShooting import DroneNMPCMultiShoot
+from hop.chebyshev_ps import DroneNMPCwithCGL
 import matplotlib.pyplot as plt
 from plots import plot_state_for_comparison, plot_control_for_comparison, plot_time_comparison, plot_state_for_paper, plot_control_for_paper
 

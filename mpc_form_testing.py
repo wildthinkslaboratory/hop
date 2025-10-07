@@ -2,7 +2,7 @@
 # This runs drone simulations, plots results and gives timing summaries
 #
 from hop.drone_model import DroneModel
-from hop.drone_mpc import DroneMPC
+from hop.dompc import DroneMPC
 from hop.constants import Constants
 from do_mpc.simulator import Simulator
 import casadi as ca

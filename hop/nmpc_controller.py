@@ -5,7 +5,7 @@ from casadi import sin, cos
 import do_mpc
 
 from hop.drone_model import DroneModel
-from hop.drone_mpc import DroneMPC
+from hop.dompc import DroneMPC
 from hop.offboard_node import OffBoardNode
 from hop.constants import Constants
 mc = Constants()

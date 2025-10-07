@@ -81,7 +81,7 @@ class Constants:
             np.array([0.0, 0.0, 0.0])
         ]
 
-        self.nmpc_rate_constraints = True
+        self.nmpc_rate_constraints = False
 
         # constants for specific NLP formulations
         # --------------------------------------------------------------- 
