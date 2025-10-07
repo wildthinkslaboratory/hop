@@ -147,14 +147,18 @@ class DroneNMPCMultiShoot:
             self.lbg += [-ca.inf]*2
             self.ubg += [0.0]*2
 
+            if mc.nmpc_rate_constraints:
+                if k < self.N-1:
+                    next_u = U[:, k+1]  
+                    g   = ca.vertcat(g, u_k[0] - next_u[0] - mc.theta_dot_constraint)
+                    g   = ca.vertcat(g, u_k[1] - next_u[1] - mc.theta_dot_constraint)
+                    self.lbg += [-ca.inf]*2
+                    self.ubg += [0.0]*2
 
-            # # build up rate of change constraints for servos 
-            # if k < self.N-1:
-            #     next_u = U[:, k+1]  
-            #     g   = ca.vertcat(g, u_k[0] - next_u[0] - mc.theta_dot_constraint)
-            #     g   = ca.vertcat(g, u_k[1] - next_u[1] - mc.theta_dot_constraint)
-            #     self.lbg += [-ca.inf]*2
-            #     self.ubg += [0.0]*2
+                    g   = ca.vertcat(g, u_k[2] - next_u[2] - mc.thrust_dot_limit)
+                    self.lbg += [-ca.inf]
+                    self.ubg += [0.0]
+
 
         x_N = X[:, self.N]             # final state
         e_N = x_N - self.x_goal        # final error

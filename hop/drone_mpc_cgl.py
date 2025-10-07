@@ -136,6 +136,9 @@ class DroneNMPCwithCGL:
             self.lbg += [-ca.inf]*2
             self.ubg += [0.0]*2
 
+            if mc.nmpc_rate_constraints:
+                print('need to add rate constraints for Chebyshev PS')
+
         
         x_N = X[:, self.N]
         e_N = x_N - self.x_goal
@@ -191,9 +194,9 @@ class DroneNMPCwithCGL:
             self.init_guess = np.concatenate([x_pred_flat, u_pred_flat])
             
             # print(self.sol_u)
-            print('warm state', x_pred_flat)
-            print('warm control', u_pred_flat)
-            print()
+            # print('warm state', x_pred_flat)
+            # print('warm control', u_pred_flat)
+            # print()
 
             # x_traj = np.concatenate([self.sol_x[self.size_x():], # start at N and go to end of array
             #                          self.sol_x[self.size_x() * self.N:]]) # add the final entry again
@@ -205,19 +208,19 @@ class DroneNMPCwithCGL:
         sol_opt = sol['x'].full().flatten()
 
         solver_stats = self.solver.stats()
-        print('iterations ', solver_stats['iter_count'])
-        print('solve status ', solver_stats['return_status'])
-        print('success ', solver_stats['success'])
+        # print('iterations ', solver_stats['iter_count'])
+        # print('solve status ', solver_stats['return_status'])
+        # print('success ', solver_stats['success'])
         J_opt = float(sol['f'])
-        print("Optimal objective value:", J_opt)
+        # print("Optimal objective value:", J_opt)
 
         self.sol_x = sol_opt[:self.size_x() * (self.N+1)]
         self.sol_u = sol_opt[self.size_x() * (self.N+1):]
 
-        if self.sol_u[:self.size_u()][2] > 2.6:
-            print('x', self.sol_x)
-            print('u', self.sol_u)
-            quit()
+        # if self.sol_u[:self.size_u()][2] > 2.6:
+        #     print('x', self.sol_x)
+        #     print('u', self.sol_u)
+        #     quit()
         return self.sol_u[:self.size_u()]
 
 

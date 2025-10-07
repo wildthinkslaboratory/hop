@@ -81,6 +81,8 @@ class Constants:
             np.array([0.0, 0.0, 0.0])
         ]
 
+        self.nmpc_rate_constraints = True
+
         # constants for specific NLP formulations
         # --------------------------------------------------------------- 
         # multiple shooter constants
@@ -104,10 +106,10 @@ class Constants:
             'ipopt.sb': 'yes',
             'print_time': 0,
             'ipopt.linear_solver': 'ma27',
-            'ipopt.warm_start_init_point': 'yes',
-            'ipopt.warm_start_bound_push': 1e-6,
-            'ipopt.warm_start_mult_bound_push': 1e-6,
-            'ipopt.mu_init': 1e-3,  
+            # 'ipopt.warm_start_init_point': 'yes',
+            # 'ipopt.warm_start_bound_push': 1e-6,
+            # 'ipopt.warm_start_mult_bound_push': 1e-6,
+            # 'ipopt.mu_init': 1e-3,  
         }
 
 
@@ -156,7 +158,8 @@ class Constants:
         s += f"{'R:':10}  {str(self.R)}\n" 
         s += f"{'xr:':10}  {str(self.xr)}\n"
         s += f"{'ur:':10}  {str(self.ur)}\n"        
-        s += f"{'waypoints:':20}  {str(self.waypoints):15}\n"    
+        s += f"{'waypoints:':20}  {str(self.waypoints):15}\n"   
+        s += f"{'NMPC rate constraints:':20}  {str(self.nmpc_rate_constraints)}\n"  
         s += 'NLP constants: \n'
         s += '-----------------------------------------------\n'
         s += f"{'nmpc horizon:':20}  {str(self.mpc_horizon):15}\n"
