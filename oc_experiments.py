@@ -1,5 +1,9 @@
 #
-# This runs drone simulations, plots results and gives timing summaries
+# This runs experiments on do-mpc's orthogonal collocation method to 
+# determine the optimal number of intervals and the number of collocation points.
+# This should produce two 2D heat maps one for accuracy and one for time
+# with the 2D grid corresponding to combinations of number of collocation points
+# and size of intervals
 #
 from hop.drone_model import DroneModel
 from hop.drone_mpc import DroneMPC
@@ -15,19 +19,6 @@ from matplotlib import colors
 from plots import plot_time_comparison, plot_state_for_paper, plot_control_for_paper
 from hop.utilities import sig_figs
 mc = Constants()
-
-
-# plt.style.use('_mpl-gallery-nogrid')
-# # make data
-# X, Y = np.meshgrid(np.linspace(-3, 3, 16), np.linspace(-3, 3, 16))
-# Z = (1 - X/2 + X**5 + Y**3) * np.exp(-X**2 - Y**2)
-# plt.imshow(Z, cmap='coolwarm', origin='lower') # 'origin' can be 'upper' or 'lower'
-# plt.colorbar(label='Value')
-# plt.title('Custom Heatmap with imshow')
-# plt.xlabel('collocation degree')
-# plt.ylabel('time step')
-# plt.show()
-
 
 
 # If you just want to run a single test you can loop over this list
@@ -64,24 +55,6 @@ test_list_full = [
     "title": "45dz"
   },
   {
-    "x0": [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [0.0, -0.2, -1],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.8,
-    "num_iterations": 400,
-    "title": "z1"
-  },
-  {
-    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "xr": [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [0.0, -0.2, -1],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.8,
-    "num_iterations": 200,
-    "title": "y1"
-  },
-  {
     "x0": [1.0, 0.0, 1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
     "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
     "animation_forward": [1, -0.5, -1],
@@ -99,35 +72,16 @@ test_list_full = [
     "num_iterations": 250,
     "title": "y115dx"
   },
-  {
-    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
-    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [-1, -0.1, -0.2],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.4,
-    "num_iterations": 250,
-    "title": "starting 15 deg around x"
-  },
-  {
-    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
-    "xr": [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [-1, -0.1, -0.2],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.4,
-    "num_iterations": 250,
-    "title": "hop in y direction, starting 15 deg around x"
-  }
 ]
 
+collocations = [1, 2, 3, 4, 5]                        # number of collocation points
+timesteps = [0.02, 0.04, 0.08, 0.2, 0.25, 0.5, 0.8]   # size of the time intervals (within a 2 second horizon)
 
-collocations = [1, 2]
-# collocations = [1, 2, 3, 4, 5]
-timesteps = [0.02, 0.25 ]
-# timesteps = [0.02, 0.04, 0.08, 0.2, 0.25, 0.5, 0.8]
-times = np.zeros((len(collocations),len(timesteps)))
-accuracy = np.zeros((len(collocations),len(timesteps)))
+times = np.zeros((len(collocations),len(timesteps)))     # we measure the average solution time
+accuracy = np.zeros((len(collocations),len(timesteps)))  # we measure the accuracy
 
 for test in test_list:
+    
     # set up the test case
     num_iterations = test['num_iterations']
     x_init = ca.DM(test['x0'])
@@ -135,6 +89,7 @@ for test in test_list:
     tspan = np.arange(0,num_iterations* mc.dt,mc.dt)
 
     # run fine grained solver for a reference trajectory
+    # the accuracy of other runs are assessed relative to this trajectory
     model = DroneModel()
     mpc = DroneMPC(mc.dt, model.model)
 
@@ -145,15 +100,26 @@ for test in test_list:
     estimator = StateFeedback(model.model)
     sim = Simulator(model.model)
     sim.set_param(t_step = mc.dt)
+
+    # this is annoying but necessary
+    # the model has a parameter for waypoints
+    # it's used in the mpc cost function only
+    # the simulator get's confused if it has undefined parameters
+    # so we give it a dummy function
+    p_template = sim.get_p_template()
+    def dummy(t_now):
+        p_template['p_goal'] = np.array([0.0, 0.0, 0.0])
+        return p_template
+    sim.set_p_fun(dummy)
+
     sim.setup()
-    mpc.set_goal_state(xr)
+    mpc.set_goal_state()
     mpc.set_start_state(x_init)
     sim.x0 = x_init
     estimator.x0 = x_init
     reference_data = np.empty([num_iterations,13])
     x0 = x_init
 
-    # run do-mpc solver
     print('running reference do-mpc solver')
     for k in range(num_iterations):
         start_time = perf_counter()
@@ -165,7 +131,9 @@ for test in test_list:
         reference_data[k] = np.reshape(x0, (13,))
 
                 
-
+    # These are our experimental runs 
+    # loop over the number of collocation and 
+    # size of the time intervals
     for c in collocations:
         for n,tstep in enumerate(timesteps):
             n_horizon = int(2.0 / tstep)
@@ -182,8 +150,9 @@ for test in test_list:
             estimator = StateFeedback(model.model)
             sim = Simulator(model.model)
             sim.set_param(t_step = mc.dt)
+            sim.set_p_fun(dummy)
             sim.setup()
-            mpc.set_goal_state(xr)
+            mpc.set_goal_state()
             mpc.set_start_state(x_init)
             sim.x0 = x_init
             estimator.x0 = x_init
@@ -207,14 +176,12 @@ for test in test_list:
                 dompc_time_data.append(step_time)
                 
 
-
             # compute the accuracy metric
             state_error = 0
             for i in range(num_iterations):
                 error = reference_data[i] - dompc_state_data[i]
                 state_error += error.T @ error
 
-            # round(x, -int(floor(log10(abs(x)))))
             accuracy[c-1][n] = sig_figs(state_error, 2)
 
             # compute statistics for the timing of the nmpc calls
@@ -223,15 +190,18 @@ for test in test_list:
             times[c-1][n] = mean_time
             print(c, tstep, state_error, mean_time)
 
+            
             # print timing results
             # print(test['title'])
             # print('mean: ', mean_time, ' max: ', max_time)
 
+            # uncomment if you want to see plots of the trajectories
+            plot_state_for_paper(tspan, dompc_state_data, test["title"], 1)
+            plot_control_for_paper(tspan, dompc_control_data, test["title"], 2)
+            plt.show()
 
-            # plot_state_for_paper(tspan, dompc_state_data, test["title"], 1)
-            # plot_control_for_paper(tspan, dompc_control_data, test["title"], 2)
-            # plt.show()
 
+    # here print out our results to std out
     header = '    '
     for t in timesteps:
         header = header + str(t).rjust(8)
@@ -246,10 +216,10 @@ for test in test_list:
     c_labels = [str(c) for c in collocations]
     t_labels = [str(t) for t in timesteps]
 
-
     print(accuracy)
 
-    plt.figure(1)
+    # create a heat plot 
+    # plt.figure(1)
     fig, ax = plt.subplots()
     fig.set_figheight(8)
     im = ax.imshow(times, norm=colors.LogNorm(vmin=times.min(), vmax=times.max()), cmap='viridis')

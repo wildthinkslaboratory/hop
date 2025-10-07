@@ -52,6 +52,49 @@ def weights(N):
     return w
 
 
+def cheb_nodes_weights(n, kind="second"):
+    """
+    Chebyshev nodes and barycentric weights.
+    kind="second"  -> Chebyshev–Gauss–Lobatto: x_j = cos(pi*j/n), j=0..n  (n+1 nodes, includes ±1)
+    kind="first"   -> Chebyshev–Gauss (roots): x_j = cos(pi*(j+0.5)/n), j=0..n-1  (n nodes, no endpoints)
+    Returns nodes in ascending order (-1..1) and matching weights.
+    """
+    if kind == "second":
+        j = np.arange(n + 1)
+        x = np.cos(np.pi * j / n)             # 1 .. -1
+        w = np.ones(n + 1)
+        w[0] = w[-1] = 0.5
+        w *= (-1.0) ** j
+    elif kind == "first":
+        j = np.arange(n)
+        x = np.cos(np.pi * (j + 0.5) / n)     # no endpoints
+        w = (-1.0) ** j
+    else:
+        raise ValueError("kind must be 'second' or 'first'")
+    # return in ascending order (-1 to 1)
+    return x[::-1].copy(), w[::-1].copy()
+
+
+
+def barycentric_resample_matrix(tau, w, eps, tol=1e-14, clip=False):
+    
+    x_shift = tau + eps 
+    if clip:
+        x_shift = np.clip(x_shift, -1.0, 1.0)
+
+    m = tau.size
+    S = np.zeros((m, m))
+    for i in range(m):
+        x = x_shift[i]
+        # exact hit -> unit row (avoid division by zero)
+        j_eq = np.where(np.abs(x - tau) < tol)[0]
+        if j_eq.size:
+            S[i, j_eq[0]] = 1.0
+            continue
+        denom = w / (x - tau)
+        S[i, :] = denom / np.sum(denom)
+    return S
+
 
 
 

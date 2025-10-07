@@ -2,7 +2,7 @@ import casadi as ca
 from casadi import sin, cos
 import numpy as np
 
-from hop.chebyshev import chebyshev_D, weights
+from hop.chebyshev import chebyshev_D, weights, cheb_nodes_weights, barycentric_resample_matrix
 
 from hop.constants import Constants
 mc = Constants()
@@ -152,9 +152,7 @@ class DroneNMPCwithCGL:
             'p': P0
         }
 
-        opts = mc.ipopt_settings
-
-        self.solver = ca.nlpsol('solver', 'ipopt', nlp_prob, opts)
+        self.solver = ca.nlpsol('solver', 'ipopt', nlp_prob, mc.ipopt_settings)
         
         x_initial_guess = ca.DM([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
         X_init = np.tile(np.array(x_initial_guess).reshape(-1,1), (1, self.N+1))
@@ -179,16 +177,53 @@ class DroneNMPCwithCGL:
         if self.first_iteration:
             self.first_iteration = False
         else:
-            x_traj = np.concatenate([self.sol_x[self.size_x():], self.sol_x[self.size_x() * self.N:]])
-            u_traj = np.concatenate([self.sol_u[self.size_u():], self.sol_u[self.size_u() * (self.N):]])
-            self.init_guess = np.concatenate([x_traj, u_traj])
+            # construct our initial guess for warm starts
+            # Shift amount for receding horizon:
+            eps = 0.02     # time shift
+            [tau,w] = cheb_nodes_weights(6,'second')
+            S  = barycentric_resample_matrix(tau,w,eps)
+
+            S_kron_x = np.kron(S, np.eye(self.size_x()))    # ((nx*m) × (nx*m))
+            x_pred_flat = S_kron_x @ self.sol_x
+
+            S_kron_u = np.kron(S, np.eye(self.size_u()))    # ((nx*m) × (nx*m))
+            u_pred_flat = S_kron_u @ self.sol_u
+            self.init_guess = np.concatenate([x_pred_flat, u_pred_flat])
+            
+            # print(self.sol_u)
+            print('warm state', x_pred_flat)
+            print('warm control', u_pred_flat)
+            print()
+
+            # x_traj = np.concatenate([self.sol_x[self.size_x():], # start at N and go to end of array
+            #                          self.sol_x[self.size_x() * self.N:]]) # add the final entry again
+            # u_traj = np.concatenate([self.sol_u[self.size_u():], 
+            #                          self.sol_u[self.size_u() * (self.N):]])
+            # self.init_guess = np.concatenate([x_traj, u_traj])
+
         sol = self.solver(x0=self.init_guess, lbx=self.lbx, ubx=self.ubx, lbg=self.lbg, ubg=self.ubg, p=x)
         sol_opt = sol['x'].full().flatten()
+
+        solver_stats = self.solver.stats()
+        print('iterations ', solver_stats['iter_count'])
+        print('solve status ', solver_stats['return_status'])
+        print('success ', solver_stats['success'])
+        J_opt = float(sol['f'])
+        print("Optimal objective value:", J_opt)
 
         self.sol_x = sol_opt[:self.size_x() * (self.N+1)]
         self.sol_u = sol_opt[self.size_x() * (self.N+1):]
 
+        if self.sol_u[:self.size_u()][2] > 2.6:
+            print('x', self.sol_x)
+            print('u', self.sol_u)
+            quit()
         return self.sol_u[:self.size_u()]
+
+
+
+
+
 
 
 

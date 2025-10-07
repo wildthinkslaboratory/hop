@@ -85,5 +85,4 @@ class DroneMPC:
         # this is rate change limitations for control
         self.mpc.set_rterm(u=np.array([2, 2, 2, 2], dtype=float))
 
-        print('run mpc setup')
         self.mpc.setup()

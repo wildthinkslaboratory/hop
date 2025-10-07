@@ -29,8 +29,6 @@ def import_data(filename):
 
 
 from math import floor, log10
-
-
 def sig_figs(x: float, precision: int):
 
     x = float(x)

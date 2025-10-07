@@ -75,7 +75,10 @@ class Constants:
             'ipopt.sb': 'yes',
             'print_time': 0,
             'ipopt.linear_solver': 'ma27',
-            # 'ipopt.max_cpu_time': 0.014,  
+            'ipopt.warm_start_init_point': 'yes',
+            'ipopt.warm_start_bound_push': 1e-6,
+            'ipopt.warm_start_mult_bound_push': 1e-6,
+            'ipopt.mu_init': 1e-3,  
         }
 
         self.waypoints = [
