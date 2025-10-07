@@ -11,7 +11,7 @@ import numpy as np
 import statistics as stats
 from hop.utilities import import_data
 from time import perf_counter
-from hop.drone_mpc_casadi import DroneNMPCMultiShoot
+from hop.multiShooting import DroneNMPCMultiShoot
 from hop.drone_mpc_cgl import DroneNMPCwithCGL
 from animation import RocketAnimation
 import matplotlib.pyplot as plt
