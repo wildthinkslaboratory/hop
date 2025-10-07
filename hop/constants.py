@@ -4,7 +4,6 @@ import casadi as ca
 class Constants:
     def __init__(self):
 
-
         # general constants
         # ---------------------------------------------------------------
         self.timelimit = 1 # time limit for a flight in seconds 
@@ -91,10 +90,9 @@ class Constants:
         self.spectral_order = 6
 
         # do-mpc constants
-
-        # self.mpc.settings.t_step = 0.25    # the length of a finite element ?
-        # self.mpc.settings.n_horizon = 8 
-        # self.mpc.settings.collocation_deg = 2  # the degree of polynomial and number of quadrature points per time step
+        self.finite_interval_size = 0.25
+        self.number_intervals = 8
+        self.collocation_degree = 2
 
         # IPOPT settings
         # --------------------------------------------------------------- 
@@ -161,8 +159,11 @@ class Constants:
         s += f"{'waypoints:':20}  {str(self.waypoints):15}\n"    
         s += 'NLP constants: \n'
         s += '-----------------------------------------------\n'
-        s += f"{'mpc_horizon:':20}  {str(self.mpc_horizon):15}\n"
-        s += f"{'spectral_order:':20}  {str(self.spectral_order):15}\n"
+        s += f"{'nmpc horizon:':20}  {str(self.mpc_horizon):15}\n"
+        s += f"{'spectral order:':20}  {str(self.spectral_order):15}\n"
+        s += f"{'size of intervals:':20}  {str(self.finite_interval_size):15}\n"
+        s += f"{'num intervals:':20}  {str(self.number_intervals):15}\n"
+        s += f"{'collocation deg:':20}  {str(self.collocation_degree):15}\n"
         s += 'IPOPT settings: \n'
         s += '-----------------------------------------------\n'
         s += str(self.ipopt_settings)

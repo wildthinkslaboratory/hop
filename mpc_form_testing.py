@@ -19,9 +19,6 @@ from plots import plot_state_for_comparison, plot_control_for_comparison, plot_t
 
 mc = Constants()
 
-print(mc)
-quit()
-
 # If you just want to run a single test you can loop over this list
 test_list = [
   {
