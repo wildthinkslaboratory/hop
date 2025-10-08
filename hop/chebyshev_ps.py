@@ -7,7 +7,7 @@ from hop.chebyshev import chebyshev_D, weights, cheb_nodes_weights, barycentric_
 from hop.constants import Constants
 mc = Constants()
 
-class DroneNMPCwithCGL:
+class DroneNMPCwithCPS:
     def __init__(self):
 
         self.T = mc.mpc_horizon * mc.dt
