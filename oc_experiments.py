@@ -6,7 +6,7 @@
 # and size of intervals
 #
 from hop.drone_model import DroneModel
-from hop.dompc import DroneMPC
+from hop.dompc import DroneNMPCdompc
 from hop.constants import Constants
 from do_mpc.simulator import Simulator
 import casadi as ca
@@ -34,46 +34,6 @@ test_list = [
   }
 ]
 
-# Here is the full set of tests if you want to run all the simulations
-test_list_full = [
-  {
-    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [0.0, -0.2, -1],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.8,
-    "num_iterations": 200,
-    "title": "hover"
-  },
-  {
-    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.383, 0.924, 0.0, 0.0, 0.0],
-    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [-0.2, -0.5, 0.2],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.8,
-    "num_iterations": 500,
-    "title": "45dz"
-  },
-  {
-    "x0": [1.0, 0.0, 1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [1, -0.5, -1],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.4,
-    "num_iterations": 200,
-    "title": "x1z1vx"
-  },
-  {
-    "x0": [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
-    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [-1, -0.1, -0.2],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.4,
-    "num_iterations": 250,
-    "title": "y115dx"
-  },
-]
-
 collocations = [1, 2, 3, 4, 5]                        # number of collocation points
 timesteps = [0.02, 0.04, 0.08, 0.2, 0.25, 0.5, 0.8]   # size of the time intervals (within a 2 second horizon)
 
@@ -91,7 +51,7 @@ for test in test_list:
     # run fine grained solver for a reference trajectory
     # the accuracy of other runs are assessed relative to this trajectory
     model = DroneModel()
-    mpc = DroneMPC(mc.dt, model.model)
+    mpc = DroneNMPCdompc(mc.dt, model.model)
 
     mpc.mpc.settings.t_step = 0.02
     mpc.mpc.settings.n_horizon = 100
@@ -113,7 +73,7 @@ for test in test_list:
     sim.set_p_fun(dummy)
 
     sim.setup()
-    mpc.set_goal_state()
+    mpc.setup_cost()
     mpc.set_start_state(x_init)
     sim.x0 = x_init
     estimator.x0 = x_init
@@ -141,7 +101,7 @@ for test in test_list:
             # first we set up the do-mpc solver
             # it uses orthagonal collocation
             model = DroneModel()
-            mpc = DroneMPC(mc.dt, model.model)
+            mpc = DroneNMPCdompc(mc.dt, model.model)
 
             mpc.mpc.settings.t_step = tstep
             mpc.mpc.settings.n_horizon = n_horizon
@@ -152,7 +112,7 @@ for test in test_list:
             sim.set_param(t_step = mc.dt)
             sim.set_p_fun(dummy)
             sim.setup()
-            mpc.set_goal_state()
+            mpc.setup_cost()
             mpc.set_start_state(x_init)
             sim.x0 = x_init
             estimator.x0 = x_init
@@ -195,10 +155,10 @@ for test in test_list:
             # print(test['title'])
             # print('mean: ', mean_time, ' max: ', max_time)
 
-            # uncomment if you want to see plots of the trajectories
-            plot_state_for_paper(tspan, dompc_state_data, test["title"], 1)
-            plot_control_for_paper(tspan, dompc_control_data, test["title"], 2)
-            plt.show()
+            # # uncomment if you want to see plots of the trajectories
+            # plot_state_for_paper(tspan, dompc_state_data, test["title"], 1)
+            # plot_control_for_paper(tspan, dompc_control_data, test["title"], 2)
+            # plt.show()
 
 
     # here print out our results to std out

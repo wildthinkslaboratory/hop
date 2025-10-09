@@ -6,7 +6,7 @@ from hop.constants import Constants
 
 mc = Constants()
 
-class DroneMPC:
+class DroneNMPCdompc:
     def __init__(self, dt, model):
         self.dt = dt
         self.model = model

@@ -2,7 +2,7 @@
 # This runs drone simulations, plots results and gives timing summaries
 #
 from hop.drone_model import DroneModel
-from hop.dompc import DroneMPC
+from hop.dompc import DroneNMPCdompc
 from hop.constants import Constants
 from do_mpc.simulator import Simulator
 import casadi as ca
@@ -35,45 +35,7 @@ single_test = [
 
 
 # Here is the full set of tests if you want to run all the simulations
-test_list_for_paper = [
-  {
-    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [0.0, -0.2, -1],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.8,
-    "num_iterations": 200,
-    "title": "hover"
-  },
-  {
-    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.383, 0.924, 0.0, 0.0, 0.0],
-    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [-0.2, -0.5, 0.2],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.8,
-    "num_iterations": 500,
-    "title": "45dz"
-  },
-  {
-    "x0": [1.0, 0.0, 1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [1, -0.5, -1],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.4,
-    "num_iterations": 200,
-    "title": "x1z1vx"
-  },
-  {
-    "x0": [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
-    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [-1, -0.1, -0.2],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.4,
-    "num_iterations": 250,
-    "title": "y115dx"
-  },
-]
-
+test_list_for_paper = import_data('nmpc_test_cases.json')
 
 # which nlp formulations to run
 # oc - orthogonal collocation by dompc
@@ -102,7 +64,7 @@ for test in test_list_for_paper:
       # first we set up the do-mpc solver
       # it uses orthagonal collocation
       model = DroneModel()
-      mpc = DroneMPC(mc.dt, model.model)
+      mpc = DroneNMPCdompc(mc.dt, model.model)
       estimator = StateFeedback(model.model)
       sim = Simulator(model.model)
       sim.set_param(t_step = mc.dt)
