@@ -15,7 +15,7 @@ from hop.multiShooting import DroneNMPCMultiShoot
 from hop.chebyshev_ps import DroneNMPCwithCPS
 from animation import RocketAnimation
 import matplotlib.pyplot as plt
-from plots import plot_time_comparison, plot_state_for_paper, plot_control_for_paper
+from plots import plot_comparison, plot_state_for_paper, plot_control_for_paper
 
 mc = Constants()
 
@@ -55,10 +55,17 @@ for test in test_list_for_paper:
     state_data = {}
     control_data = {}
     time_data = {}
+    stats_data = {}
+    cost_data = {}
+    
+   
+
     for nlp in nlps_to_run:
       state_data[nlp] = np.empty([num_iterations,13])
       control_data[nlp] = np.empty([num_iterations,4])
       time_data[nlp] = []
+      cost_data[nlp] = []
+      stats_data[nlp] = 0
 
     if 'oc' in nlps_to_run:
       # first we set up the do-mpc solver
@@ -127,6 +134,9 @@ for test in test_list_for_paper:
           state_data['cps'][k] = np.reshape(x0, (13,))
           control_data['cps'][k] = np.reshape(u0, (4,))
           time_data['cps'].append(step_time)
+          cost_data['cps'].append(cheb_nmpc.solver_stats['cost'])
+          if not cheb_nmpc.solver_stats['status'] == 'Solve_Succeeded':
+            state_data['cps'][0] += 1
 
     if 'ms' in nlps_to_run:
       # run the multiple shooter nmpc
@@ -154,6 +164,7 @@ for test in test_list_for_paper:
     # compute statistics for the timing of the nmpc calls
     mean_time = [round(stats.mean(time_data[nlp]),3) for nlp in nlps_to_run]
     max_time = [round(max(time_data[nlp]),3) for nlp in nlps_to_run]
+    bad_its = [stats_data[nlp] for nlp in nlps_to_run]
 
     # print timing results
     print(test['title'])
@@ -161,7 +172,7 @@ for test in test_list_for_paper:
     print("-----------------------------------------------------------------------------------------")
     print("mean      {: >20} {: >20} {: >20}".format(*mean_time))
     print("max       {: >20} {: >20} {: >20}".format(*max_time))
- 
+    print("fails       {: >20} {: >20} {: >20}".format(*bad_its))
 
     for i, nlp in enumerate(nlps_to_run):
       plot_state_for_paper(tspan, state_data[nlp], test["title"], i+1)
@@ -170,6 +181,9 @@ for test in test_list_for_paper:
     for i, nlp in enumerate(nlps_to_run):
       plot_control_for_paper(tspan, control_data[nlp], test["title"], i+start_id)
 
-    plot_time_comparison(tspan, time_data, test["title"], 7)
+    plot_comparison(tspan, time_data, test["title"], 2 * len(nlps_to_run)+1, 'CPU Time (sec)')
+    plot_comparison(tspan, cost_data, test["title"], 2 * len(nlps_to_run)+2, 'Cost')
+
     plt.show()
+
 

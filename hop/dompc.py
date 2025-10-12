@@ -12,7 +12,7 @@ class DroneNMPCdompc:
         self.model = model
         self.mpc = do_mpc.controller.MPC(self.model)
         self.mpc.settings.nlpsol_opts = mc.ipopt_settings
-        self.mpc.settings.collocation_ni = 1
+        self.mpc.settings.collocation_ni = mc.collocation_degree
         self.mpc.settings.t_step = mc.finite_interval_size    
         self.mpc.settings.n_horizon = mc.number_intervals
         self.mpc.settings.collocation_deg = mc.collocation_degree  

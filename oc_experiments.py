@@ -34,8 +34,8 @@ test_list = [
   }
 ]
 
-collocations = [1, 2, 3, 4, 5]                        # number of collocation points
-timesteps = [0.02, 0.04, 0.08, 0.2, 0.25, 0.5, 0.8]   # size of the time intervals (within a 2 second horizon)
+collocations = [1, 2]                        # number of collocation points
+timesteps = [0.2, 0.25, 0.3, 0.35, 0.4]   # size of the time intervals (within a 2 second horizon)
 
 times = np.zeros((len(collocations),len(timesteps)))     # we measure the average solution time
 accuracy = np.zeros((len(collocations),len(timesteps)))  # we measure the accuracy
@@ -53,9 +53,9 @@ for test in test_list:
     model = DroneModel()
     mpc = DroneNMPCdompc(mc.dt, model.model)
 
-    mpc.mpc.settings.t_step = 0.02
-    mpc.mpc.settings.n_horizon = 100
-    mpc.mpc.settings.collocation_deg = 5 
+    mpc.mpc.settings.t_step = 0.2
+    mpc.mpc.settings.n_horizon = 10
+    mpc.mpc.settings.collocation_deg = 2 
 
     estimator = StateFeedback(model.model)
     sim = Simulator(model.model)
@@ -155,10 +155,10 @@ for test in test_list:
             # print(test['title'])
             # print('mean: ', mean_time, ' max: ', max_time)
 
-            # # uncomment if you want to see plots of the trajectories
-            # plot_state_for_paper(tspan, dompc_state_data, test["title"], 1)
-            # plot_control_for_paper(tspan, dompc_control_data, test["title"], 2)
-            # plt.show()
+            # uncomment if you want to see plots of the trajectories
+            plot_state_for_paper(tspan, dompc_state_data, test["title"], 1)
+            plot_control_for_paper(tspan, dompc_control_data, test["title"], 2)
+            plt.show()
 
 
     # here print out our results to std out

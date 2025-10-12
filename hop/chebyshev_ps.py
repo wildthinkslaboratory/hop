@@ -73,15 +73,15 @@ class DroneNMPCwithCPS:
 
         X0 = ca.SX.sym('X0', self.x.size1())            # initial state
         U0 = ca.SX.sym('U0', self.size_u())
-        p_goal = ca.SX.sym('p_goal', 3)
-        P0 = ca.vertcat(X0, U0, p_goal)
+        self.p_goal = ca.SX.sym('p_goal', 3)
+        P0 = ca.vertcat(X0, U0, self.p_goal)
 
         X = ca.SX.sym('X', self.x.size1(), self.N+1)    
 
         U = ca.SX.sym('U', self.size_u(), self.N+1)   
 
-        opt_vars = ca.vertcat(ca.reshape(X, -1, 1), ca.reshape(U, -1, 1))
-        num_vars = opt_vars.numel()
+        self.opt_vars = ca.vertcat(ca.reshape(X, -1, 1), ca.reshape(U, -1, 1))
+        num_vars = self.opt_vars.numel()
 
         self.lbx = -np.inf * np.ones(num_vars)
         self.ubx =  np.inf * np.ones(num_vars)
@@ -111,8 +111,8 @@ class DroneNMPCwithCPS:
         self.ubg += [0.0]*int(g.numel())
 
         # cost function
-        cost = 0.0
-        self.x_goal = ca.vertcat(p_goal, self.x_goal[3:])
+        self.cost = 0.0
+        self.x_goal = ca.vertcat(self.p_goal, self.x_goal[3:])
         for j in range(self.N + 1):
             x_k = X[:, j]
             u_k = U[:, j]
@@ -121,7 +121,7 @@ class DroneNMPCwithCPS:
             state_cost = (x_k - self.x_goal).T @ mc.Q @ (x_k - self.x_goal)
             control_cost = (u_k - mc.ur).T @ mc.R @ (u_k - mc.ur)
             running_cost = state_cost + control_cost 
-            cost = cost + w[j] * running_cost
+            self.cost = self.cost + w[j] * running_cost
 
             # dynamics constraints
             f_k = self.f(x_k, u_k)
@@ -143,14 +143,14 @@ class DroneNMPCwithCPS:
         x_N = X[:, self.N]
         e_N = x_N - self.x_goal
         Qf = mc.Q
-        cost = cost + e_N.T @ Qf @ e_N
+        self.cost = self.cost + e_N.T @ Qf @ e_N
 
-        cost = cost * tau_2_time
+        self.cost = self.cost * tau_2_time
 
         # Now we set up the solver and do all of the options and parameters
         nlp_prob = {
-            'f': cost,
-            'x': opt_vars,
+            'f': self.cost,
+            'x': self.opt_vars,
             'g': g,
             'p': P0
         }
@@ -175,56 +175,54 @@ class DroneNMPCwithCPS:
 
     def make_step(self, x, u, p_goal):
 
+        old_control = self.sol_u[:self.size_u()]
+
         x = ca.vertcat(x,u,p_goal)
 
         if self.first_iteration:
             self.first_iteration = False
         else:
-            # construct our initial guess for warm starts
-            # Shift amount for receding horizon:
-            eps = 0.02     # time shift
-            [tau,w] = cheb_nodes_weights(6,'second')
-            S  = barycentric_resample_matrix(tau,w,eps)
+            # # construct our initial guess for warm starts
+            # # Shift amount for receding horizon:
+            # eps = 0.02     # time shift
+            # [tau,w] = cheb_nodes_weights(6,'second')
+            # S  = barycentric_resample_matrix(tau,w,eps)
 
-            S_kron_x = np.kron(S, np.eye(self.size_x()))    # ((nx*m) × (nx*m))
-            x_pred_flat = S_kron_x @ self.sol_x
+            # S_kron_x = np.kron(S, np.eye(self.size_x()))    # ((nx*m) × (nx*m))
+            # x_pred_flat = S_kron_x @ self.sol_x
 
-            S_kron_u = np.kron(S, np.eye(self.size_u()))    # ((nx*m) × (nx*m))
-            u_pred_flat = S_kron_u @ self.sol_u
-            self.init_guess = np.concatenate([x_pred_flat, u_pred_flat])
+            # S_kron_u = np.kron(S, np.eye(self.size_u()))    # ((nx*m) × (nx*m))
+            # u_pred_flat = S_kron_u @ self.sol_u
+            # self.init_guess = np.concatenate([x_pred_flat, u_pred_flat])
             
-            # print(self.sol_u)
-            # print('warm state', x_pred_flat)
-            # print('warm control', u_pred_flat)
-            # print()
+            # # print(self.sol_u)
+            # # print('warm state', x_pred_flat)
+            # # print('warm control', u_pred_flat)
+            # # print()
 
-            # x_traj = np.concatenate([self.sol_x[self.size_x():], # start at N and go to end of array
-            #                          self.sol_x[self.size_x() * self.N:]]) # add the final entry again
-            # u_traj = np.concatenate([self.sol_u[self.size_u():], 
-            #                          self.sol_u[self.size_u() * (self.N):]])
-            # self.init_guess = np.concatenate([x_traj, u_traj])
+            x_traj = np.concatenate([self.sol_x[self.size_x():], # start at N and go to end of array
+                                     self.sol_x[self.size_x() * self.N:]]) # add the final entry again
+            u_traj = np.concatenate([self.sol_u[self.size_u():], 
+                                     self.sol_u[self.size_u() * (self.N):]])
+            self.init_guess = np.concatenate([x_traj, u_traj])
 
         sol = self.solver(x0=self.init_guess, lbx=self.lbx, ubx=self.ubx, lbg=self.lbg, ubg=self.ubg, p=x)
         sol_opt = sol['x'].full().flatten()
-
-        solver_stats = self.solver.stats()
-        # print('iterations ', solver_stats['iter_count'])
-        # print('solve status ', solver_stats['return_status'])
-        # print('success ', solver_stats['success'])
-        J_opt = float(sol['f'])
-        # print("Optimal objective value:", J_opt)
-
         self.sol_x = sol_opt[:self.size_x() * (self.N+1)]
         self.sol_u = sol_opt[self.size_x() * (self.N+1):]
 
-        # if self.sol_u[:self.size_u()][2] > 2.6:
-        #     print('x', self.sol_x)
-        #     print('u', self.sol_u)
-        #     quit()
+
+        f_fun = ca.Function("f_fun", [self.opt_vars, self.p_goal], [self.cost])
+        cost = float(f_fun(sol_opt, p_goal))
+
+        control_diff = np.linalg.norm(old_control - self.sol_u[:self.size_u()])
+        self.solver_stats = {
+            'status': self.solver.stats()['return_status'], 
+            'cost': cost, 
+            'control_diff': control_diff 
+        }
+
         return self.sol_u[:self.size_u()]
-
-
-
 
 
 

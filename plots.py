@@ -280,13 +280,14 @@ def plot_control_for_paper(tspan, control, title, plot_no):
     plt.savefig("control" + title + str(plot_no) + ".pdf", format="pdf", bbox_inches="tight")
 
 markers = { 'oc': '+', 'cps': '.', 'ms':'^'}
-def plot_time_comparison(tspan, data, title, plot_no):
+def plot_comparison(tspan, data, title, plot_no, ylab):
     plt.figure(figsize=(6,3))
     plt.figure(plot_no)
     keys = data.keys()
     for key in keys:
-        plt.plot(tspan, data[key], label=key, marker=markers[key], linestyle='None', markersize=4)
-    plt.ylabel('CPU Time (sec)')
+        if not len(data[key]) == 0:
+            plt.plot(tspan, data[key], label=key, marker=markers[key], linestyle='None', markersize=4)
+    plt.ylabel(ylab)
     plt.legend(loc='lower right')
     plt.savefig("time" + title  + ".pdf", format="pdf", bbox_inches="tight")
 
