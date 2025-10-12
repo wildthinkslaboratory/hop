@@ -21,7 +21,7 @@ class DroneModel:
 
         # this is the parameters for the position. We use it to feed in
         # the goal position for use in the cost function
-        self.model.set_variable(var_type='_p', var_name='p_goal', shape=(3,1))
+        p_goal = self.model.set_variable(var_type='_p', var_name='p_goal', shape=(3,1))
 
 
         I_mat = ca.diag(mc.I_diag)
@@ -58,5 +58,17 @@ class DroneModel:
         self.model.set_rhs('v', (r_b2w @ F_vector) / mc.m + mc.g)
         self.model.set_rhs('q', 0.5 * Q_omega @ q_full)
         self.model.set_rhs('w', ca.solve(I_mat, M_vector - ca.cross(w, angular_momentum)))
+
+        # build the cost function
+
+        x_r = ca.vertcat(p_goal, mc.xr[3:])
+        x_error = state - x_r
+        x_cost = x_error.T @ mc.Q @ x_error 
+        u_goal = ca.DM([0.0, 0.0, mc.hover_thrust, 0.0])
+        u_error = u - u_goal
+        u_cost = u_error.T @ mc.R @ u_error
+        cost = x_cost + u_cost
+        self.model.set_expression(expr_name='x_cost', expr=x_cost)
+        self.model.set_expression(expr_name='cost', expr=cost)
 
         self.model.setup()

@@ -102,13 +102,14 @@ for test in test_list_for_paper:
           u0 = mpc.mpc.make_step(x0)
           step_time = perf_counter() - start_time
 
-          
           y_next = sim.make_step(u0)
           x0 = estimator.make_step(y_next)
 
           state_data['oc'][k] = np.reshape(x0, (13,))
           control_data['oc'][k] = np.reshape(u0, (4,))
           time_data['oc'].append(step_time)
+          if not mpc.mpc.solver_stats['return_status'] == 'Solve_Succeeded':
+            state_data['oc'][0] += 1
           
 
     if 'cps' in nlps_to_run:

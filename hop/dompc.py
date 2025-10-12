@@ -17,6 +17,9 @@ class DroneNMPCdompc:
         self.mpc.settings.n_horizon = mc.number_intervals
         self.mpc.settings.collocation_deg = mc.collocation_degree  
 
+        # only do this if we need the stats
+        self.mpc.settings.store_full_solution = True
+
         # lower bounds on control
         self.mpc.bounds['lower', '_u', 'u'] = [
             mc.outer_gimbal_range[0],
@@ -46,6 +49,7 @@ class DroneNMPCdompc:
         self.mpc.set_nl_cons('lower_pwm_max', P_lower, ub=thrust_limit)
 
 
+
     def set_start_state(self, x0):
         self.mpc.x0 = x0
         self.mpc.set_initial_guess()
@@ -65,19 +69,11 @@ class DroneNMPCdompc:
         def p_fun(t_now):
             return self.p_goal
         self.mpc.set_p_fun(p_fun)
-        
-        # build the cost function
-        x = ca.vertcat(self.model.x['p'], self.model.x['v'], self.model.x['q'], self.model.x['w'])
-        x_r = ca.vertcat(self.model.p['p_goal'], mc.xr[3:])
-        x_error = x - x_r
-        x_cost = x_error.T @ mc.Q @ x_error 
-        u_goal = ca.DM([0.0, 0.0, mc.hover_thrust, 0.0])
-        u_error = self.model.u['u'] - u_goal
-        u_cost = u_error.T @ mc.R @ u_error
-        cost = x_cost + u_cost
-        self.mpc.set_objective(lterm=cost, mterm=x_cost)
+
+        self.mpc.set_objective(lterm=self.model.aux['cost'], mterm=self.model.aux['x_cost'])
 
         if mc.nmpc_rate_constraints:
             self.mpc.set_rterm(u=np.array([1, 1, 1, 1], dtype=float))
 
         self.mpc.setup()
+

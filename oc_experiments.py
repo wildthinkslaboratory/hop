@@ -16,7 +16,7 @@ import statistics as stats
 from time import perf_counter
 import matplotlib.pyplot as plt
 from matplotlib import colors
-from plots import plot_time_comparison, plot_state_for_paper, plot_control_for_paper
+from plots import plot_comparison, plot_state_for_paper, plot_control_for_paper
 from hop.utilities import sig_figs
 mc = Constants()
 
@@ -155,10 +155,10 @@ for test in test_list:
             # print(test['title'])
             # print('mean: ', mean_time, ' max: ', max_time)
 
-            # uncomment if you want to see plots of the trajectories
-            plot_state_for_paper(tspan, dompc_state_data, test["title"], 1)
-            plot_control_for_paper(tspan, dompc_control_data, test["title"], 2)
-            plt.show()
+            # # uncomment if you want to see plots of the trajectories
+            # plot_state_for_paper(tspan, dompc_state_data, test["title"], 1)
+            # plot_control_for_paper(tspan, dompc_control_data, test["title"], 2)
+            # plt.show()
 
 
     # here print out our results to std out
