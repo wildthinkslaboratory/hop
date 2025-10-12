@@ -108,6 +108,7 @@ for test in test_list_for_paper:
           state_data['oc'][k] = np.reshape(x0, (13,))
           control_data['oc'][k] = np.reshape(u0, (4,))
           time_data['oc'].append(step_time)
+          cost_data['oc'].append(mpc.mpc.data['_aux'][-1][2])
           if not mpc.mpc.solver_stats['return_status'] == 'Solve_Succeeded':
             state_data['oc'][0] += 1
           
