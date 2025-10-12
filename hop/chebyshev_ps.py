@@ -170,8 +170,6 @@ class DroneNMPCwithCPS:
 
     def make_step(self, x, u, p_goal):
 
-        old_control = self.sol_u[:self.size_u()]
-
         x = ca.vertcat(x,u,p_goal)
 
         if self.first_iteration:
@@ -199,11 +197,9 @@ class DroneNMPCwithCPS:
         if self.record_nlp_stats:
             f_fun = ca.Function("f_fun", [self.opt_vars, self.p_goal], [self.cost])
             cost = float(f_fun(sol_opt, p_goal))
-            control_diff = np.linalg.norm(old_control - self.sol_u[:self.size_u()])
             self.solver_stats = {
                 'status': self.solver.stats()['return_status'], 
                 'cost': cost, 
-                'control_diff': control_diff 
             }
 
         return self.sol_u[:self.size_u()]

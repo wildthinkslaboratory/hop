@@ -142,6 +142,7 @@ for test in test_list_for_paper:
     if 'ms' in nlps_to_run:
       # run the multiple shooter nmpc
       ms_nmpc = DroneNMPCMultiShoot()
+      ms_nmpc.record_nlp_stats = True
       ms_nmpc.set_goal_state(xr)
       ms_nmpc.set_start_state(x_init)
       x0 = x_init
@@ -160,7 +161,9 @@ for test in test_list_for_paper:
           state_data['ms'][k] = np.reshape(x0, (13,))
           control_data['ms'][k] = np.reshape(u0, (4,))
           time_data['ms'].append(step_time)
-
+          cost_data['ms'].append(ms_nmpc.solver_stats['cost'])
+          if not ms_nmpc.solver_stats['status'] == 'Solve_Succeeded':
+            state_data['ms'][0] += 1
 
     # compute statistics for the timing of the nmpc calls
     mean_time = [round(stats.mean(time_data[nlp]),3) for nlp in nlps_to_run]
