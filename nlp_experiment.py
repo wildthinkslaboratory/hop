@@ -19,7 +19,6 @@ from plots import plot_comparison, plot_state_for_paper, plot_control_for_paper
 
 mc = Constants()
 
-
 # If you just want to run a single test you can loop over this list
 single_test = [
   {
@@ -42,6 +41,7 @@ test_list_for_paper = import_data('nmpc_test_cases.json')
 # cps - Chebyshev pseudospectral collocation
 # ms - multiple shooter with Runge-Kutta
 nlps_to_run = ['oc', 'cps', 'ms']
+
 
 for test in test_list_for_paper:
 
@@ -114,6 +114,7 @@ for test in test_list_for_paper:
     if 'cps' in nlps_to_run:
       # set up the Chebyshev pseudospectral nmpc solver
       cheb_nmpc = DroneNMPCwithCPS()
+      cheb_nmpc.record_nlp_stats = True
       cheb_nmpc.set_goal_state(xr)
       cheb_nmpc.set_start_state(x_init)
       x0 = x_init
@@ -166,13 +167,18 @@ for test in test_list_for_paper:
     max_time = [round(max(time_data[nlp]),3) for nlp in nlps_to_run]
     bad_its = [stats_data[nlp] for nlp in nlps_to_run]
 
+
     # print timing results
     print(test['title'])
-    print("          {: >20} {: >20} {: >20}".format(*nlps_to_run))
+    s = ["{: >20} ".format(nlpf) for nlpf in nlps_to_run]
+    print('          ' + ''.join(s))
     print("-----------------------------------------------------------------------------------------")
-    print("mean      {: >20} {: >20} {: >20}".format(*mean_time))
-    print("max       {: >20} {: >20} {: >20}".format(*max_time))
-    print("fails       {: >20} {: >20} {: >20}".format(*bad_its))
+    s = ["{: >20} ".format(m) for m in mean_time]
+    print('mean      ' + ''.join(s))
+    s = ["{: >20} ".format(m) for m in max_time]
+    print('max       ' + ''.join(s))
+    s = ["{: >20} ".format(b) for b in bad_its]
+    print('fails     ' + ''.join(s))
 
     for i, nlp in enumerate(nlps_to_run):
       plot_state_for_paper(tspan, state_data[nlp], test["title"], i+1)
