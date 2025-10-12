@@ -5,7 +5,7 @@ from casadi import sin, cos
 import do_mpc
 
 from hop.drone_model import DroneModel
-from hop.drone_mpc import DroneMPC
+from hop.dompc import DroneNMPCdompc
 from hop.offboard_node import OffBoardNode
 from hop.constants import Constants
 mc = Constants()
@@ -16,7 +16,7 @@ class NMPC(OffBoardNode):
         super().__init__('nmpc_controller', timelimit=100, dt=mc.dt)
 
         self.model = DroneModel()
-        self.mpc = DroneMPC(mc.dt, self.model.model)
+        self.mpc = DroneNMPCdompc(mc.dt, self.model.model)
         self.mpc.set_goal_state()
         self.mpc.set_start_state(mc.x0)
 

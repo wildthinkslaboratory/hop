@@ -2,17 +2,16 @@ import casadi as ca
 from casadi import sin, cos
 import numpy as np
 
+from hop.chebyshev import chebyshev_D, weights, cheb_nodes_weights, barycentric_resample_matrix
+
 from hop.constants import Constants
 mc = Constants()
 
-class DroneNMPCMultiShoot:
+class DroneNMPCwithCPS:
     def __init__(self):
 
-        self.N = mc.mpc_horizon
-        self.dt = mc.dt
-
-        # self.N = 80
-        # self.dt = mc.dt
+        self.T = mc.mpc_horizon * mc.dt
+        self.N = mc.spectral_order
 
         # First create our state variables and control variables
         p = ca.SX.sym('p', 3, 1)
@@ -72,30 +71,23 @@ class DroneNMPCMultiShoot:
 
         self.x_goal = x_goal
 
-        X0 = ca.SX.sym('X0', self.size_x())            # these are variables representing our initial state
+        X0 = ca.SX.sym('X0', self.x.size1())            # initial state
         U0 = ca.SX.sym('U0', self.size_u())
-        p_goal = ca.SX.sym('p_goal', 3)
-        P0 = ca.vertcat(X0, U0, p_goal)
+        self.p_goal = ca.SX.sym('p_goal', 3)
+        P0 = ca.vertcat(X0, U0, self.p_goal)
 
-        # we make a copy of the state variables for each N+1 time steps
         X = ca.SX.sym('X', self.x.size1(), self.N+1)    
 
-        # we make a copy of the control variables for each N time steps
-        U = ca.SX.sym('U', self.size_u(), self.N)       
+        U = ca.SX.sym('U', self.size_u(), self.N+1)   
 
-        # We make one long list of all the optimization variables
-        # all the state variables preceed all the control variables.
-        opt_vars = ca.vertcat(ca.reshape(X, -1, 1), ca.reshape(U, -1, 1))
-        num_vars = opt_vars.numel()
+        self.opt_vars = ca.vertcat(ca.reshape(X, -1, 1), ca.reshape(U, -1, 1))
+        num_vars = self.opt_vars.numel()
 
-        # now we add upper and lower bounds on the optimization variables
-        # start with just negative infinity to positive infinity for everything
         self.lbx = -np.inf * np.ones(num_vars)
         self.ubx =  np.inf * np.ones(num_vars)
 
-
         n_x_vars = self.size_x() * (self.N+1)
-        # n_u_vars = self.size_u() * (self.N+1)
+        n_u_vars = self.size_u() * (self.N+1)
 
         self.lbx[2: n_x_vars: self.size_x()] = 0     # keep z position above 0
 
@@ -104,119 +96,135 @@ class DroneNMPCMultiShoot:
         self.ubx[n_x_vars:   num_vars: self.size_u()] = mc.outer_gimbal_range[1]     # outer gimbal upper bound
         self.ubx[n_x_vars+1: num_vars: self.size_u()] = mc.inner_gimbal_range[1]     # inner gimbal upper bound
 
+        tau_2_time = (self.T/2)
+        D = chebyshev_D(self.N)
+        D_ca = ca.DM(D)
+        w = weights(self.N)
+
         # g constraints contain an expression that is constrained by an upper and lower bound
         self.lbg = []   # will hold lower bounds for g constraints
         self.ubg = []   # will hold upper bounds for g constraints
-
-        g = X[:, 0] - X0  
+    
+        # equations of motion constraints
+        g = X[:, 0] - X0
         self.lbg += [0.0]*int(g.numel())
         self.ubg += [0.0]*int(g.numel())
 
-        cost = 0.0
+        # cost function
+        self.cost = 0.0
+        self.x_goal = ca.vertcat(self.p_goal, self.x_goal[3:])
+        for j in range(self.N + 1):
+            x_k = X[:, j]
+            u_k = U[:, j]
 
-        self.x_goal = ca.vertcat(p_goal, self.x_goal[3:])
-
-        for k in range(self.N):
-            x_k = X[:, k]    # state at time step k
-            u_k = U[:, k]  # control at time step k
-
-            # here we build up the cost function by summing up the squared
-            # error from the goal state over each time step
-            state_error_cost = (x_k - self.x_goal).T @ mc.Q @ (x_k - self.x_goal)
+            # cost function
+            state_cost = (x_k - self.x_goal).T @ mc.Q @ (x_k - self.x_goal)
             control_cost = (u_k - mc.ur).T @ mc.R @ (u_k - mc.ur)
-            cost = cost + state_error_cost + control_cost
+            running_cost = state_cost + control_cost 
+            self.cost = self.cost + w[j] * running_cost
 
-            # here we create the constraints that require the solution
-            # to obey our system dynamics. We use Runge Kutta integration
-            # and for each time step, we create a constraint that requires
-            # the state at time k+1 to equal the system dynamics applied to the 
-            # the state at time k.
-            next_state = X[:, k+1]
-            k1 = self.f(x_k, u_k)
-            k2 = self.f(x_k + self.dt/2*k1, u_k)
-            k3 = self.f(x_k + self.dt/2*k2, u_k)
-            k4 = self.f(x_k + self.dt * k3, u_k)
-            next_state_RK4 = x_k + (self.dt / 6) * (k1 + 2 * k2 + 2 * k3 + k4)
-            g = ca.vertcat(g, next_state - next_state_RK4)
-            self.lbg += [0.0]*int(next_state.numel())
-            self.ubg += [0.0]*int(next_state.numel())
+            # dynamics constraints
+            f_k = self.f(x_k, u_k)
+            g = ca.vertcat(g, (D_ca[j,:] @ X.T).T - tau_2_time * f_k)
+            self.lbg += [0.0]*int(self.size_x())
+            self.ubg += [0.0]*int(self.size_x())
 
-            # build up the upper thrust limit constraints         
-            g   = ca.vertcat(g, u_k[2] + 0.5*u_k[3] - mc.prop_thrust_constraint)
-            g   = ca.vertcat(g, u_k[2] - 0.5*u_k[3] - mc.prop_thrust_constraint)
+
+            # upper thrust limit constraints         
+            g   = ca.vertcat(g, (u_k[2] + 0.5*u_k[3]) - mc.prop_thrust_constraint)
+            g   = ca.vertcat(g, (u_k[2] - 0.5*u_k[3]) - mc.prop_thrust_constraint)
             self.lbg += [-ca.inf]*2
             self.ubg += [0.0]*2
 
+            if mc.nmpc_rate_constraints:
+                print('need to add rate constraints for Chebyshev PS')
 
-            # # build up rate of change constraints for servos 
-            # if k < self.N-1:
-            #     next_u = U[:, k+1]  
-            #     g   = ca.vertcat(g, u_k[0] - next_u[0] - mc.theta_dot_constraint)
-            #     g   = ca.vertcat(g, u_k[1] - next_u[1] - mc.theta_dot_constraint)
-            #     self.lbg += [-ca.inf]*2
-            #     self.ubg += [0.0]*2
+        
+        x_N = X[:, self.N]
+        e_N = x_N - self.x_goal
+        Qf = mc.Q
+        self.cost = self.cost + e_N.T @ Qf @ e_N
 
-        x_N = X[:, self.N]             # final state
-        e_N = x_N - self.x_goal        # final error
-        Qf  = mc.Q                     # terminal weight matrix (scale Q heavier)
-        cost = cost + e_N.T @ Qf @ e_N
-
+        self.cost = self.cost * tau_2_time
 
         # Now we set up the solver and do all of the options and parameters
-
-        # dictionary for defining our solver
         nlp_prob = {
-            'f': cost,
-            'x': opt_vars,
+            'f': self.cost,
+            'x': self.opt_vars,
             'g': g,
             'p': P0
         }
 
-        # dictionary for our solver options
-        opts = mc.ipopt_settings
-
-        self.solver = ca.nlpsol('solver', 'ipopt', nlp_prob, opts)
+        self.solver = ca.nlpsol('solver', 'ipopt', nlp_prob, mc.ipopt_settings)
         
-        # We create our initial guess for a solution.
-        # Later we'll use the previous solution as our new solution guess.
-        # repeat x_initial_guess across the horizon
         x_initial_guess = ca.DM([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
         X_init = np.tile(np.array(x_initial_guess).reshape(-1,1), (1, self.N+1))
-        
-        U_init = np.tile(mc.ur, self.N)
-        
+
+    
+        U_init = np.tile(mc.ur, self.N+1)
+        # U_init = np.zeros((self.size_u(), self.N+1))
+
         # glue this all together to make our initial guess
-        self.init_guess = np.concatenate([X_init.reshape(-1, order='F'),
-                                    U_init.reshape(-1, order='F')])
+        self.init_guess = np.concatenate([X_init.reshape(-1, order='F'), U_init.reshape(-1, order='F')])
         
         # Here we initialize our stored solution to zeros
-        self.sol_x = np.zeros(self.size_x() * (self.N+1))
-        self.sol_u = np.zeros(self.size_u() * self.N)
+        self.sol_x = np.zeros(n_x_vars)
+        self.sol_u = np.zeros(n_u_vars)
         self.first_iteration = True
 
 
     def make_step(self, x, u, p_goal):
 
+        old_control = self.sol_u[:self.size_u()]
+
         x = ca.vertcat(x,u,p_goal)
-        # if it's not the first iteration, use a warm start from previous solution.
-        # we shift the trajectory forward by on time step and then just repeat
-        # the last timestep twice
+
         if self.first_iteration:
             self.first_iteration = False
         else:
-            x_traj = np.concatenate([self.sol_x[self.size_x():], self.sol_x[self.size_x() * self.N:]])
-            u_traj = np.concatenate([self.sol_u[self.size_u():], self.sol_u[self.size_u() * (self.N -1):]])
+            # # construct our initial guess for warm starts
+            # # Shift amount for receding horizon:
+            # eps = 0.02     # time shift
+            # [tau,w] = cheb_nodes_weights(6,'second')
+            # S  = barycentric_resample_matrix(tau,w,eps)
+
+            # S_kron_x = np.kron(S, np.eye(self.size_x()))    # ((nx*m) × (nx*m))
+            # x_pred_flat = S_kron_x @ self.sol_x
+
+            # S_kron_u = np.kron(S, np.eye(self.size_u()))    # ((nx*m) × (nx*m))
+            # u_pred_flat = S_kron_u @ self.sol_u
+            # self.init_guess = np.concatenate([x_pred_flat, u_pred_flat])
+            
+            # # print(self.sol_u)
+            # # print('warm state', x_pred_flat)
+            # # print('warm control', u_pred_flat)
+            # # print()
+
+            x_traj = np.concatenate([self.sol_x[self.size_x():], # start at N and go to end of array
+                                     self.sol_x[self.size_x() * self.N:]]) # add the final entry again
+            u_traj = np.concatenate([self.sol_u[self.size_u():], 
+                                     self.sol_u[self.size_u() * (self.N):]])
             self.init_guess = np.concatenate([x_traj, u_traj])
 
-        # Call the NMPC solver 
         sol = self.solver(x0=self.init_guess, lbx=self.lbx, ubx=self.ubx, lbg=self.lbg, ubg=self.ubg, p=x)
         sol_opt = sol['x'].full().flatten()
+        self.sol_x = sol_opt[:self.size_x() * (self.N+1)]
+        self.sol_u = sol_opt[self.size_x() * (self.N+1):]
 
-        # save the solution for warm starts
-        self.sol_x = sol_opt[:self.size_x() *(self.N+1)]
-        self.sol_u = sol_opt[self.size_x() *(self.N+1):]
 
-        return self.sol_u[:self.size_u()] # return the first control step
+        f_fun = ca.Function("f_fun", [self.opt_vars, self.p_goal], [self.cost])
+        cost = float(f_fun(sol_opt, p_goal))
+
+        control_diff = np.linalg.norm(old_control - self.sol_u[:self.size_u()])
+        self.solver_stats = {
+            'status': self.solver.stats()['return_status'], 
+            'cost': cost, 
+            'control_diff': control_diff 
+        }
+
+        return self.sol_u[:self.size_u()]
+
+
 
 
 
@@ -229,6 +237,4 @@ class DroneNMPCMultiShoot:
     
     def size_x(self):
         return self.x.size1()
-
-
 

@@ -33,6 +33,8 @@ ros2 run hop nmpc_controller
 
 You can run the nodes `test_motors` and `test_servos` this way as well.
 
+**Recommendation:** Don't do anything other than run the code from this shell. If you want to do `git` stuff, do it from a different shell login. I've really screwed up our directories because I dropped down into the `src/hop` folder to do stuff, then forgot what directory I'm in and ran `colcon build`. It generates files where they shouldn't be and they end up in the git directory. We added them to the git repo by accident and it was a pain to sort it all out.
+
 #### Final Notes
 
 All of these default to `logging = False` so you can feed in waypoints or pwm from the keyboard.
