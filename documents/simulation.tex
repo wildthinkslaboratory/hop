@@ -335,6 +335,18 @@ To map the average thrust command signal value to the actual thrust force value 
 	\vspace{\baselineskip}
 	To turn our {\nmpc} problem into an NLP problem  the continuous time functions $x(t)$ and $u(t)$ are parameterized into a finite set of discrete variables over the control trajectory.  Then differential equations for the system dynamics are discretized using a numerical integration method.  There are a many ways to do this and the choices we make will affect the size of the problem, the speed at which it can be solved, and the accuracy of the numerical approximation. Typically there is a tradeoff between speed and accuracy.  
 	Next we explore three different ways to formulate our {\nmpc} problem as an NLP and compare and contrast their ability produce viable control trajectories and their relative efficiency.  These three methods are in no way exhaustive. We chose to implement pseudospectral collocation because it was shown to be effective in an earlier paper on thrust vector drones \citep{TVCDrone} and we chose multiple shooting and orthogonal collocation because they were very easy to implement.
+	
+	To compare these three methods, we need to first find optimal settings for each method. Then we can compare the methods in terms of solution  time and trajectory accuracy. While solution times are easy to compare, trajectory accuracy is harder to assess.  Good trajectories show state values that converge promptly to the goal state. How promptly they need to converge will depend on the requirements of the application.  We want the simplest and smoothest state trajectories that efficiently achieve the desired goal. Unneccesary spikes or irregularities should be avoided. Unfortunately, good trajectories are hard to characterize mathematically. It was difficult to find clear measureable metrics that reliably  identified good trajectories. To assess accuracy we looked at the following metrics
+	
+	\begin{itemize}
+		\item We stored the status result of the IPOPT solver. A result of \pythoninline{Solver_Succeeded} means that the NLP converged properly and all constraints were satisfied. In all of our experiments, we didn't encounter any NLP solutions that failed to return  \pythoninline{Solver_Succeeded}. 
+		\item We found it useful to graph the objective function cost for the returned NLP solution.  Trajectory spikes often occurred with a simultaneous spike in objective function cost suggesting the solver had converged properly, but to  a local minimum.  NLP solvers are not guaranteed to produce a globally optimal solutions. Tracking the objective function cost helped identify and quantify these poor solutions.
+		\item When appropriate we used reference trajectories to assess accuracy. To create a reference trajectory we use an NLP encoding that we know is highly accurate but typically  too expensive to compute in practice. Faster NLP encodings can then be compared to the reference trajectory through an appropriate distance metric.  We found reference trajectories useful when tuning individual methods, but less useful for comparing different methods.  You can have multiple good trajectories that are not close in terms of distance metrics. This limits the value of reference trajactories as they can penalize trajectories that are actually good.
+		\item We found that full accuracy assessments couldn't be done in a purely analytic fashion.  All trajectories needed a visual inspection of the graphs to ensure that weird or unsuitable trajectories were noticed and avoided.
+	\end{itemize}
+	 
+
+	
 
 	
 
