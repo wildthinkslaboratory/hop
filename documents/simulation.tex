@@ -339,7 +339,7 @@ To map the average thrust command signal value to the actual thrust force value 
 	To compare these three methods, we need to first find optimal settings for each method. Then we can compare the methods in terms of solution  time and trajectory accuracy. While solution times are easy to compare, trajectory accuracy is harder to assess.  Good trajectories show state values that converge promptly to the goal state. How promptly they need to converge will depend on the requirements of the application.  We want the simplest and smoothest state trajectories that efficiently achieve the desired goal. Unneccesary spikes or irregularities should be avoided. Unfortunately, good trajectories are hard to characterize mathematically. It was difficult to find clear measureable metrics that reliably  identified good trajectories. To assess accuracy we looked at the following metrics
 	
 	\begin{itemize}
-		\item We stored the status result of the IPOPT solver. A result of \pythoninline{Solver_Succeeded} means that the NLP converged properly and all constraints were satisfied. In all of our experiments, we didn't encounter any NLP solutions that failed to return  \pythoninline{Solver_Succeeded}. 
+		\item We stored the status result of the IPOPT solver. A result of \pythoninline{Solver_Succeeded} means that the NLP converged properly and all constraints were satisfied. 
 		\item We found it useful to graph the objective function cost for the returned NLP solution.  Trajectory spikes often occurred with a simultaneous spike in objective function cost suggesting the solver had converged properly, but to  a local minimum.  NLP solvers are not guaranteed to produce a globally optimal solutions. Tracking the objective function cost helped identify and quantify these poor solutions.
 		\item When appropriate we used reference trajectories to assess accuracy. To create a reference trajectory we use an NLP encoding that we know is highly accurate but typically  too expensive to compute in practice. Faster NLP encodings can then be compared to the reference trajectory through an appropriate distance metric.  We found reference trajectories useful when tuning individual methods, but less useful for comparing different methods.  You can have multiple good trajectories that are not close in terms of distance metrics. This limits the value of reference trajactories as they can penalize trajectories that are actually good.
 		\item We found that full accuracy assessments couldn't be done in a purely analytic fashion.  All trajectories needed a visual inspection of the graphs to ensure that weird or unsuitable trajectories were noticed and avoided.
@@ -384,7 +384,7 @@ To map the average thrust command signal value to the actual thrust force value 
          \begin{equation}
          	 \sum_{k=0}^{N-1}  \Big[(x_k -  x_{r})^T Q (x_k - x_{r}) + (u_k -  u_{r})^T R (u_k - u_{r}) \Big] + (x_N -  x_{r})^T Q_f (x_N - x_{r})
          \end{equation}
-	Constraints on gimbal angles and thrust motors are encoded by adding a copy of the appropriate inequalities at each time step. 	To improve performance of our multiple shooter method we implemented warm starts, shifting the previous solution forward one time step and using that as an initial guess for the problem at the current time step.
+	Constraints on gimbal angles and thrust motors are encoded by adding a copy of the appropriate inequalities at each time step. 	To improve performance of our multiple shooter method we provide an initial guess for the NLP by shifting the previous solution forward one time step and using that as an initial guess for the problem at the current time step.
 	
 	Multiple shooting considers the state and control variables at every time step to be optimization variables so the full NLP vector is:
         \[
@@ -394,9 +394,37 @@ To map the average thrust command signal value to the actual thrust force value 
         \]
 	This can easily become computationally demanding for long horizons and high-dimensional systems. For a thrust vector drone system with a  horizon length of 100 time steps there are $13 * (100+1)+4*100=1713$ decision variables. While the number of variables is very high, the constraint matrix is typically very sparse since each constraint references only a small number of variables.
 
-	Multiple shooting is easy to implement using {\casadi}.  There are very few choices to toggle in producing the best multiple shooting implementation. Outside of specific NLP solver settings, the main choices are the length of your time steps and the length of your horizon.   Working with a time step of $\Delta t = 0.02$ we found that time horizons with $N \leq 50$  often produced trajectories that were irregular or did not converge. An $50 \leq N \leq 80$ produced mostly smooth graphs that converged however the convergence was a bit slow.  An $N \geq 80$ seemed to produce good quality graphs that converged promptly. However, our goal for all implementations is to have a horizon of $2$ seconds. 
+	Multiple shooting is easy to implement using {\casadi}.  While our final NMPC implementation will run at $50$Hz, the time steps of our multiple shooting formulation don't need to be $0.02$ seconds. To find the optimal settings we tried different sized time steps. The horizon, $N$ was selected to form a full two second time horizon given the time step. Experiements were run on a Macbook Pro  3.49GHz Apple M2 chip with 8GB RAM. For each time step we ran all four of our simulations and evaluated both time and accuracy.  
 	
-
+	
+	\begin{table}[h!]	
+		\begin{center}
+			\begin{tabular}{ | l | c | c | c |} 
+				\hline
+				time step, horizon & time  & NLP fails   &  ref distance  \\
+				\hline
+				$ts=0.02, N=100$ &      0.054 & 4  & 0.0 \\ 
+				$ts=0.025, N=80$  &        0.043 & 3    & 0.006   \\ 
+				$ts=0.04, N=50$  &      0.027 & 3   & 0.087   \\ 
+				$ts=0.05, N=40$ &            0.022  & 3 & 0.14 \\ 
+				$ts=0.1, N=20$ &            0.01  & 3 &  0.50 \\ 
+				$ts=0.2, N=10$ &            0.006  & 4 &  1.8 \\ 
+				$ts=0.4, N=5$ &            0.004  & 40&   8.3 \\ 
+				$ts=0.5, N=4$ &            0.003  & 46 &   14.3 \\ 
+				$ts=1, N=2$ &            0.002  & 76 &  60 \\ 
+				\hline
+			\end{tabular}
+			\caption{Comparison of average CPU time in seconds and number of failed NLP solutions for a series of  simulations for different size time steps within a two second horizon. }
+			\label{table:msCPU}
+		\end{center}
+	\end{table}
+	
+	Table (\ref{table:msCPU}) shows average CPU time for each choice of time step.   The larger the time step, the faster the solution time.  Time steps of size $0.2$ or larger gave times fast enough to run on the Raspberry Pi 5 at $50$Hz. 
+	
+	The fourth simulation was the only simulation that caused the NLP to fail to converge and all choices of time step experienced failures on this instance. We did compare each solution to a reference trajectory that was produced with a time step of $0.02$ and $N=100$ . To compute the accuracy of a time step we look at the squared error of the trajectory summed over each iteration.  If $x_i$ is the simulated state at iteration $i$ and $r_i$ is the reference run state at iteration $i$ then the accuracy is computed as 
+	\[\text{accuracy} =  \sum_{i=1}^{200} (x_i - r_i)^T(x_i - r_i)\]
+	However, we excluded the fourth simulation since the reference trajectory was irregular on that simulation.  Time steps from size $0.02$ all the way to $0.4$ all produced good and remarkably similar trajectories. For larger time steps the rate of convergence to the goal state increased and trajectories failed to converge for a time step of $1$ second.  
+	
 	
 
 \subsection*{Orthogonal Collocation using {do-mpc}} 

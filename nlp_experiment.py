@@ -40,7 +40,7 @@ test_list_for_paper = import_data('nmpc_test_cases.json')
 # oc - orthogonal collocation by dompc
 # cps - Chebyshev pseudospectral collocation
 # ms - multiple shooter with Runge-Kutta
-nlps_to_run = ['oc', 'cps', 'ms']
+nlps_to_run = ['ms']
 
 
 for test in test_list_for_paper:
@@ -148,6 +148,7 @@ for test in test_list_for_paper:
       ms_nmpc.set_goal_state(xr)
       ms_nmpc.set_start_state(x_init)
       x0 = x_init
+      u0 = np.zeros(4)
 
       print('running multiple shooter nmpc solver')
       for k in range(num_iterations):
@@ -165,7 +166,7 @@ for test in test_list_for_paper:
           time_data['ms'].append(step_time)
           cost_data['ms'].append(ms_nmpc.solver_stats['cost'])
           if not ms_nmpc.solver_stats['status'] == 'Solve_Succeeded':
-            state_data['ms'][0] += 1
+            stats_data['ms'] += 1
 
     # compute statistics for the timing of the nmpc calls
     mean_time = [round(stats.mean(time_data[nlp]),3) for nlp in nlps_to_run]

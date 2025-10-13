@@ -11,9 +11,6 @@ class DroneNMPCMultiShoot:
         self.N = mc.mpc_horizon
         self.dt = mc.dt
 
-        # self.N = 80
-        # self.dt = mc.dt
-
         # First create our state variables and control variables
         p = ca.SX.sym('p', 3, 1)
         v = ca.SX.sym('v', 3, 1)
@@ -209,9 +206,12 @@ class DroneNMPCMultiShoot:
         if self.first_iteration:
             self.first_iteration = False
         else:
-            x_traj = np.concatenate([self.sol_x[self.size_x():], self.sol_x[self.size_x() * self.N:]])
-            u_traj = np.concatenate([self.sol_u[self.size_u():], self.sol_u[self.size_u() * (self.N -1):]])
-            self.init_guess = np.concatenate([x_traj, u_traj])
+            if self.dt == 0.02:
+                x_traj = np.concatenate([self.sol_x[self.size_x():], self.sol_x[self.size_x() * self.N:]])
+                u_traj = np.concatenate([self.sol_u[self.size_u():], self.sol_u[self.size_u() * (self.N - 1):]])
+                self.init_guess = np.concatenate([x_traj, u_traj])
+            else:
+                self.init_guess = np.concatenate([self.sol_x, self.sol_u])
 
         # Call the NMPC solver 
         sol = self.solver(x0=self.init_guess, lbx=self.lbx, ubx=self.ubx, lbg=self.lbg, ubg=self.ubg, p=x)
