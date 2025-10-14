@@ -1,37 +1,36 @@
-Run on the Pi
 running do-mpc solver
 running Chebyshev pseudospectral nmpc solver
 running multiple shooter nmpc solver
 hover
-                        do-mpc       pseudospectral       multiple shoot
+                            oc                  cps                   ms
 -----------------------------------------------------------------------------------------
-mean                     0.016                0.009                0.114
-max                      0.024                 0.01                0.139
-bad times                  200                    0                  200
+mean                     0.008                0.005                0.006
+max                      0.085                0.055                0.007
+fails                        0                    0                    0
 running do-mpc solver
 running Chebyshev pseudospectral nmpc solver
 running multiple shooter nmpc solver
 45dz
-                        do-mpc       pseudospectral       multiple shoot
+                            oc                  cps                   ms
 -----------------------------------------------------------------------------------------
-mean                     0.015                0.008                0.112
-max                      0.016                0.009                0.139
-bad times                  500                    0                  500
+mean                     0.008                0.003                0.006
+max                      0.039                0.005                0.007
+fails                        0                    0                    0
 running do-mpc solver
 running Chebyshev pseudospectral nmpc solver
 running multiple shooter nmpc solver
 x1z1vx
-                        do-mpc       pseudospectral       multiple shoot
+                            oc                  cps                   ms
 -----------------------------------------------------------------------------------------
-mean                     0.012                0.012                0.101
-max                      0.015                0.046                0.139
-bad times                   39                   33                  200
+mean                     0.006                0.003                0.005
+max                      0.012                0.007                0.007
+fails                        0                    0                    0
 running do-mpc solver
 running Chebyshev pseudospectral nmpc solver
 running multiple shooter nmpc solver
 y115dx
-                        do-mpc       pseudospectral       multiple shoot
+                            oc                  cps                   ms
 -----------------------------------------------------------------------------------------
-mean                     0.015                0.012                 0.12
-max                      0.022                0.037                0.792
-bad times                  216                   48                  250
+mean                     0.007                0.003                0.005
+max                      0.017                0.012                0.039
+fails                        0                    0                    4

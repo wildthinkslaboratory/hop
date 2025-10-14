@@ -185,7 +185,7 @@ def plot_control_for_comparison(tspan, control, title, plot_no):
 #
 ##########################################################################
 
-use_limits = False
+use_limits = True
 
 state_lims = {
     '45dz': [[-0.5, 0.5], [-0.005, 0.015], [-0.2, 1.2], [-0.2, 0.05]],
@@ -241,7 +241,7 @@ control_lims = {
 
     'y115dx': [[-10.0, 25.0], [1.0, 8.0], [-0.25, 0.25]],
 
-    'hover': [[-0.2, 0.2], [2.3, 3.5], [-0.02, 0.02]]
+    'hover': [[-0.2, 0.2], [2.3, 3.8], [-0.02, 0.02]]
 }
 
 def plot_control_for_paper(tspan, control, title, plot_no):

@@ -115,8 +115,6 @@ for test in test_list_for_paper:
         print('accuracey: ', accuracy)
 
         plot_state_for_paper(tspan, state_data, test["title"], 1)
-    
-
         plot_control_for_paper(tspan, control_data, test["title"], 2)
 
         times = {'ms': time_data}

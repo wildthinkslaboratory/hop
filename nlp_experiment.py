@@ -139,7 +139,7 @@ for test in test_list_for_paper:
           time_data['cps'].append(step_time)
           cost_data['cps'].append(cheb_nmpc.solver_stats['cost'])
           if not cheb_nmpc.solver_stats['status'] == 'Solve_Succeeded':
-            state_data['cps'][0] += 1
+            stats_data['cps'][0] += 1
 
     if 'ms' in nlps_to_run:
       # run the multiple shooter nmpc
@@ -186,16 +186,16 @@ for test in test_list_for_paper:
     s = ["{: >20} ".format(b) for b in bad_its]
     print('fails     ' + ''.join(s))
 
-    for i, nlp in enumerate(nlps_to_run):
-      plot_state_for_paper(tspan, state_data[nlp], test["title"], i+1)
+    # for i, nlp in enumerate(nlps_to_run):
+    #   plot_state_for_paper(tspan, state_data[nlp], test["title"], i+1)
   
-    start_id = len(nlps_to_run)+1
-    for i, nlp in enumerate(nlps_to_run):
-      plot_control_for_paper(tspan, control_data[nlp], test["title"], i+start_id)
+    # start_id = len(nlps_to_run)+1
+    # for i, nlp in enumerate(nlps_to_run):
+    #   plot_control_for_paper(tspan, control_data[nlp], test["title"], i+start_id)
 
-    plot_comparison(tspan, time_data, test["title"], 2 * len(nlps_to_run)+1, 'CPU Time (sec)')
-    # plot_comparison(tspan, cost_data, test["title"], 2 * len(nlps_to_run)+2, 'Cost')
+    # plot_comparison(tspan, time_data, test["title"], 2 * len(nlps_to_run)+1, 'CPU Time (sec)')
+    # # plot_comparison(tspan, cost_data, test["title"], 2 * len(nlps_to_run)+2, 'Cost')
 
-    plt.show()
+    # plt.show()
 
 

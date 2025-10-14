@@ -178,7 +178,7 @@ class DroneNMPCwithCPS:
             # construct our initial guess for warm starts
             # Shift amount for receding horizon:
             eps = 0.02     # time shift
-            [tau,w] = cheb_nodes_weights(6,'second')
+            [tau,w] = cheb_nodes_weights(self.N,'second')
             S  = barycentric_resample_matrix(tau,w,eps)
 
             S_kron_x = np.kron(S, np.eye(self.size_x()))    # ((nx*m) × (nx*m))
