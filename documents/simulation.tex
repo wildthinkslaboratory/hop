@@ -392,7 +392,7 @@ To map the average thrust command signal value to the actual thrust force value 
         x_0 & u_0 & x_1 & u_1 & ... & x_{N-1} & u_{N-1} & x_N
         \end{bmatrix}
         \]
-	This can easily become computationally demanding for long horizons and high-dimensional systems. For a thrust vector drone system with a  horizon length of 100 time steps there are $13 * (100+1)+4*100=1713$ decision variables. While the number of variables is very high, the constraint matrix is typically very sparse since each constraint references only a small number of variables.
+	This can easily become computationally demanding for long horizons and high-dimensional systems. For a thrust vector drone system with a  horizon length of 100 time steps there are $13 * (100+1)+4*100=1713$ decision variables. While the number of variables is very high, the constraint matrix is typically very sparse since each constraint references only a small number of variables. To improve performance of the NLP, we used previous iterations solution as an initial guess for the current iteration. 
 
 	Multiple shooting is easy to implement using {\casadi}.  While our final NMPC implementation will run at $50$Hz, the time steps of our multiple shooting formulation don't need to be $0.02$ seconds. To find the optimal settings we tried different sized time steps. The horizon, $N$ was selected to form a full two second time horizon given the time step. Experiements were run on a Macbook Pro  3.49GHz Apple M2 chip with 8GB RAM. For each time step we ran all four of our simulations and evaluated both time and accuracy.  
 	
@@ -431,7 +431,6 @@ To map the average thrust command signal value to the actual thrust force value 
 Of all the methods we implemented, orthogonal collocation was the easiest. We used the open source {\bf do-mpc} Python library for model predictive control  \citep{do-mpc}   which implements MPC and NMPC using orthogonal collocation with Radau nodes \citep{dompc-oc}.
 The {\bf do-mpc} library is ideal for prototyping  MPC and NMPC algorithms and requires minimal understanding of MPC and no understanding of orthogonal collocation to build functioning algorithms.
 
-Need to discuss our cost function and how to encode servo and thrust minimum and maximums.  We should note that with do-mpc you don't need to know any of this because the NLP constraints are generated automatically from the system dynamics. Warm starts are done automatically in do-mpc. cost function and other constraints are entered using continuous model variables and do-mpc adapts them to the chosen trajectory variables. You can specify degree of collocation and time step size.
 
 Orthogonal collocation is a local method that divides the time horizon into finite elements and fits polynomials to each interval. The dynamics are enforced throughout each interval at a set of $K$ Gauss-Radau nodes: the $K-1$ interior nodes, which are the roots of a Jacobi polynomial $P_{K-1}^{(\alpha,\beta)}$, and one additional endpoint node, in this case the right endpoint, $\tau=1$. The Jacobi parameters $\alpha$ and $\beta$ determine the distribution of nodes throughout the interval, and a right-Radau formulation corresponds to $\alpha=1$, $\beta=0$.
 
@@ -491,15 +490,15 @@ J\approx\Phi(z_f) + \sum_{i=1}^{N}h_i\sum_{k=1}^{K}\omega_kL(z_{ik},u_{ik},t_{ik
 \]
 The weights $\omega_k$ are determined by Radau quadrature, which integrates all polynomials up to $2K-1$ with zero error. 
 
-To use {\dompc}'s orthogonal collocation, we need to determine the optimal size for our finite element intervals and the degree $K$.  To do this, we fixed the length of our time horizon to $2$ seconds and we considered  time intervals  with sizes $[0.02, 0.04, 0.08, 0.2, 0.25, 0.5, 0.8]$ and polynomial degrees $c = 1, 2, \ldots, 5$.  
+Primal warm starts in which the previous iteration's solution is used as an initial guess for the current iteration's NLP problem are done automatically in do-mpc.  To use {\dompc}'s orthogonal collocation, we need to determine the optimal size for our finite element intervals and the degree $K$.  To do this, we fixed the length of our time horizon to $2$ seconds and we considered  time intervals  with sizes $[0.1, 0.2, 0.3, 0.4, 0.5]$ and polynomial degrees $c = 1, 2, 3$.  
 
-We ran a a simulation that started with the drone in a perturbed state and with a the goal state being vertically balanced and motionless at the point $(x,y,z) = (0, 0, 0)$ in three dimensional space.  Figure (\ref{fig:oc_cpu}) shows the average CPU time for each combination of time interval and degree.
+We ran a  simulation that started with the drone in a perturbed state and with a the goal state being vertically balanced and motionless at the point $(x,y,z) = (0, 0, 0)$ in three dimensional space.  Figure (\ref{fig:oc_cpu}) shows the average CPU time for each combination of time interval and degree.
 
-To formally measure the accuracy of each combination, we first ran the simulation with a time interval of $0.02$ seconds and a degree of $5$. This is the most fine grained simulation we ran and should be the most accurate. On visual inspection, the state and control curves produced by this run were smooth and converged promptly to the goal state. We then used the state data from this run as a reference to compare accuracy of the other runs. 
+To formally measure the accuracy of each combination, we first ran the simulation with a time interval of $0.02$ seconds and a degree of $3$. This is the most fine grained simulation we ran and should be the most accurate. On visual inspection, the state and control curves produced by this run were smooth and converged promptly to the goal state. We then used the state data from this run as a reference to compare accuracy of the other runs. 
 
 To compute the accuracy of a run we look at the squared error of the run summed over each iteration.  If $x_i$ is the simulated state at iteration $i$ and $r_i$ is the reference run state at iteration $i$ then the accuracy is computed as 
 \[\text{accuracy} =  \sum_{i=1}^{200} (x_i - r_i)^T(x_i - r_i)\]
-Visual inspection of all the graphs showed that  accuracy measures less then $50$ produced smooth graphs that converged promptly. Above this accuracy level, graphs may containt irregularities, converge slowly or fail to converge at all. Accuracy measures for all runs are shown in Figure (\ref{fig:oc_acc}). Combining the data from both graphs we see that a good choice of time interval and degree is a $0.25$  time interval with $2$ collocation points.  With optimal choices for our time interval and polynomial degree we are ready to compare this method with our other methods.
+Visual inspection of all the graphs showed that  accuracy measures less then $120$ produced smooth graphs that converged promptly. Above this accuracy level, graphs may containt irregularities, converge slowly or fail to converge at all. Accuracy measures for all runs are shown in Figure (\ref{fig:oc_acc}). Combining the data from both graphs we see that a good choice of time interval and degree is a $0.3$  time interval with $2$ collocation points.  With optimal choices for our time interval and polynomial degree we are ready to compare this method with our other methods.
 
 
 \begin{figure}[H]

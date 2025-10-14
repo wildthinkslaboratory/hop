@@ -8,8 +8,9 @@ mc = Constants()
 class DroneNMPCMultiShoot:
     def __init__(self):
 
-        self.N = mc.mpc_horizon
-        self.dt = mc.dt
+        self.N = 10
+        self.dt = 0.2
+
 
         # First create our state variables and control variables
         p = ca.SX.sym('p', 3, 1)

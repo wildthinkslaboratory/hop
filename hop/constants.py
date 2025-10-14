@@ -92,8 +92,8 @@ class Constants:
         self.spectral_order = 6
 
         # do-mpc constants
-        self.finite_interval_size = 0.25
-        self.number_intervals = 8
+        self.finite_interval_size = 0.3
+        self.number_intervals = 6
         self.collocation_degree = 2
 
         # IPOPT settings

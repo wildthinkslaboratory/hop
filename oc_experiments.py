@@ -34,8 +34,8 @@ test_list = [
   }
 ]
 
-collocations = [1, 2]                        # number of collocation points
-timesteps = [0.2, 0.25, 0.3, 0.35, 0.4]   # size of the time intervals (within a 2 second horizon)
+collocations = [1, 2, 3]                        # number of collocation points
+timesteps = [0.1, 0.2, 0.3, 0.4, 0.5]   # size of the time intervals (within a 2 second horizon)
 
 times = np.zeros((len(collocations),len(timesteps)))     # we measure the average solution time
 accuracy = np.zeros((len(collocations),len(timesteps)))  # we measure the accuracy
@@ -53,9 +53,9 @@ for test in test_list:
     model = DroneModel()
     mpc = DroneNMPCdompc(mc.dt, model.model)
 
-    mpc.mpc.settings.t_step = 0.2
-    mpc.mpc.settings.n_horizon = 10
-    mpc.mpc.settings.collocation_deg = 2 
+    mpc.mpc.settings.t_step = 0.02
+    mpc.mpc.settings.n_horizon = 100
+    mpc.mpc.settings.collocation_deg = 3 
 
     estimator = StateFeedback(model.model)
     sim = Simulator(model.model)
@@ -155,10 +155,10 @@ for test in test_list:
             # print(test['title'])
             # print('mean: ', mean_time, ' max: ', max_time)
 
-            # # uncomment if you want to see plots of the trajectories
-            # plot_state_for_paper(tspan, dompc_state_data, test["title"], 1)
-            # plot_control_for_paper(tspan, dompc_control_data, test["title"], 2)
-            # plt.show()
+            # uncomment if you want to see plots of the trajectories
+            plot_state_for_paper(tspan, dompc_state_data, test["title"], 1)
+            plot_control_for_paper(tspan, dompc_control_data, test["title"], 2)
+            plt.show()
 
 
     # here print out our results to std out
@@ -181,7 +181,7 @@ for test in test_list:
     # create a heat plot 
     # plt.figure(1)
     fig, ax = plt.subplots()
-    fig.set_figheight(8)
+    # fig.set_figheight(8)
     im = ax.imshow(times, norm=colors.LogNorm(vmin=times.min(), vmax=times.max()), cmap='viridis')
 
     ax.set_xticks(np.arange(len(t_labels)))
@@ -201,9 +201,9 @@ for test in test_list:
 
     ax.set_title("Average CPU time")
 
-    # plt.savefig("CPU.pdf", format="pdf", bbox_inches="tight")
+    plt.savefig("CPU.pdf", format="pdf", bbox_inches="tight")
 
-    plt.figure(2)
+    
     fig1, ax1 = plt.subplots()
     im2 = ax1.imshow(accuracy, norm=colors.LogNorm(), cmap='viridis')
 
@@ -224,7 +224,7 @@ for test in test_list:
 
     ax1.set_title("Accuracy") 
 
-    # plt.savefig("Accuracy.pdf", format="pdf", bbox_inches="tight")
+    plt.savefig("Accuracy.pdf", format="pdf", bbox_inches="tight")
 
     
     plt.show()

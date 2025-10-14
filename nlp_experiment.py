@@ -40,7 +40,7 @@ test_list_for_paper = import_data('nmpc_test_cases.json')
 # oc - orthogonal collocation by dompc
 # cps - Chebyshev pseudospectral collocation
 # ms - multiple shooter with Runge-Kutta
-nlps_to_run = ['ms']
+nlps_to_run = ['oc', 'cps', 'ms']
 
 
 for test in test_list_for_paper:
@@ -194,7 +194,7 @@ for test in test_list_for_paper:
       plot_control_for_paper(tspan, control_data[nlp], test["title"], i+start_id)
 
     plot_comparison(tspan, time_data, test["title"], 2 * len(nlps_to_run)+1, 'CPU Time (sec)')
-    plot_comparison(tspan, cost_data, test["title"], 2 * len(nlps_to_run)+2, 'Cost')
+    # plot_comparison(tspan, cost_data, test["title"], 2 * len(nlps_to_run)+2, 'Cost')
 
     plt.show()
 
