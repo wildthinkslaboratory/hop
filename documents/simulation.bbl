@@ -1,0 +1,64 @@
+\begin{thebibliography}{7}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Linsen et~al.(2022)Linsen, Listov, de~Lajarte, Schwan, and
+  Jones]{TVCDrone}
+Raphaël Linsen, Petr Listov, Albéric de~Lajarte, Roland Schwan, and Colin~N.
+  Jones.
+\newblock Optimal thrust vector control of an electric small-scale rocket
+  prototype.
+\newblock In \emph{2022 International Conference on Robotics and Automation
+  (ICRA)}, pages 1996--2002, 2022.
+\newblock \doi{10.1109/ICRA46639.2022.9811938}.
+
+\bibitem[Spannagl et~al.(2021)Spannagl, Hampp, Carron, Sieber, Pascucci,
+  Zgraggen, Domahidi, and Zeilinger]{cheapTVC}
+Lukas Spannagl, Elias Hampp, Andrea Carron, Jerome Sieber, Carlo Pascucci, Aldo
+  Zgraggen, Alexander Domahidi, and Melanie Zeilinger.
+\newblock Design, optimal guidance and control of a low-cost re-usable electric
+  model rocket, 03 2021.
+
+\bibitem[Garcia et~al.(1989)Garcia, Prett, and Morari]{nmpc}
+Carlos~E. Garcia, David~M. Prett, and Manfred Morari.
+\newblock Model predictive control: Theory and practice - a survey.
+\newblock \emph{Autom.}, 25:\penalty0 335--348, 1989.
+\newblock URL \url{https://api.semanticscholar.org/CorpusID:3443742}.
+
+\bibitem[Fiedler et~al.(2023)Fiedler, Karg, Lüken, Brandner, Heinlein,
+  Brabender, and Lucia]{do-mpc}
+Felix Fiedler, Benjamin Karg, Lukas Lüken, Dean Brandner, Moritz Heinlein,
+  Felix Brabender, and Sergio Lucia.
+\newblock do-mpc: Towards fair nonlinear and robust model predictive control.
+\newblock \emph{Control Engineering Practice}, 140:\penalty0 105676, 2023.
+\newblock ISSN 0967-0661.
+\newblock \doi{https://doi.org/10.1016/j.conengprac.2023.105676}.
+\newblock URL
+  \url{https://www.sciencedirect.com/science/article/pii/S0967066123002459}.
+
+\bibitem[Andersson et~al.(2018)Andersson, Gillis, Horn, Rawlings, and
+  Diehl]{casadi}
+Joel A~E Andersson, Joris Gillis, Greg Horn, James~B Rawlings, and Moritz
+  Diehl.
+\newblock {CasADi} -- {A} software framework for nonlinear optimization and
+  optimal control.
+\newblock \emph{Mathematical Programming Computation}, 2018.
+
+\bibitem[W\"{a}chter and Biegler(2006)]{ipopt}
+Andreas W\"{a}chter and Lorenz~T. Biegler.
+\newblock On the implementation of an interior-point filter line-search
+  algorithm for large-scale nonlinear programming.
+\newblock \emph{Math. Program.}, 106\penalty0 (1):\penalty0 25–57, March
+  2006.
+\newblock ISSN 0025-5610.
+
+\bibitem[HSL(2013)]{hsl}
+HSL.
+\newblock A collection of fortran codes for large scale scientific
+  computation., 2013.
+\newblock URL \url{http://www.hsl.rl.ac.uk}.
+
+\end{thebibliography}
