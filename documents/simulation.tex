@@ -319,22 +319,41 @@ To map the average thrust command signal value to the actual thrust force value 
 	It has an optimization function (\ref{nlp:opt}),  a set of equality constraints (\ref{nlp:equality}) and a set of inequality constraints (\ref{nlp:inequality}).
 	In practice, the distinction between equality and inequality constraints is moot since an equality constraint can be written as two inequality constraints  and  an inequality constraint can be written as an equality constraints with the introduction of a slack variable. 
 
+	To turn our {\nmpc} problem into an NLP problem  the continuous time functions $x(t)$ and $u(t)$ are parameterized into a finite set of discrete variables over the control trajectory.  Then differential equations for the system dynamics are discretized using a numerical integration method.  There are a many ways to do this and the choices we make will affect the size of the problem, the speed at which it can be solved, and the accuracy of the numerical approximation. Typically there is a tradeoff between speed and accuracy.  
+	Next we explore three different ways to formulate our {\nmpc} problem as an NLP and compare and contrast their ability produce viable control trajectories and their relative efficiency.  These three methods are in no way exhaustive. We chose to implement pseudospectral collocation because it was shown to be effective in an earlier paper on thrust vector drones \citep{TVCDrone} and we chose multiple shooting and orthogonal collocation because they were very easy to implement.
 
 	To solve our non-linear programming (NLP) problems we used the \texttt{ipopt} solver \citep{ipopt} that comes installed with CasADi 3.7.1 \citep{casadi}.   This solver requires an additional subroutine to  solve sparse matrix systems. We experimented with the \texttt{mumps}  solver that comes with CasADi, and also tried using the  \texttt{ma27} and  \texttt{ma57} solvers  from HSL (Harwell Subroutine Library) \citep{hsl}. All solvers were compiled with Apple clang version 17.0.0.   
-	
+
 	The \texttt{mumps} solver was slower than both \texttt{ma27}  and  \texttt{ma57}  on all instances.  The \texttt{ma57} solver was substantially slower than \texttt{ma27} for our orthogonal collocation instances and only a tiny bit slower than \texttt{ma27} on our Chebyshev pseudospectral collocation instances. The performance of \texttt{ma27}  and  \texttt{ma57}  on  the multiple shooter instances was about the same.  The \texttt{ma57} solver is considered a better solver than the older  \texttt{ma27} solver, but our particular problem instances seem to be in the small class of problems that do better with  \texttt{ma27}. We suspect that our problems are not large enough to benefit from the additional performance optimizations in  \texttt{ma57}.  As a result, all of our experiments were run with  \texttt{ma27}. All solvers and experiments were run with the following solver settings.
 	\vspace{\baselineskip}
 	\begin{python}
-		ipopt_settings = {
-			'ipopt.max_iter': 100,                  
-			'ipopt.tol': 1e-3,                      	
-			'ipopt.acceptable_tol': 3e-2,
-			'ipopt.linear_solver': 'ma27',
-		}
+	ipopt_settings = {
+		'ipopt.max_iter': 100,                  
+		'ipopt.tol': 1e-3,                      	
+		'ipopt.acceptable_tol': 3e-2,
+		'ipopt.linear_solver': 'ma27',
+	}
 	\end{python}
 	\vspace{\baselineskip}
-	To turn our {\nmpc} problem into an NLP problem  the continuous time functions $x(t)$ and $u(t)$ are parameterized into a finite set of discrete variables over the control trajectory.  Then differential equations for the system dynamics are discretized using a numerical integration method.  There are a many ways to do this and the choices we make will affect the size of the problem, the speed at which it can be solved, and the accuracy of the numerical approximation. Typically there is a tradeoff between speed and accuracy.  
-	Next we explore three different ways to formulate our {\nmpc} problem as an NLP and compare and contrast their ability produce viable control trajectories and their relative efficiency.  These three methods are in no way exhaustive. We chose to implement pseudospectral collocation because it was shown to be effective in an earlier paper on thrust vector drones \citep{TVCDrone} and we chose multiple shooting and orthogonal collocation because they were very easy to implement.
+
+	To compare these three methods, we need to first find optimal settings for each method. Then we can compare the methods in terms of solution  time and trajectory accuracy. While solution times are easy to compare, trajectory accuracy is harder to assess.  Good trajectories show state values that converge promptly to the goal state. How promptly they need to converge will depend on the requirements of the application.  We want the simplest and smoothest state trajectories that efficiently achieve the desired goal. Unneccesary spikes or irregularities should be avoided. Unfortunately, good trajectories are hard to characterize mathematically. It was difficult to find metrics that reliably  identified good trajectories. To assess accuracy we looked at the following metrics
+	
+	\begin{itemize}
+		\item We stored the status result of the IPOPT solver. A result of \pythoninline{Solver_Succeeded} means that the NLP converged properly and all constraints were satisfied. 
+		\item We found it useful to graph the objective function cost for the returned NLP solution.  Trajectory spikes often occurred with a simultaneous spike in objective function cost suggesting the solver had converged properly, but to  a local minimum.  NLP solvers are not guaranteed to produce a globally optimal solutions. Tracking the objective function cost helped identify and quantify these poor solutions.
+		\item When appropriate we used reference trajectories to assess accuracy. To create a reference trajectory we use an NLP encoding that we know is highly accurate but typically  too expensive to compute in practice. Faster NLP encodings can then be compared to the reference trajectory through an appropriate distance metric.  We found reference trajectories useful when tuning individual methods, but less useful for comparing different methods.  You can have multiple good trajectories that are not close in terms of distance metrics. This limits the value of reference trajactories as they can penalize trajectories that are actually good.
+		\item We found that full accuracy assessments couldn't be done in a purely analytic fashion.  All trajectories needed a visual inspection of the graphs to ensure that weird or unsuitable trajectories were noticed and avoided.
+	\end{itemize}
+	 
+	We selected four test cases from a larger set of test cases to run simulations on. These cases were chosen to reflect the variety of types of situations we expected the drone to encounter. 
+	
+	\begin{enumerate}
+		\item The first was a simple hover simulation where the drone begins in the goal state and is expected to hover in that state for the duration of the simulation. You would think that a hover simulation would be the easiest for an implementation to handle, but we found that when the drone is very close to the optimal state there is less direction for the NLP problem. This makes the IPOPT solver prone to finding local minimums.
+		\item The drone begins with a $45^{\circ}$ rotation about the vertical $z$ axis and must unwind itself to achieve the goal state.
+		\item The drone begins at the $(x,y,z)$ point $(1,0,1)$ with an initial velocity in $x$ direction. The drone must return to the point $(0,0,0)$.
+		\item The drone begins at the point $(0,1,0)$ with a $15^{\circ}$ rotation about the $x$ axis and must return to the point $(0,0,0)$.
+	\end{enumerate}
+	
 
 	
 
@@ -372,7 +391,7 @@ To map the average thrust command signal value to the actual thrust force value 
          \begin{equation}
          	 \sum_{k=0}^{N-1}  \Big[(x_k -  x_{r})^T Q (x_k - x_{r}) + (u_k -  u_{r})^T R (u_k - u_{r}) \Big] + (x_N -  x_{r})^T Q_f (x_N - x_{r})
          \end{equation}
-	Constraints on gimbal angles and thrust motors are encoded by adding a copy of the appropriate inequalities at each time step. 	To improve performance of our multiple shooter method we implemented warm starts, shifting the previous solution forward one time step and using that as an initial guess for the problem at the current time step.
+	Constraints on gimbal angles and thrust motors are encoded by adding a copy of the appropriate inequalities at each time step. 	To improve performance of our multiple shooter method we provide an initial guess for the NLP by using the solution from the  previous time step.
 	
 	Multiple shooting considers the state and control variables at every time step to be optimization variables so the full NLP vector is:
         \[
@@ -380,18 +399,45 @@ To map the average thrust command signal value to the actual thrust force value 
         x_0 & u_0 & x_1 & u_1 & ... & x_{N-1} & u_{N-1} & x_N
         \end{bmatrix}
         \]
-	This can easily become computationally demanding for long horizons and high-dimensional systems. For a thrust vector drone system with a  horizon length of 100 time steps there are $13 * (100+1)+4*100=1713$ decision variables. While the number of variables is very high, the constraint matrix is typically very sparse since each constraint references only a small number of variables.
+	This can easily become computationally demanding for long horizons and high-dimensional systems. For a thrust vector drone system with a  horizon length of 100 time steps there are $13 * (100+1)+4*100=1713$ decision variables. While the number of variables is very high, the constraint matrix is typically very sparse since each constraint references only a small number of variables. 
 
-	Multiple shooting is easy to implement using {\casadi}.  There are very few choices to toggle in producing the best multiple shooting implementation. Outside of specific NLP solver settings, the main choices are the length of your time steps and the length of your horizon.   Working with a time step of $\Delta t = 0.02$ we found that time horizons with $N \leq 50$  often produced trajectories that were irregular or did not converge. An $50 \leq N \leq 80$ produced mostly smooth graphs that converged however the convergence was a bit slow.  An $N \geq 80$ seemed to produce good quality graphs that converged promptly. However, our goal for all implementations is to have a horizon of $2$ seconds. 
+	Multiple shooting is easy to implement using {\casadi}.  While our final NMPC implementation will run at $50$Hz, the time steps of our multiple shooting formulation don't need to be $0.02$ seconds. To find the optimal settings we tried different sized time steps. The horizon, $N$ was selected to form a full two second time horizon given the time step. Experiements were run on a Macbook Pro  3.49GHz Apple M2 chip with 8GB RAM. For each time step we ran all four of our simulations and evaluated both time and accuracy.  
 	
-
+	
+	\begin{table}[h!]	
+		\begin{center}
+			\begin{tabular}{ | l | c | c | c |} 
+				\hline
+				time step, horizon & time (sec)  & NLP fails   &  ref distance  \\
+				\hline
+				$ts=0.02, N=100$ &      0.054 & 4  & 0.0 \\ 
+				$ts=0.025, N=80$  &        0.043 & 3    & 0.006   \\ 
+				$ts=0.04, N=50$  &      0.027 & 3   & 0.087   \\ 
+				$ts=0.05, N=40$ &            0.022  & 3 & 0.14 \\ 
+				$ts=0.1, N=20$ &            0.01  & 3 &  0.50 \\ 
+				$ts=0.2, N=10$ &            0.006  & 4 &  1.8 \\ 
+				$ts=0.4, N=5$ &            0.004  & 40&   8.3 \\ 
+				$ts=0.5, N=4$ &            0.003  & 46 &   14.3 \\ 
+				$ts=1, N=2$ &            0.002  & 76 &  60 \\ 
+				\hline
+			\end{tabular}
+			\caption{Comparison of average CPU time in seconds and number of failed NLP solutions for a series of  multiple shooting simulations for different size time steps within a two second horizon. }
+			\label{table:msCPU}
+		\end{center}
+	\end{table}
+	
+	Table (\ref{table:msCPU}) shows average CPU time for each choice of time step.   The larger the time step, the faster the solution time.  Time steps of size $0.2$ or larger gave times fast enough to run on the Raspberry Pi 5 at $50$Hz. 
+	
+	The fourth simulation was the only simulation that caused the NLP to fail to converge and all choices of time step experienced failures on this instance. We did compare each solution to a reference trajectory that was produced with a time step of $0.02$ and $N=100$ . To compute the accuracy of a time step we look at the squared error of the trajectory summed over each iteration.  If $x_i$ is the simulated state at iteration $i$ and $r_i$ is the reference run state at iteration $i$ then the accuracy is computed as 
+	\[\text{accuracy} =  \sum_{i=1}^{200} (x_i - r_i)^T(x_i - r_i)\]
+	However, we excluded the fourth simulation since the reference trajectory was irregular on that simulation.  Time steps from size $0.02$ all the way to $0.4$ all produced good and remarkably similar trajectories. For larger time steps the rate of convergence to the goal state increased and trajectories failed to converge for a time step of $1$ second.  Based on these experiments we can chose a time step of size $0.2$ seconds with a horizon $N=10$ for this multiple shooting implementation.
+	
 	
 
 \subsection*{Orthogonal Collocation using {do-mpc}} 
 Of all the methods we implemented, orthogonal collocation was the easiest. We used the open source {\bf do-mpc} Python library for model predictive control  \citep{do-mpc}   which implements MPC and NMPC using orthogonal collocation with Radau nodes \citep{dompc-oc}.
 The {\bf do-mpc} library is ideal for prototyping  MPC and NMPC algorithms and requires minimal understanding of MPC and no understanding of orthogonal collocation to build functioning algorithms.
 
-Need to discuss our cost function and how to encode servo and thrust minimum and maximums.  We should note that with do-mpc you don't need to know any of this because the NLP constraints are generated automatically from the system dynamics. Warm starts are done automatically in do-mpc. cost function and other constraints are entered using continuous model variables and do-mpc adapts them to the chosen trajectory variables. You can specify degree of collocation and time step size.
 
 Orthogonal collocation is a local method that divides the time horizon into finite elements and fits polynomials to each interval. The dynamics are enforced throughout each interval at a set of $K$ Gauss-Radau nodes: the $K-1$ interior nodes, which are the roots of a Jacobi polynomial $P_{K-1}^{(\alpha,\beta)}$, and one additional endpoint node, in this case the right endpoint, $\tau=1$. The Jacobi parameters $\alpha$ and $\beta$ determine the distribution of nodes throughout the interval, and a right-Radau formulation corresponds to $\alpha=1$, $\beta=0$.
 
@@ -451,15 +497,15 @@ J\approx\Phi(z_f) + \sum_{i=1}^{N}h_i\sum_{k=1}^{K}\omega_kL(z_{ik},u_{ik},t_{ik
 \]
 The weights $\omega_k$ are determined by Radau quadrature, which integrates all polynomials up to $2K-1$ with zero error. 
 
-To use {\dompc}'s orthogonal collocation, we need to determine the optimal size for our finite element intervals and the degree $K$.  To do this, we fixed the length of our time horizon to $2$ seconds and we considered  time intervals  with sizes $[0.02, 0.04, 0.08, 0.2, 0.25, 0.5, 0.8]$ and polynomial degrees $c = 1, 2, \ldots, 5$.  
+Primal warm starts in which the previous iteration's solution is used as an initial guess for the current iteration's NLP problem are done automatically in do-mpc.  To use {\dompc}'s orthogonal collocation, we need to determine the optimal size for our finite element intervals and the degree $K$.  To do this, we fixed the length of our time horizon to $2$ seconds and we considered  time intervals  with sizes $[0.1, 0.2, 0.3, 0.4, 0.5]$ and polynomial degrees $c = 1, 2, 3$.  
 
-We ran a a simulation that started with the drone in a perturbed state and with a the goal state being vertically balanced and motionless at the point $(x,y,z) = (0, 0, 0)$ in three dimensional space.  Figure (\ref{fig:oc_cpu}) shows the average CPU time for each combination of time interval and degree.
+We ran a  simulation that started with the drone in a perturbed state and with a the goal state being vertically balanced and motionless at the point $(x,y,z) = (0, 0, 0)$ in three dimensional space.  Figure (\ref{fig:oc_cpu}) shows the average CPU time for each combination of time interval and degree.
 
-To formally measure the accuracy of each combination, we first ran the simulation with a time interval of $0.02$ seconds and a degree of $5$. This is the most fine grained simulation we ran and should be the most accurate. On visual inspection, the state and control curves produced by this run were smooth and converged promptly to the goal state. We then used the state data from this run as a reference to compare accuracy of the other runs. 
+To formally measure the accuracy of each combination, we first ran the simulation with a time interval of $0.02$ seconds and a degree of $3$. This is the most fine grained simulation we ran and should be the most accurate. On visual inspection, the state and control curves produced by this run were smooth and converged promptly to the goal state. We then used the state data from this run as a reference to compare accuracy of the other runs. 
 
 To compute the accuracy of a run we look at the squared error of the run summed over each iteration.  If $x_i$ is the simulated state at iteration $i$ and $r_i$ is the reference run state at iteration $i$ then the accuracy is computed as 
 \[\text{accuracy} =  \sum_{i=1}^{200} (x_i - r_i)^T(x_i - r_i)\]
-Visual inspection of all the graphs showed that  accuracy measures less then $50$ produced smooth graphs that converged promptly. Above this accuracy level, graphs may containt irregularities, converge slowly or fail to converge at all. Accuracy measures for all runs are shown in Figure (\ref{fig:oc_acc}). Combining the data from both graphs we see that a good choice of time interval and degree is a $0.25$  time interval with $2$ collocation points.  With optimal choices for our time interval and polynomial degree we are ready to compare this method with our other methods.
+Visual inspection of all the graphs showed that  accuracy measures less then $120$ produced smooth graphs that converged promptly. Above this accuracy level, graphs may containt irregularities, converge slowly or fail to converge at all. Accuracy measures for all runs are shown in Figure (\ref{fig:oc_acc}). Combining the data from both graphs we see that a good choice of time interval and degree is a $0.3$  time interval with $2$ collocation points.  With optimal choices for our time interval and polynomial degree we are ready to compare this method with our other methods.
 
 
 \begin{figure}[H]
@@ -482,7 +528,7 @@ Visual inspection of all the graphs showed that  accuracy measures less then $50
 
 
 \subsection*{Chebyshev Pseudospectral Method}
-Multiple shooting is useful for its robustness to discontinuities and nonlinearity and its conceptual simplicity. However, thrust-vectoring dynamics are smooth and continuous, so many of the benefits of multiple shooting are unnecessary. Additionally, multiple shooting introduces a much larger NLP because it solves for the state and control variables at every point in the control horizon. By contrast, Chebyshev pseudospectral collocation \citep{chebyshevPS} is a global method that represents the trajectory of each state with a single interpolating polynomial of degree $N$ over the entire horizon, defined by its values at a set of $N+1$ nodes. It achieves spectral accuracy, with error decreasing exponentially as the number of nodes increases, while requiring far fewer decision variables than multiple shooting. The dynamics are enforced by constraining the derivative of the interpolant at each node to the dynamic equations. Chebyshev–Gauss–Lobatto nodes are used to cluster more of the nodes towards the beginning and end of the horizon, mitigating the Runge Phenomenon, where polynomial interpolation develops large oscillations near the endpoints. The cosine distribution ensures accuracy and stability. Nodes $\tau_j$ are defined as
+Multiple shooting is useful for its robustness to discontinuities and nonlinearity and its conceptual simplicity. However, thrust-vectoring dynamics are smooth and continuous, so many of the benefits of multiple shooting are unnecessary. Chebyshev pseudospectral collocation \citep{chebyshevPS} is a global method that represents the trajectory of each state with a single interpolating polynomial of degree $N$ over the entire horizon, defined by its values at a set of $N+1$ nodes. It achieves spectral accuracy, with error decreasing exponentially as the number of nodes increases, while requiring far fewer decision variables than multiple shooting. The dynamics are enforced by constraining the derivative of the interpolant at each node to the dynamic equations. Chebyshev–Gauss–Lobatto nodes are used to cluster more of the nodes towards the beginning and end of the horizon, mitigating the Runge Phenomenon, where polynomial interpolation develops large oscillations near the endpoints. The cosine distribution ensures accuracy and stability. Nodes $\tau_j$ are defined as
 	\[
         \tau_j = \cos{\Big(\frac{j\pi}{N}\Big)},\qquad j = 0,1,...,N
         \]
@@ -578,20 +624,109 @@ For $N=6$ the differentiation matrix is:
         \displaystyle \frac{1}{N^{2}}, & j=0\ \text{or}\ j=N.
         \end{cases}
         \]
+	
+\begin{table}[h!]	
+	\begin{center}
+		\begin{tabular}{ | l || c | c | c |} 
+			\hline
+			collocation points & time  (sec) & NLP fails   \\
+			\hline
+			6 &      0.003 & 0   \\ 
+			8  &        0.008 & 2       \\ 
+			10  &      0.013 & 3      \\ 
+			12 &            0.021  & 4  \\ 
+			14 &            0.03  & 2  \\ 
+			\hline
+		\end{tabular}
+		\caption{Comparison of average CPU time in seconds and number of failed NLP solutions for a series of  Chebyshev pseudospectral simulations for different numbers of collocation points. }
+		\label{table:cpsCPU}
+	\end{center}
+\end{table}
 
-%Why we chose this.
-%citations
-%warm starts. Thrust and gimbal constraints.
-%  Spectral order, time horizon.
-%For $N=6$ there are seven nodes and $7*13+7*4=119$ decision variables per time step. 
+\begin{figure}[H]
+	\centering
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{figures/cpsState.pdf}
+		\caption{state trajectory}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{figures/cpsControl.pdf}
+		\caption{control trajectory}
+	\end{subfigure}%
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{figures/cpsCost.pdf}
+		\caption{cost function}
+	\end{subfigure}
+	\caption{Simulation of a hover using Chebyshev pseudospectral collocation with $10$ collocation points.}
+	\label{fig:cps10}
+\end{figure}
+	
+	We ran our Chebyshev pseudospectral implementation on our four test cases. We used a two second time horizon and varied the number of collocation points between $2$ and $14$.  When the number of collocation points was less than $6$ the trajectories failed to converge. The average CPU time for different numbers of collocations points is seen in Table (\ref{table:cpsCPU}) along with the number of NLP failures.	Solution times increase as the number of collocation points increase.  
+	
+	Assessing the accuracy of the graphs was more complicated.  This formulation would sometimes converge successfully on an iteration, but fail to find a good solution.  We would typically see a corresponding jump in the objective function cost at the same iteration. An example of this can be seen in Figure (\ref{fig:cps10}) where three poor solutions are seen in the objective function cost graph and we also see  corresponding spikes in the control and  state trajectories.  These poor solutions were most apparent on the hover simulation but were also seen in the final simulation where there was a rotation about the $x$ axis.  These trajectory spikes persisted even when the number of collocation points were increased.  It's possible the addition of rate constraints for the thrust control value might give the NLP more direction away from these local minimums and toward a more globally optimal solution. Based on these experiments, we chose to run our Chebyshev pseudospectral collocation implementation with $6$ collocation points.
+	
 \section*{Comparison of Methods}
 
-To compare our different formulations for the NLP problem, we ran a series of simulations each with the drone beginning in a unique and perturbed starting state. In all cases, the drone goal state was to be vertically balanced and motionless at the point $(x,y,z) = (0, 0, 0)$ in three dimensional space. All experiements were run on a Macbook Pro  3.49GHz Apple M2 chip with 8GB RAM. We initially ran a set of seven different simulations. The results for all the simulations were similar in both quality of solutions and timing results, so we present only four of those simulations here.  For each simulation, we computed the average time required to solve the NLP problem at each iteration. The quality of the solutions produced by each method was assessed by comparing the state and control graphs through time. 
+To compare our different formulations for the NLP problem, we ran simulations on all four of our test cases.  All experiements were run on a Macbook Pro  3.49GHz Apple M2 chip with 8GB RAM. We initially ran a set of seven different simulations.  For each simulation, we computed the average time required to solve the NLP problem at each iteration. The quality of the solutions produced by each method was assessed by comparing the state and control graphs through time. 
 
 
 \subsection*{Results}
-We begin with our first simulation which requires the drone to perform a $45^{\circ}$ rotation about the $z$ axis to achieve the goal state. 
-Figure (\ref{fig:state45z}) shows a graph of the drone's state through time for each of our methods:  multiple shooter, orthogonal collocation, and Chebyshev pseudospectral. The figures  (\ref{fig:statex1z1vx}), (\ref{fig:statey115dx}) and (\ref{fig:statehover}) show similar graphs for our other three simulations.  Comparison graphs of the control variables are given in figures (\ref{fig:control45z}), (\ref{fig:controlx1z1vx}), (\ref{fig:controly115dx}) and (\ref{fig:controlhover}). Finally, graphs comparing the CPU time for NLP calls throughout the simulations are given in figures (\ref{fig:time45z}), (\ref{fig:timex1z1vx}), (\ref{fig:timey115dx}) and (\ref{fig:timehover}). 
+We begin with our first simulation which requires the drone to hover in the goal state. 
+Figure (\ref{fig:statehover}) shows a graph of the drone's state through time for each of our methods:  multiple shooter, orthogonal collocation, and Chebyshev pseudospectral. The figures  (\ref{fig:statex1z1vx}), (\ref{fig:statey115dx}) and (\ref{fig:statehover}) show similar graphs for our other three simulations.  Comparison graphs of the control variables are given in figures (\ref{fig:control45z}), (\ref{fig:controlx1z1vx}), (\ref{fig:controly115dx}) and (\ref{fig:controlhover}). Finally, graphs comparing the CPU time for NLP calls throughout the simulations are given in figures (\ref{fig:time45z}), (\ref{fig:timex1z1vx}), (\ref{fig:timey115dx}) and (\ref{fig:timehover}). 
+ 
+ \begin{figure}[H]
+ 	\centering
+ 	\begin{subfigure}[b]{0.3\textwidth}
+ 		\centering
+ 		\includegraphics[width=\textwidth]{figures/statehover3.pdf}
+ 		\caption{multiple shooter}
+ 	\end{subfigure}
+ 	\begin{subfigure}[b]{0.3\textwidth}
+ 		\centering
+ 		\includegraphics[width=\textwidth]{figures/statehover1.pdf}
+ 		\caption{orthogonal collocation}
+ 	\end{subfigure}%
+ 	\begin{subfigure}[b]{0.3\textwidth}
+ 		\centering
+ 		\includegraphics[width=\textwidth]{figures/statehover2.pdf}
+ 		\caption{Chebyshev pseudospectral}
+ 	\end{subfigure}
+ 	\caption{State data on a simulation with initial state equal to goal state.}
+ 	\label{fig:statehover}
+ \end{figure}
+ 
+ \begin{figure}[H]
+ 	\centering
+ 	\begin{subfigure}[b]{0.3\textwidth}
+ 		\centering
+ 		\includegraphics[width=\textwidth]{figures/controlhover6.pdf}
+ 		\caption{multiple shooter}
+ 	\end{subfigure}
+ 	\begin{subfigure}[b]{0.3\textwidth}
+ 		\centering
+ 		\includegraphics[width=\textwidth]{figures/controlhover4.pdf}
+ 		\caption{orthogonal collocation}
+ 	\end{subfigure}%
+ 	\begin{subfigure}[b]{0.3\textwidth}
+ 		\centering
+ 		\includegraphics[width=\textwidth]{figures/controlhover5.pdf}
+ 		\caption{Chebyshev pseudospectral}
+ 	\end{subfigure}
+ 	\caption{Control data on a simulation with initial state equal to goal state.}
+ 	\label{fig:controlhover}
+ \end{figure}
+ 
+ 
+ \begin{figure}[H]
+ 	\centering
+ 	\includegraphics[width=\textwidth]{figures/timehover.pdf}
+ 	\caption{CPU time for simulation with initial state equal to goal state.}
+ 	\label{fig:timehover}
+ \end{figure}
+ 
  
 \begin{figure}[H]
 	\centering
@@ -747,60 +882,9 @@ Figure (\ref{fig:state45z}) shows a graph of the drone's state through time for 
 
 
 
-\begin{figure}[H]
-	\centering
-	\begin{subfigure}[b]{0.3\textwidth}
-		\centering
-		\includegraphics[width=\textwidth]{figures/statehover3.pdf}
-		\caption{multiple shooter}
-	\end{subfigure}
-	\begin{subfigure}[b]{0.3\textwidth}
-		\centering
-		\includegraphics[width=\textwidth]{figures/statehover1.pdf}
-		\caption{orthogonal collocation}
-	\end{subfigure}%
-	\begin{subfigure}[b]{0.3\textwidth}
-		\centering
-		\includegraphics[width=\textwidth]{figures/statehover2.pdf}
-		\caption{Chebyshev pseudospectral}
-	\end{subfigure}
-	\caption{State data on a simulation with initial state equal to goal state.}
-	\label{fig:statehover}
-\end{figure}
+%Finally, we ran our simulations on the Raspberry Pi 5 which has a CPU speed of 2.4GHz and 8GB of RAM. 
 
-\begin{figure}[H]
-	\centering
-	\begin{subfigure}[b]{0.3\textwidth}
-		\centering
-		\includegraphics[width=\textwidth]{figures/controlhover6.pdf}
-		\caption{multiple shooter}
-	\end{subfigure}
-	\begin{subfigure}[b]{0.3\textwidth}
-		\centering
-		\includegraphics[width=\textwidth]{figures/controlhover4.pdf}
-		\caption{orthogonal collocation}
-	\end{subfigure}%
-	\begin{subfigure}[b]{0.3\textwidth}
-		\centering
-		\includegraphics[width=\textwidth]{figures/controlhover5.pdf}
-		\caption{Chebyshev pseudospectral}
-	\end{subfigure}
-	\caption{Control data on a simulation with initial state equal to goal state.}
-	\label{fig:controlhover}
-\end{figure}
-
-
-\begin{figure}[H]
-	\centering
-	\includegraphics[width=\textwidth]{figures/timehover.pdf}
-	\caption{CPU time for simulation with initial state equal to goal state.}
-	\label{fig:timehover}
-\end{figure}
-
-
-All of the methods provide good quality solutions with state values that behaved smoothly and converged to the desired goal state.  The control graphs produced by Chebyshev's pseudospectral method were somewhat irregular and produced chatter when it attempted to hover. You can see from the timing graph in Figure (\ref{fig:timehover}) that time required to solve the NLP problem for the Chebyshev pseudospectral method spikes up during the hover simulation suggesting that the NLP solver was having difficulty converging to an optimal solution. It's possible that the Chebyshev pseudospectral formulation could be improved and the chatter removed, but more research is needed. Real world experiments on the drone will be needed to determine if solutions with these irregularities will negatively affect performance in practice. The orthogonal collocation method used by {\dompc} produced the most reliably well behaved graphs.  
-
-
+All of the methods provide good quality solutions with state values that behaved smoothly and converged to the desired goal state.  The control graphs produced by Chebyshev's pseudospectral method were somewhat irregular and produced chatter when it attempted to hover.  These experiments were run on a Macbook Pro with a 3.49GHz CPU while the Raspberry Pi 5 has a CPU speed of 2.4GHz with 8GB of RAM.  However, in practice we find the Macbook Pro is two times faster than the Pi.  A $50$Hz implementation on the Pi requires  a $0.02$ second solution on the Pi and a $0.01$ solution on the Macbook Pro. All the methods met this requirement. Table (\ref{table:CPU}) summarizes the average CPU time for solution of the NLP problem for each simulation and each method.  
 
 
 \begin{table}[h!]	
@@ -809,10 +893,10 @@ All of the methods provide good quality solutions with state values that behaved
 			\hline
 			initial state & MS & OC & CPS \\
 			\hline
-			$45^{\circ}$ rotation about $z$ axis &      0.112 & 0.015 &   0.008 \\ 
-			$x = 1$, $z=1$, $v_x = 0.5$  &        0.101 & 0.012          &  0.012 \\ 
-			$y = 1$,$15^{\circ}$ rotation about $x$ axis &      0.12 & 0.015          & 0.014 \\ 
-				initial state equal to goal state &            0.114  & 0.016    & 0.009 \\ 
+			hover &            0.006  & 0.008    & 0.005 \\ 
+			$45^{\circ}$ rotation about $z$ axis &   0.006 & 0.008 &   0.003 \\ 
+			$x = 1$, $z=1$, $v_x = 0.5$  &        0.005  & 0.006          &  0.003 \\ 
+			$y = 1$,$15^{\circ}$ rotation about $x$ axis &      0.005 & 0.007          & 0.003 \\
 			\hline
 		\end{tabular}
 		\caption{Comparison of average CPU time in seconds for solution of NLP for a series of  simulations on the Raspberry Pi 5. Methods include  multiple shooter (MS), orthogonal collocation (OC), and Chebyshev pseudospectral method (CPS). }
@@ -821,11 +905,11 @@ All of the methods provide good quality solutions with state values that behaved
 
 \end{table}
 
-Finally, we ran our simulations on the Raspberry Pi 5 which has a CPU speed of 2.4GHz and 8GB of RAM. To meet our goal of 50Hz on the Pi we need a solution time of less than $0.02$ seconds. Table (\ref{table:CPU}) summarizes the average CPU time for solution of the NLP problem for each simulation and each method.  
-The run times for multiple shooter are too slow to meet our  $50$Hz target.  Additional changes such as reducing the length of the horizon or relaxing convergence criteria might improve these times somewhat, but they are unlikely to provide the performance needed for this application of NMPC.  Orthogonal collocation and  Chebyshev pseudospectral method both comfortably  meet our $0.02$ solution time. Chebyshev's pseudospectral method was slightly faster but produced graphs that were at times irregular.  We conclude that {\dompc}'s orthogonal collocation method is the best fit for our TVC drone implementation.
 
 \section*{Conclusions}
-We implemented three different formulations of the NPL problem for an NMPC algorithm controlling a thrust vector drone and compared their solution quality and relative efficiency. All methods produced good quality solutions but the multiple shooter implementation was too slow to be practical for solving the thrust vector drone NMPC problem on a Raspberry Pi 5. Both Chebyshev pseudospectral and orthogonal collocation produced solutions fast enough for deployment on the Raspberry Pi 5. Chebyshev pseudospectral collocation was the slightly faster than orthogonal collocation, but orthogonal collocation produced smoother more reliable curves making it the best choice for formulating NMPC instances for the thrust vector drone.  Further real-world experiments are required to determine if the solutions produced here will provide good control in practice.
+We implemented three different formulations of the NPL problem for an NMPC algorithm controlling a thrust vector drone and compared their solution quality and relative efficiency. All methods produced good quality solutions that were efficient enough to control a thrust  vector drone using NMPC  on a Raspberry Pi 5.  Chebyshev's pseudospectral method was slightly faster but produced graphs that were at times irregular.   All of these methods are good candidates for control of our thrust vector drone, but further real-world experiments are required to determine if the solutions produced here will provide good control in practice.
+
+
 	
 	
 %	\nocite{*}

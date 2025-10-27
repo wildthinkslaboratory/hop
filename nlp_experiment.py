@@ -19,7 +19,6 @@ from plots import plot_comparison, plot_state_for_paper, plot_control_for_paper
 
 mc = Constants()
 
-
 # If you just want to run a single test you can loop over this list
 single_test = [
   {
@@ -42,6 +41,7 @@ test_list_for_paper = import_data('nmpc_test_cases.json')
 # cps - Chebyshev pseudospectral collocation
 # ms - multiple shooter with Runge-Kutta
 nlps_to_run = ['oc', 'cps', 'ms']
+
 
 for test in test_list_for_paper:
 
@@ -102,18 +102,21 @@ for test in test_list_for_paper:
           u0 = mpc.mpc.make_step(x0)
           step_time = perf_counter() - start_time
 
-          
           y_next = sim.make_step(u0)
           x0 = estimator.make_step(y_next)
 
           state_data['oc'][k] = np.reshape(x0, (13,))
           control_data['oc'][k] = np.reshape(u0, (4,))
           time_data['oc'].append(step_time)
+          cost_data['oc'].append(mpc.mpc.data['_aux'][-1][2])
+          if not mpc.mpc.solver_stats['return_status'] == 'Solve_Succeeded':
+            state_data['oc'][0] += 1
           
 
     if 'cps' in nlps_to_run:
       # set up the Chebyshev pseudospectral nmpc solver
       cheb_nmpc = DroneNMPCwithCPS()
+      cheb_nmpc.record_nlp_stats = True
       cheb_nmpc.set_goal_state(xr)
       cheb_nmpc.set_start_state(x_init)
       x0 = x_init
@@ -136,14 +139,16 @@ for test in test_list_for_paper:
           time_data['cps'].append(step_time)
           cost_data['cps'].append(cheb_nmpc.solver_stats['cost'])
           if not cheb_nmpc.solver_stats['status'] == 'Solve_Succeeded':
-            state_data['cps'][0] += 1
+            stats_data['cps'][0] += 1
 
     if 'ms' in nlps_to_run:
       # run the multiple shooter nmpc
       ms_nmpc = DroneNMPCMultiShoot()
+      ms_nmpc.record_nlp_stats = True
       ms_nmpc.set_goal_state(xr)
       ms_nmpc.set_start_state(x_init)
       x0 = x_init
+      u0 = np.zeros(4)
 
       print('running multiple shooter nmpc solver')
       for k in range(num_iterations):
@@ -159,31 +164,38 @@ for test in test_list_for_paper:
           state_data['ms'][k] = np.reshape(x0, (13,))
           control_data['ms'][k] = np.reshape(u0, (4,))
           time_data['ms'].append(step_time)
-
+          cost_data['ms'].append(ms_nmpc.solver_stats['cost'])
+          if not ms_nmpc.solver_stats['status'] == 'Solve_Succeeded':
+            stats_data['ms'] += 1
 
     # compute statistics for the timing of the nmpc calls
     mean_time = [round(stats.mean(time_data[nlp]),3) for nlp in nlps_to_run]
     max_time = [round(max(time_data[nlp]),3) for nlp in nlps_to_run]
     bad_its = [stats_data[nlp] for nlp in nlps_to_run]
 
+
     # print timing results
     print(test['title'])
-    print("          {: >20} {: >20} {: >20}".format(*nlps_to_run))
+    s = ["{: >20} ".format(nlpf) for nlpf in nlps_to_run]
+    print('          ' + ''.join(s))
     print("-----------------------------------------------------------------------------------------")
-    print("mean      {: >20} {: >20} {: >20}".format(*mean_time))
-    print("max       {: >20} {: >20} {: >20}".format(*max_time))
-    print("fails       {: >20} {: >20} {: >20}".format(*bad_its))
+    s = ["{: >20} ".format(m) for m in mean_time]
+    print('mean      ' + ''.join(s))
+    s = ["{: >20} ".format(m) for m in max_time]
+    print('max       ' + ''.join(s))
+    s = ["{: >20} ".format(b) for b in bad_its]
+    print('fails     ' + ''.join(s))
 
-    for i, nlp in enumerate(nlps_to_run):
-      plot_state_for_paper(tspan, state_data[nlp], test["title"], i+1)
+    # for i, nlp in enumerate(nlps_to_run):
+    #   plot_state_for_paper(tspan, state_data[nlp], test["title"], i+1)
   
-    start_id = len(nlps_to_run)+1
-    for i, nlp in enumerate(nlps_to_run):
-      plot_control_for_paper(tspan, control_data[nlp], test["title"], i+start_id)
+    # start_id = len(nlps_to_run)+1
+    # for i, nlp in enumerate(nlps_to_run):
+    #   plot_control_for_paper(tspan, control_data[nlp], test["title"], i+start_id)
 
-    plot_comparison(tspan, time_data, test["title"], 2 * len(nlps_to_run)+1, 'CPU Time (sec)')
-    plot_comparison(tspan, cost_data, test["title"], 2 * len(nlps_to_run)+2, 'Cost')
+    # plot_comparison(tspan, time_data, test["title"], 2 * len(nlps_to_run)+1, 'CPU Time (sec)')
+    # # plot_comparison(tspan, cost_data, test["title"], 2 * len(nlps_to_run)+2, 'Cost')
 
-    plt.show()
+    # plt.show()
 
 

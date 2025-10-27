@@ -8,11 +8,9 @@ mc = Constants()
 class DroneNMPCMultiShoot:
     def __init__(self):
 
-        self.N = mc.mpc_horizon
-        self.dt = mc.dt
+        self.N = 10
+        self.dt = 0.2
 
-        # self.N = 80
-        # self.dt = mc.dt
 
         # First create our state variables and control variables
         p = ca.SX.sym('p', 3, 1)
@@ -63,7 +61,8 @@ class DroneNMPCMultiShoot:
 
         # f is function that returns the change in state for a given state and control values
         self.f = ca.Function('f', [self.x, self.u], [RHS])
-
+        
+        self.record_nlp_stats = False
         
 
      # In this function we build up the NMPC problem instance
@@ -74,8 +73,8 @@ class DroneNMPCMultiShoot:
 
         X0 = ca.SX.sym('X0', self.size_x())            # these are variables representing our initial state
         U0 = ca.SX.sym('U0', self.size_u())
-        p_goal = ca.SX.sym('p_goal', 3)
-        P0 = ca.vertcat(X0, U0, p_goal)
+        self.p_goal = ca.SX.sym('p_goal', 3)
+        P0 = ca.vertcat(X0, U0, self.p_goal)
 
         # we make a copy of the state variables for each N+1 time steps
         X = ca.SX.sym('X', self.x.size1(), self.N+1)    
@@ -85,8 +84,8 @@ class DroneNMPCMultiShoot:
 
         # We make one long list of all the optimization variables
         # all the state variables preceed all the control variables.
-        opt_vars = ca.vertcat(ca.reshape(X, -1, 1), ca.reshape(U, -1, 1))
-        num_vars = opt_vars.numel()
+        self.opt_vars = ca.vertcat(ca.reshape(X, -1, 1), ca.reshape(U, -1, 1))
+        num_vars = self.opt_vars.numel()
 
         # now we add upper and lower bounds on the optimization variables
         # start with just negative infinity to positive infinity for everything
@@ -112,9 +111,9 @@ class DroneNMPCMultiShoot:
         self.lbg += [0.0]*int(g.numel())
         self.ubg += [0.0]*int(g.numel())
 
-        cost = 0.0
+        self.cost = 0.0
 
-        self.x_goal = ca.vertcat(p_goal, self.x_goal[3:])
+        self.x_goal = ca.vertcat(self.p_goal, self.x_goal[3:])
 
         for k in range(self.N):
             x_k = X[:, k]    # state at time step k
@@ -124,7 +123,7 @@ class DroneNMPCMultiShoot:
             # error from the goal state over each time step
             state_error_cost = (x_k - self.x_goal).T @ mc.Q @ (x_k - self.x_goal)
             control_cost = (u_k - mc.ur).T @ mc.R @ (u_k - mc.ur)
-            cost = cost + state_error_cost + control_cost
+            self.cost = self.cost + state_error_cost + control_cost
 
             # here we create the constraints that require the solution
             # to obey our system dynamics. We use Runge Kutta integration
@@ -163,15 +162,15 @@ class DroneNMPCMultiShoot:
         x_N = X[:, self.N]             # final state
         e_N = x_N - self.x_goal        # final error
         Qf  = mc.Q                     # terminal weight matrix (scale Q heavier)
-        cost = cost + e_N.T @ Qf @ e_N
+        self.cost = self.cost + e_N.T @ Qf @ e_N
 
 
         # Now we set up the solver and do all of the options and parameters
 
         # dictionary for defining our solver
         nlp_prob = {
-            'f': cost,
-            'x': opt_vars,
+            'f': self.cost,
+            'x': self.opt_vars,
             'g': g,
             'p': P0
         }
@@ -208,9 +207,12 @@ class DroneNMPCMultiShoot:
         if self.first_iteration:
             self.first_iteration = False
         else:
-            x_traj = np.concatenate([self.sol_x[self.size_x():], self.sol_x[self.size_x() * self.N:]])
-            u_traj = np.concatenate([self.sol_u[self.size_u():], self.sol_u[self.size_u() * (self.N -1):]])
-            self.init_guess = np.concatenate([x_traj, u_traj])
+            if self.dt == 0.02:
+                x_traj = np.concatenate([self.sol_x[self.size_x():], self.sol_x[self.size_x() * self.N:]])
+                u_traj = np.concatenate([self.sol_u[self.size_u():], self.sol_u[self.size_u() * (self.N - 1):]])
+                self.init_guess = np.concatenate([x_traj, u_traj])
+            else:
+                self.init_guess = np.concatenate([self.sol_x, self.sol_u])
 
         # Call the NMPC solver 
         sol = self.solver(x0=self.init_guess, lbx=self.lbx, ubx=self.ubx, lbg=self.lbg, ubg=self.ubg, p=x)
@@ -219,6 +221,15 @@ class DroneNMPCMultiShoot:
         # save the solution for warm starts
         self.sol_x = sol_opt[:self.size_x() *(self.N+1)]
         self.sol_u = sol_opt[self.size_x() *(self.N+1):]
+
+        # keep track of some accuracy measures from solving the nlp
+        if self.record_nlp_stats:
+            f_fun = ca.Function("f_fun", [self.opt_vars, self.p_goal], [self.cost])
+            cost = float(f_fun(sol_opt, p_goal))
+            self.solver_stats = {
+                'status': self.solver.stats()['return_status'], 
+                'cost': cost, 
+            }
 
         return self.sol_u[:self.size_u()] # return the first control step
 

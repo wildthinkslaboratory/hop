@@ -63,7 +63,7 @@ class DroneNMPCwithCPS:
         # f is function that returns the change in state for a given state and control values
         self.f = ca.Function('f', [self.x, self.u], [RHS])
 
-        
+        self.record_nlp_stats = False
 
      # In this function we build up the NMPC problem instance
      # we can't build it until we know the goal state
@@ -159,12 +159,7 @@ class DroneNMPCwithCPS:
         
         x_initial_guess = ca.DM([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
         X_init = np.tile(np.array(x_initial_guess).reshape(-1,1), (1, self.N+1))
-
-    
         U_init = np.tile(mc.ur, self.N+1)
-        # U_init = np.zeros((self.size_u(), self.N+1))
-
-        # glue this all together to make our initial guess
         self.init_guess = np.concatenate([X_init.reshape(-1, order='F'), U_init.reshape(-1, order='F')])
         
         # Here we initialize our stored solution to zeros
@@ -175,52 +170,37 @@ class DroneNMPCwithCPS:
 
     def make_step(self, x, u, p_goal):
 
-        old_control = self.sol_u[:self.size_u()]
-
         x = ca.vertcat(x,u,p_goal)
 
         if self.first_iteration:
             self.first_iteration = False
         else:
-            # # construct our initial guess for warm starts
-            # # Shift amount for receding horizon:
-            # eps = 0.02     # time shift
-            # [tau,w] = cheb_nodes_weights(6,'second')
-            # S  = barycentric_resample_matrix(tau,w,eps)
+            # construct our initial guess for warm starts
+            # Shift amount for receding horizon:
+            eps = 0.02     # time shift
+            [tau,w] = cheb_nodes_weights(self.N,'second')
+            S  = barycentric_resample_matrix(tau,w,eps)
 
-            # S_kron_x = np.kron(S, np.eye(self.size_x()))    # ((nx*m) × (nx*m))
-            # x_pred_flat = S_kron_x @ self.sol_x
+            S_kron_x = np.kron(S, np.eye(self.size_x()))    # ((nx*m) × (nx*m))
+            x_pred_flat = S_kron_x @ self.sol_x
 
-            # S_kron_u = np.kron(S, np.eye(self.size_u()))    # ((nx*m) × (nx*m))
-            # u_pred_flat = S_kron_u @ self.sol_u
-            # self.init_guess = np.concatenate([x_pred_flat, u_pred_flat])
-            
-            # # print(self.sol_u)
-            # # print('warm state', x_pred_flat)
-            # # print('warm control', u_pred_flat)
-            # # print()
-
-            x_traj = np.concatenate([self.sol_x[self.size_x():], # start at N and go to end of array
-                                     self.sol_x[self.size_x() * self.N:]]) # add the final entry again
-            u_traj = np.concatenate([self.sol_u[self.size_u():], 
-                                     self.sol_u[self.size_u() * (self.N):]])
-            self.init_guess = np.concatenate([x_traj, u_traj])
+            S_kron_u = np.kron(S, np.eye(self.size_u()))    # ((nx*m) × (nx*m))
+            u_pred_flat = S_kron_u @ self.sol_u
+            self.init_guess = np.concatenate([x_pred_flat, u_pred_flat])
 
         sol = self.solver(x0=self.init_guess, lbx=self.lbx, ubx=self.ubx, lbg=self.lbg, ubg=self.ubg, p=x)
         sol_opt = sol['x'].full().flatten()
         self.sol_x = sol_opt[:self.size_x() * (self.N+1)]
         self.sol_u = sol_opt[self.size_x() * (self.N+1):]
 
-
-        f_fun = ca.Function("f_fun", [self.opt_vars, self.p_goal], [self.cost])
-        cost = float(f_fun(sol_opt, p_goal))
-
-        control_diff = np.linalg.norm(old_control - self.sol_u[:self.size_u()])
-        self.solver_stats = {
-            'status': self.solver.stats()['return_status'], 
-            'cost': cost, 
-            'control_diff': control_diff 
-        }
+        # keep track of some accuracy measures from solving the nlp
+        if self.record_nlp_stats:
+            f_fun = ca.Function("f_fun", [self.opt_vars, self.p_goal], [self.cost])
+            cost = float(f_fun(sol_opt, p_goal))
+            self.solver_stats = {
+                'status': self.solver.stats()['return_status'], 
+                'cost': cost, 
+            }
 
         return self.sol_u[:self.size_u()]
 
