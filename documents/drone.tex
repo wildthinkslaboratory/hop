@@ -1,0 +1,97 @@
+\documentclass[]{article}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage[round]{natbib}
+\bibliographystyle{unsrtnat}
+
+%\usepackage{multicol}
+%\usepackage{bm}
+%\usepackage{physics}
+
+% this just sets up the page size and margins
+\setlength{\topmargin}{0pt}
+\setlength{\oddsidemargin}{0pt}
+\setlength{\evensidemargin}{0pt}
+\setlength{\textwidth}{6.5in}
+\setlength{\textheight}{8.5in}
+\setlength{\headheight}{0pt}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  This is all the stuff for Python code snippets
+%
+\DeclareFixedFont{\ttb}{T1}{txtt}{bx}{n}{10} % for bold
+\DeclareFixedFont{\ttm}{T1}{txtt}{m}{n}{10}  % for normal
+% Custom colors
+\usepackage{color}
+\definecolor{deepblue}{rgb}{0,0,0.5}
+\definecolor{deepred}{rgb}{0.6,0,0}
+\definecolor{deepgreen}{rgb}{0,0.5,0}
+
+\setcounter{MaxMatrixCols}{15}
+
+% Python style for highlighting
+\newcommand\pythonstyle{\lstset{
+		language=Python,
+		basicstyle=\ttm,
+		morekeywords={self},              % Add keywords here
+		keywordstyle=\ttb\color{deepblue},
+		emph={MyClass,__init__},          % Custom highlighting
+		emphstyle=\ttb\color{deepred},    % Custom highlighting style
+		stringstyle=\color{deepgreen},
+		frame=tb,                         % Any extra options here
+		showstringspaces=false,
+		tabsize=4
+}}
+
+% Python environment
+\lstnewenvironment{python}[1][]
+{
+	\pythonstyle
+	\lstset{#1}
+}
+{}
+
+% Python for inline
+\newcommand\pythoninline[1]{{\pythonstyle\lstinline!#1!}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\newcommand{\mpc}{MPC}
+\newcommand{\nmpc}{NMPC}
+\newcommand{\pdiff}{P_{\Delta}}
+\newcommand{\pavg}{\overline{P}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\casadi}{CasADi}
+\newcommand{\dompc}{{\bf do-mpc}}
+
+\title{NMPC Applied to a Thrust-Vector-Controlled Drone}
+\author{Isidore Mones and Heidi Dixon}
+%\date{}
+
+\begin{document}
+\maketitle
+
+\section*{Thrust Testing}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\textwidth]{figures/thrust_test_graph.pdf}
+	\caption{Pulse width modulation value from $0-1$ versus thrust measured in grams for a single motor and two coaxial motors. Each thrust profile is fitted with a quadratic curve.}
+	\label{fig:thrust_test}
+\end{figure}
+
+\section*{Conclusions}
+
+	
+
+
+\bibliography{references.bib}
+\end{document}
+
