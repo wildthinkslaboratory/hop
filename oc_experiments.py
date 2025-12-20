@@ -89,7 +89,6 @@ for test in test_list:
         y_next = sim.make_step(u0)
         x0 = estimator.make_step(y_next)
         reference_data[k] = np.reshape(x0, (13,))
-
                 
     # These are our experimental runs 
     # loop over the number of collocation and 

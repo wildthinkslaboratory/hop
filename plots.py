@@ -185,7 +185,7 @@ def plot_control_for_comparison(tspan, control, title, plot_no):
 #
 ##########################################################################
 
-use_limits = True
+use_limits = False
 
 state_lims = {
     '45dz': [[-0.5, 0.5], [-0.005, 0.015], [-0.2, 1.2], [-0.2, 0.05]],

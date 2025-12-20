@@ -35,15 +35,11 @@ test_list = [
   }
 ]
 
-collocations = [1, 2, 3]                        # number of collocation points
-timesteps = [0.1, 0.2, 0.3, 0.4, 0.5]   # size of the time intervals (within a 2 second horizon)
-
-times = np.zeros((len(collocations),len(timesteps)))     # we measure the average solution time
-accuracy = np.zeros((len(collocations),len(timesteps)))  # we measure the accuracy
 
 test = test_list[0]
+terminal_error = []
 
-for i in range(1):
+for i in range(10):
     
     # set up the test case
     num_iterations = test['num_iterations']
@@ -57,8 +53,8 @@ for i in range(1):
     modelRandom = DroneModelRandom()
     mpc = DroneNMPCdompc(mc.dt, model.model)
 
-    mpc.mpc.settings.t_step = 0.2
-    mpc.mpc.settings.n_horizon = 10
+    mpc.mpc.settings.t_step = 0.3
+    mpc.mpc.settings.n_horizon = int(2.0 / 0.3)
     mpc.mpc.settings.collocation_deg = 2
 
     estimator = StateFeedback(model.model)
@@ -83,8 +79,9 @@ for i in range(1):
     estimator.x0 = x_init
     reference_data = np.empty([num_iterations,13])
     x0 = x_init
+    time_data = []
 
-    print('running reference do-mpc solver')
+    # print('running reference do-mpc solver')
     for k in range(num_iterations):
         start_time = perf_counter()
         u0 = mpc.mpc.make_step(x0)
@@ -93,14 +90,20 @@ for i in range(1):
         y_next = sim.make_step(u0)
         x0 = estimator.make_step(y_next)
         reference_data[k] = np.reshape(x0, (13,))
+        time_data.append(step_time)
+    
+    error = xr - x0
+    squared_error = error.T @ error
+    terminal_error.append(squared_error)
 
-        
-
-
+    print('terminal error', squared_error)
     # uncomment if you want to see plots of the trajectories
     print(test["title"])
     plot_state_for_paper(tspan, reference_data, test["title"], 1)
     # plot_control_for_paper(tspan, reference_data, test["title"], 2)
     plt.show()
 
+error = xr - x_init
+print(error.T @ error)
+print(terminal_error)
 
