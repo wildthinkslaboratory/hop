@@ -40,21 +40,17 @@ class NMPC(OffBoardNode):
             raise SystemExit
 
 
-        # for attitude testing we are turning off the position data and velocity
-        self.state[0] = 0.0
-        self.state[1] = 0.0
-        self.state[2] = 1.0
-        self.state[3] = 0.0
-        self.state[4] = 0.0
-        self.state[5] = 0.0
+        # # for attitude testing we are turning off the position data and velocity
+        # self.state[0] = 0.0
+        # self.state[1] = 0.0
+        # self.state[2] = 1.0
+        # self.state[3] = 0.0
+        # self.state[4] = 0.0
+        # self.state[5] = 0.0
 
         control = self.mpc.mpc.make_step(self.state)
         self.control = np.array(control).flatten()
         self.control_translator()   
-
-        # for attitude testing set both thrusters to 0.1 pwm
-        self.pwm_motors =  [0.5, 0.5]
-
         super().timer_callback()
     
     
@@ -64,8 +60,8 @@ class NMPC(OffBoardNode):
         gimbal_angles[1] = np.clip(gimbal_angles[1],  mc.inner_gimbal_range[0], mc.inner_gimbal_range[1])
 
         outer_angle_pwm = gimbal_angles[0] / 43
-
         inner_angle_pwm = gimbal_angles[1] / 43
+        
         return outer_angle_pwm, inner_angle_pwm
     
     def get_thrust_pwm(self, thrust_values):

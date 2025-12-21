@@ -2,6 +2,7 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 from px4_msgs.msg import ActuatorMotors, ActuatorServos, OffboardControlMode, VehicleStatus, VehicleCommand, VehicleOdometry
 from rclpy.qos import qos_profile_sensor_data
+from time import perf_counter
 
 from casadi import DM
 import numpy as np
@@ -121,7 +122,8 @@ class OffBoardNode(Node):
             'state': self.state.full().flatten().tolist(),
             'control': self.control.tolist(),
             'pwm_motors': self.pwm_motors,
-            'pwm_servos': self.pwm_servos
+            'pwm_servos': self.pwm_servos,
+            'timestamp': perf_counter()
         })
 
 

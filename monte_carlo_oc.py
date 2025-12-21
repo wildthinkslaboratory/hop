@@ -1,9 +1,4 @@
 #
-# This runs experiments on do-mpc's orthogonal collocation method to 
-# determine the optimal number of intervals and the number of collocation points.
-# This should produce two 2D heat maps one for accuracy and one for time
-# with the 2D grid corresponding to combinations of number of collocation points
-# and size of intervals
 #
 from hop.drone_model import DroneModel
 from hop.drone_model_randomized import DroneModelRandom
