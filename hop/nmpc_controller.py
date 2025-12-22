@@ -34,9 +34,12 @@ class NMPC(OffBoardNode):
         elif self.key == 'l':
             self.key = ''
             land = np.array([self.state[0], self.state[1], 0.0])
+            self.mpc.set_waypoint(land)
             self.get_logger().info('landing ' + str(land))
 
         elif not self.key == '':
+            self.pwm_motors = [0.0, 0.0]
+            self.run_motors()
             raise SystemExit
 
 
