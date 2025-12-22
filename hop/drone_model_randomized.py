@@ -19,17 +19,17 @@ class DroneModelRandom:
         state = ca.vertcat(p,v,q,w)
         u = self.model.set_variable(var_type='_u', var_name='u', shape=(4,1))
 
-        m_noisy = mc.m * (1 + np.random.normal(0, 0.1))
-        noisy_inertia = mc.I_diag * (1 + np.random.normal(0, 0.1, 3))
-        noisy_moment_arm = mc.moment_arm + np.random.normal(0, 0.002, 3)
+        m_noisy = mc.m #* (1 + np.random.normal(0, 0.1))
+        noisy_inertia = mc.I_diag # * (1 + np.random.normal(0, 0.1, 3))
+        noisy_moment_arm = mc.moment_arm # + np.random.normal(0, 0.002, 3)
         noisy_a = mc.a + np.random.normal(0, 0.000)
         noisy_b = mc.b + np.random.normal(0, 0.000)
         noisy_c = mc.c + np.random.normal(0, 0.000)
         noisy_d = mc.d + np.random.normal(0, 0.000)
         wind = np.random.uniform(0, 2*np.pi)
         dir_nav = np.array([np.cos(wind), np.sin(wind), 0.0])
-        wind_accel = np.random.uniform(0.5, 2.0)
-        F_wind = m_noisy * wind_accel * dir_nav
+        wind_accel = np.random.uniform(0.5, 0.1)
+        F_wind = 0.0 # m_noisy * wind_accel * dir_nav
 
 
 

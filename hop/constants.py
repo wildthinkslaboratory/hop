@@ -44,14 +44,14 @@ class Constants:
         # thrust model and mapping
         # thrust is modeled as a degree 2 polynomial with coefficients a, b, c
         # that is scaled by a thrust curve constant
-        self.tcc = 1.6 # thrust curve constant 
+        self.tcc = 9.81 # thrust curve constant 
         # these values are based on the 21V data from 
         # https://drive.google.com/file/d/1KMV0z-SipDZAr_uxRndRSnhmOHLBXNA5/view
-        self.a = 1.327 * self.tcc
-        self.b = 0.284 * self.tcc
-        self.c = -0.015 * self.tcc
+        self.a = 0.542 * self.tcc
+        self.b = 1.437 * self.tcc
+        self.c = 0.0 * self.tcc
         # rotation about z axis caused by differential thrust between motors is modeled linearly with d
-        self.d = 0.1 
+        self.d = 0.1
 
  
         # mechanical and hardware constants
@@ -60,15 +60,16 @@ class Constants:
         self.inner_gimbal_range = [-13.5,13.5]      # inner gimbal range limit in degrees
         self.theta_dot_constraint = 6.16            # gimbal rate of change limit in degrees per second
         self.thrust_dot_limit = 20.0                # thrust rate of change limit in Newtons per second
-        self.hover_thrust = 2.529                   # the thrust rate needed to hover
-        self.prop_thrust_constraint = 50.0          # max thrust allowed 
+        self.hover_thrust = 0.8                   # the thrust rate needed to hover
+        self.prop_thrust_constraint = 1.0          # max thrust allowed 
         self.diff_thrust_constraint = [-0.8,0.8]    # min and max thrust difference allowed
 
         # NMPC related constants
         # ---------------------------------------------------------------        
         self.dt = 0.02 # 50 Hz like in paper
         self.x0 = ca.vertcat(0.0,0.0,0.0, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0) # initial state 
-        self.Q = ca.DM.eye(13)                                                       # state cost matrix
+        # self.Q = ca.DM.eye(13)                                                       # state cost matrix
+        self.Q = ca.diag([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 ]) 
         self.R = ca.diag([0.03, 0.03, 1, 0.03])                                      # control cost matrix
         self.xr = ca.vertcat(0.0,0.0,0.0, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0) # goal state
         self.ur = ca.DM([0.0, 0.0, self.hover_thrust, 0.0])                          # goal control

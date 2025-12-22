@@ -47,6 +47,8 @@ class DroneNMPCdompc:
         thrust_limit = mc.prop_thrust_constraint
         self.mpc.set_nl_cons('upper_pwm_max', P_upper, ub=thrust_limit)
         self.mpc.set_nl_cons('lower_pwm_max', P_lower, ub=thrust_limit)
+        # self.mpc.set_nl_cons('upper_pwm_min', -P_upper, ub=0)
+        # self.mpc.set_nl_cons('lower_pwm_min', -P_lower, ub=0)
 
 
 

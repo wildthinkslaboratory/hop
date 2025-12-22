@@ -80,6 +80,7 @@ for order in spectral_order:
             cost_data.append(cheb_nmpc.solver_stats['cost'])
             if not cheb_nmpc.solver_stats['status'] == 'Solve_Succeeded':
                 stats_data += 1
+                print(cheb_nmpc.solver_stats['status'])
 
 
 
