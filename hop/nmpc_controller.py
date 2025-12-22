@@ -70,8 +70,6 @@ class NMPC(OffBoardNode):
     def get_thrust_pwm(self, thrust_values):
         top_prop_thrust = thrust_values[0] + thrust_values[1]/2
         bottom_prop_thrust = thrust_values[0] - thrust_values[1]/2
-        top_prop_pwm = top_prop_thrust / mc.prop_thrust_constraint
-        bottom_prop_pwm = bottom_prop_thrust / mc.prop_thrust_constraint
         top_prop_pwm = np.clip(top_prop_pwm, 0, 1)
         bottom_prop_pwm = np.clip(bottom_prop_pwm, 0, 1)
         return top_prop_pwm, bottom_prop_pwm
