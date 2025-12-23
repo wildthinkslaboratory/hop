@@ -16,7 +16,7 @@ class TestServos(OffBoardNode):
             self.key = ''
             self.pwm_servos[0] += 0.1
             # self.pwm_servos[1] += 0.1
-            self.get_logger().info('motor pwm ' + str(self.pwm_servos))
+            self.get_logger().info('servo pwm ' + str(self.pwm_servos))
 
             
         elif self.key == 'j':
@@ -37,7 +37,7 @@ class TestServos(OffBoardNode):
 def main(args=None):
     rclpy.init(args=args)
     servo_test = TestServos()
-    servo_test.logging_on = False
+    servo_test.logging_on = True
 
     try:
         rclpy.spin(servo_test)

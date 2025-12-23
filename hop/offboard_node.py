@@ -122,8 +122,8 @@ class OffBoardNode(Node):
             'state': self.state.full().flatten().tolist(),
             'control': self.control.tolist(),
             'pwm_motors': self.pwm_motors,
-            'pwm_servos': self.pwm_servos,
-            'timestamp': perf_counter()
+            'pwm_servos': self.pwm_servos
+            # 'timestamp': perf_counter()
         })
 
 
@@ -194,7 +194,8 @@ class OffBoardNode(Node):
         self.running = False
         termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.settings)
 
-        data = {'constants': mc.__dict__(), 'run_data': self.log_rows}
+        # data = {'constants': mc.__dict__, 'run_data': self.log_rows}
+        data = {'run_data': self.log_rows}
         output_data(data, "src/hop/plotter_logs/current.json")
         formatted_date = datetime.now().strftime("%Y-%m-%d")
         output_data(data, "src/hop/plotter_logs/" + formatted_date + "log.json")

@@ -78,7 +78,7 @@ class Constants:
         # these are (x,y,z) points in world frame meters
         self.waypoints = [
             np.array([0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.25]),
+            np.array([0.0, 0.0, 0.40]),
             np.array([0.0, 0.0, 0.0])
         ]
 

@@ -11,7 +11,7 @@ ssh izzy@X.X.X.X
 Run the MicroAgent
 
 ```
-sudo /usr/local/bin/MicroAgent serial --dev /dev/ttyAMA0 -b 921600
+sudo /usr/local/bin/MicroXRCEAgent serial --dev /dev/ttyAMA0 -b 921600
 ```
 
 When the px4 is connected you should see topics coming in.
