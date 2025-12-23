@@ -1,4 +1,4 @@
-#
+# This is an analysis of our maiden voyage
 #
 from hop.drone_model import DroneModel
 from hop.drone_model_randomized import DroneModelRandom
@@ -80,7 +80,7 @@ for test in test_list:
     mpc = DroneNMPCdompc(mc.dt, model_believed.model)
 
     estimator = StateFeedback(model_believed.model)
-    sim = Simulator(model_actual.model)
+    sim = Simulator(model_believed.model)
     sim.set_param(t_step = mc.dt)
 
     # this is annoying but necessary
