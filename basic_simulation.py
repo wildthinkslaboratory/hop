@@ -44,7 +44,7 @@ for test in test_list:
 
     # run fine grained solver for a reference trajectory
     # the accuracy of other runs are assessed relative to this trajectory
-    model = DroneModel()
+    model = DroneModel(mc)
     mpc = DroneNMPCdompc(mc.dt, model.model)
 
     estimator = StateFeedback(model.model)

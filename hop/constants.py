@@ -11,7 +11,7 @@ class Constants:
 
         # model related constants
         # ---------------------------------------------------------------
-        self.m = 1.5    # mass of drone in kg
+        self.m = 1.574    # mass of drone in kg
 
         self.gx = 0     # acceleration due to gravity in world frame
         self.gy = 0
@@ -22,15 +22,11 @@ class Constants:
             self.gz
         ])
 
-        self.Ixx = 0.06     # moments of inertia
-        self.Iyy = 0.06
-        self.Izz = 0.012
-
-        # self.Ixx =  0.0593     # moments of inertia
-        # self.Iyy =  0.0602
-        # self.Izz =  0.0132
-        self.Ixz =  0.0000
-        self.Iyz =  0.0000
+        self.Ixx =  0.0586     # moments of inertia
+        self.Iyy =  0.0590
+        self.Izz =  0.0126
+        self.Ixz =  0.0003
+        self.Iyz =  0.0010
 
 
         self.I = np.array([
@@ -40,9 +36,9 @@ class Constants:
         ])
 
         self.moment_arm = np.array([
-            0.0,
-            0.0,
-            -0.18 / 2
+            0.000045,
+            -0.000033,
+            -0.21
         ])
 
 
