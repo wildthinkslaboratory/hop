@@ -72,10 +72,6 @@ class NMPC(OffBoardNode):
         bottom_prop_thrust = thrust_values[0] - thrust_values[1]/2
         top_prop_pwm = np.clip(top_prop_thrust, 0, 1)
         bottom_prop_pwm = np.clip(bottom_prop_thrust, 0, 1)
-
-        # top_prop_pwm = 0.4
-        # bottom_prop_pwm = 0.4
-
         return top_prop_pwm, bottom_prop_pwm
 
     def control_translator(self):

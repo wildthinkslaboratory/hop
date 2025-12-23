@@ -10,10 +10,13 @@ from plots import plot_state, plot_control, plot_pwm
 
 
 log = import_data('./plotter_logs/current.json')    
-constants = log['constants']
+# constants = log['constants']
+# dt = constants['dt']
+dt = 0.02
 data = log['run_data']
 
-tspan = np.arange(0, len(data) * constants['dt'], constants['dt'])
+tspan = np.arange(0, len(data) * dt , dt)
+print(tspan)
 state_data = np.empty([len(data),13])
 control_data = np.empty([len(data),4])
 pwm_servos = np.empty([len(data),2])
@@ -27,6 +30,7 @@ for i, d in enumerate(data):
     pwm_motors[i] = np.array(d['pwm_motors'])
 
 # build the plots
+print(tspan.shape, state_data.shape)
 plot_state(tspan, state_data)
 plot_control(tspan, control_data)
 plot_pwm(tspan, pwm_servos, pwm_motors)

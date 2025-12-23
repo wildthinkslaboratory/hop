@@ -21,17 +21,17 @@ print(mc.__dict__)
 
 test_list = import_data('./nmpc_test_cases.json')  
 
-# test_list = [
-#   {
-#     "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-#     "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-#     "animation_forward": [0.0, -0.2, -1],
-#     "animation_up": [0, 1, 0],
-#     "animation_frame_rate": 0.8,
-#     "num_iterations": 200,
-#     "title": "hover"
-#   },
-# ]
+test_list = [
+  {
+    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [0.0, -0.2, -1],
+    "animation_up": [0, 1, 0],
+    "animation_frame_rate": 0.8,
+    "num_iterations": 500,
+    "title": "hover"
+  },
+]
 
 
 for test in test_list:
@@ -44,11 +44,22 @@ for test in test_list:
 
     # run fine grained solver for a reference trajectory
     # the accuracy of other runs are assessed relative to this trajectory
-    model = DroneModel()
+    model = DroneModel(mc)
+
+    mc.m = 1.601
+    mc.moment_arm = np.array([0.005, -0.001, -0.21])
+    mc.I = np.array([
+        [0.0595, 0.0000, 0.0019],
+        [0.0000, 0.0601, 0.0009],
+        [0.0019, 0.0009, 0.0133]
+        ])
+    
+    model_actual = DroneModel(mc)
+
     mpc = DroneNMPCdompc(mc.dt, model.model)
 
     estimator = StateFeedback(model.model)
-    sim = Simulator(model.model)
+    sim = Simulator(model_actual.model)
     sim.set_param(t_step = mc.dt)
 
     # this is annoying but necessary
@@ -92,18 +103,11 @@ for test in test_list:
 
 
     
-    # error = xr - x0
-    # squared_error = error.T @ error
-    # terminal_error.append(squared_error)
-
-    # print('terminal error', squared_error)
     # # uncomment if you want to see plots of the trajectories
     print(test["title"])
     plot_state_for_paper(tspan, state_data, test["title"], 1)
     plot_control_for_paper(tspan, control_data, test["title"], 2)
     plt.show()
 
-# error = xr - x_init
-# print(error.T @ error)
-# print(terminal_error)
+
 

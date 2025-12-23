@@ -3,12 +3,13 @@ import casadi as ca
 from casadi import sin, cos
 import do_mpc
 
-from hop.constants import Constants
+# from hop.constants import Constants
 
-mc = Constants()
+# mc = Constants()
 
 class DroneModel:
-    def __init__(self):
+    def __init__(self, mc):
+        self.mc = mc
 
         self.model = do_mpc.model.Model('continuous' , 'SX')
         p = self.model.set_variable(var_type='_x', var_name='p', shape=(3,1))
@@ -24,7 +25,8 @@ class DroneModel:
         p_goal = self.model.set_variable(var_type='_p', var_name='p_goal', shape=(3,1))
 
 
-        I_mat = ca.diag(mc.I_diag)
+        # I_mat = ca.diag(mc.I_diag)
+        I_mat = ca.DM(mc.I)
         F = mc.a * u[2]**2 + mc.b * u[2] + mc.c 
         M = mc.d * mc.Izz * u[3]
 
