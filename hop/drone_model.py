@@ -3,9 +3,6 @@ import casadi as ca
 from casadi import sin, cos
 import do_mpc
 
-# from hop.constants import Constants
-
-# mc = Constants()
 
 class DroneModel:
     def __init__(self, mc):

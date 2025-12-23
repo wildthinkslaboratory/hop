@@ -42,10 +42,19 @@ for test in test_list:
     xr = ca.DM(test['xr'])
     tspan = np.arange(0,num_iterations* mc.dt,mc.dt)
 
-    # run fine grained solver for a reference trajectory
-    # the accuracy of other runs are assessed relative to this trajectory
-    model = DroneModel(mc)
+    # first we set up the constants used in our maiden voyage
+    # and create a model with those constants
+    mc.m = 1.5
+    mc.moment_arm = np.array([0.0, 0.0, -0.18 / 2])
+    mc.I = np.array([
+        [0.0600, 0.0000, 0.0000],
+        [0.0000, 0.0600, 0.0000],
+        [0.0000, 0.0000, 0.0120]
+        ])
+    model_believed = DroneModel(mc)
 
+    # now we create a model with constants that more closely
+    # resemble the actual real world values
     mc.m = 1.601
     mc.moment_arm = np.array([0.005, -0.001, -0.21])
     mc.I = np.array([
@@ -53,12 +62,24 @@ for test in test_list:
         [0.0000, 0.0601, 0.0009],
         [0.0019, 0.0009, 0.0133]
         ])
-    
     model_actual = DroneModel(mc)
 
-    mpc = DroneNMPCdompc(mc.dt, model.model)
+    # here's were we can try different things
+    #
+    # 1. try using the model_believed for the mpc, estimator and simulator
+    #    you will see the behavior we expected
+    #
+    # 2. try using the model_actual for mpc, estimator and simulator
+    #    You will see that the drone can handle these values, but the gimbal
+    #    angles steady state is not zero to adjust for the off center COM
+    #
+    # 3. try using model_believed for mpc and estimator, but use model_actual
+    #    for the simulator. The drone can't handle this. It can't seem to move in the
+    #    positive Y direction and gets stuck over at -1.5 meters. Notice that the
+    #    steady state gimbal values are about the same as in experiment #2.
+    mpc = DroneNMPCdompc(mc.dt, model_believed.model)
 
-    estimator = StateFeedback(model.model)
+    estimator = StateFeedback(model_believed.model)
     sim = Simulator(model_actual.model)
     sim.set_param(t_step = mc.dt)
 
