@@ -297,7 +297,7 @@ def plot_state_for_sensitivity(tspan, data, title, plot_no):
     plt.figure(plot_no)
 
     plt.subplot(4, 1, 1)
-    plt.ylim([-1, 1])
+    plt.ylim([-1, 1.5])
     for i in range(3):
         plt.plot(tspan, data[:,i])
     plt.ylabel('$x$')

@@ -20,17 +20,17 @@ mc = Constants()
 
 test_list = import_data('./nmpc_test_cases.json')  
 
-test_list = [
-  {
-    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [0.0, -0.2, -1],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.8,
-    "num_iterations": 500,
-    "title": "hover"
-  },
-]
+# test_list = [
+#   {
+#     "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+#     "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+#     "animation_forward": [0.0, -0.2, -1],
+#     "animation_up": [0, 1, 0],
+#     "animation_frame_rate": 0.8,
+#     "num_iterations": 500,
+#     "title": "hover"
+#   },
+# ]
 
 
 for test in test_list:
@@ -54,7 +54,7 @@ for test in test_list:
     mar = 0.001
     mir = 0.001
 
-    for i in range(5):
+    for i in range(4):
 
         mc.moment_arm[0] = x_moment 
         mc.moment_arm[1] = y_moment 
