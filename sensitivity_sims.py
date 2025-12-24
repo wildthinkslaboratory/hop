@@ -127,6 +127,12 @@ for test in test_list:
             if not mpc.mpc.solver_stats['return_status'] == 'Solve_Succeeded':
                 print(mpc.mpc.solver_stats['return_status'])
 
+        # compute statistics for the timing of the nmpc calls
+        mean_time = round(stats.mean(time_data),3)
+        max_time = round(max(time_data),3) 
+        print('mean time: ', mean_time)
+        print('max time: ', max_time)
+
 
 
         # # uncomment if you want to see plots of the trajectories
