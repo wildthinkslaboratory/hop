@@ -15,7 +15,7 @@ class NMPC(OffBoardNode):
     def __init__(self):
         super().__init__('nmpc_controller', timelimit=100, dt=mc.dt)
 
-        self.model = DroneModel()
+        self.model = DroneModel(mc)
         self.mpc = DroneNMPCdompc(mc.dt, self.model.model)
         self.mpc.setup_cost()
         self.mpc.set_start_state(mc.x0)

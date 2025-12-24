@@ -13,7 +13,7 @@ import statistics as stats
 from time import perf_counter
 import matplotlib.pyplot as plt
 from matplotlib import colors
-from plots import plot_comparison, plot_state_for_paper, plot_control_for_paper
+from plots import plot_comparison, plot_state_for_sensitivity, plot_control_for_sensitivity
 from hop.utilities import sig_figs
 mc = Constants()
 
@@ -80,7 +80,7 @@ for test in test_list:
     mpc = DroneNMPCdompc(mc.dt, model_believed.model)
 
     estimator = StateFeedback(model_believed.model)
-    sim = Simulator(model_believed.model)
+    sim = Simulator(model_actual.model)
     sim.set_param(t_step = mc.dt)
 
     # this is annoying but necessary
@@ -126,8 +126,8 @@ for test in test_list:
     
     # # uncomment if you want to see plots of the trajectories
     print(test["title"])
-    plot_state_for_paper(tspan, state_data, test["title"], 1)
-    plot_control_for_paper(tspan, control_data, test["title"], 2)
+    plot_state_for_sensitivity(tspan, state_data, test["title"], 1)
+    plot_control_for_sensitivity(tspan, control_data, test["title"], 2)
     plt.show()
 
 
