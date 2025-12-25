@@ -11,8 +11,7 @@ class Constants:
 
         # model related constants
         # ---------------------------------------------------------------
-        self.m = 1.5    # mass of drone in kg
-        self.l = 0.18   # length from point of thrust to center of mass in meters
+        self.m = 1.574    # mass of drone in kg
 
         self.gx = 0     # acceleration due to gravity in world frame
         self.gy = 0
@@ -23,22 +22,28 @@ class Constants:
             self.gz
         ])
 
-        self.Ixx = 0.06     # moments of inertia
-        self.Iyy = 0.06
-        self.Izz = 0.012
-        self.moment_arm = np.array([
-            0,
-            0,
-            -self.l/2
-        ])
+        self.Ixx =  0.0586     # moments of inertia
+        self.Iyy =  0.0590
+        self.Izz =  0.0126
+        self.Ixz =  0.0003
+        self.Iyz =  0.0010
+
 
         self.I = np.array([
-            [self.Ixx,0,0],
-            [0,self.Iyy,0],
-            [0,0,self.Izz]
+            [self.Ixx, 0.0,      self.Ixz],
+            [0.0,      self.Iyy, self.Iyz],
+            [self.Ixz, self.Iyz, self.Izz]
         ])
 
-        self.I_diag = [self.Ixx, self.Iyy, self.Izz]
+        self.moment_arm = np.array([
+             0.000045,
+            -0.000033,
+            -0.211626
+        ])
+
+
+
+        self.I_diag_temp = [self.Ixx, self.Iyy, self.Izz]
         self.I_inv = np.linalg.inv(self.I)
 
         # thrust model and mapping
@@ -69,7 +74,7 @@ class Constants:
         self.dt = 0.02 # 50 Hz like in paper
         self.x0 = ca.vertcat(0.0,0.0,0.0, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0) # initial state 
         # self.Q = ca.DM.eye(13)                                                       # state cost matrix
-        self.Q = ca.diag([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 ]) 
+        self.Q = ca.diag([20.0, 20.0, 20.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 ]) 
         self.R = ca.diag([0.03, 0.03, 1, 0.03])                                      # control cost matrix
         self.xr = ca.vertcat(0.0,0.0,0.0, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0) # goal state
         self.ur = ca.DM([0.0, 0.0, self.hover_thrust, 0.0])                          # goal control

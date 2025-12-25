@@ -20,7 +20,7 @@ class DroneModelRandom:
         u = self.model.set_variable(var_type='_u', var_name='u', shape=(4,1))
 
         m_noisy = mc.m #* (1 + np.random.normal(0, 0.1))
-        noisy_inertia = mc.I_diag # * (1 + np.random.normal(0, 0.1, 3))
+        noisy_inertia = mc.I_diag_temp # * (1 + np.random.normal(0, 0.1, 3))
         noisy_moment_arm = mc.moment_arm # + np.random.normal(0, 0.002, 3)
         noisy_a = mc.a + np.random.normal(0, 0.000)
         noisy_b = mc.b + np.random.normal(0, 0.000)

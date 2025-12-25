@@ -291,3 +291,64 @@ def plot_comparison(tspan, data, title, plot_no, ylab):
     plt.legend(loc='lower right')
     plt.savefig("time" + title  + ".pdf", format="pdf", bbox_inches="tight")
 
+def plot_state_for_sensitivity(tspan, data, title, plot_no):
+
+    plt.figure(figsize=(6,8))
+    plt.figure(plot_no)
+
+    plt.subplot(4, 1, 1)
+    plt.ylim([-1, 1.5])
+    for i in range(3):
+        plt.plot(tspan, data[:,i])
+    plt.ylabel('$x$')
+
+
+    plt.subplot(4, 1, 2)
+    for i in range(3):
+        plt.plot(tspan, data[:,i+3])
+    plt.ylabel('$v$')
+
+    plt.subplot(4, 1, 3)
+    for i in range(4):
+        plt.plot(tspan, data[:,i+6])
+    plt.ylabel('$q$')
+
+    plt.subplot(4, 1, 4)
+    for i in range(3):
+        plt.plot(tspan, data[:,i+10])
+    plt.ylabel('$w$')
+
+    plt.xlabel('Time (sec)')
+    plt.savefig("state" + title + str(plot_no) + ".pdf", format="pdf", bbox_inches="tight")
+
+
+
+def plot_control_for_sensitivity(tspan, control, title, plot_no):
+
+    plt.figure(figsize=(6,6))
+    plt.figure(plot_no)
+    
+    
+    # gimbal angles
+    plt.subplot(3, 1, 1)
+
+    plt.ylim([-5,5])
+    for i in range(2):
+        plt.plot(tspan, control[:,i])
+    plt.ylabel('$\\theta$')
+
+    # average thrust
+    plt.subplot(3, 1, 2)
+    plt.ylim([0,1])
+    plt.plot(tspan, control[:,2])
+    plt.ylabel('$\\overline{P}$')
+
+    # delta thrust
+    plt.subplot(3, 1, 3)
+    plt.ylim([-0.5, 0.5])
+    plt.plot(tspan, control[:,3])
+    plt.ylabel('$\\Delta P$')
+
+
+    plt.xlabel('Time (sec)')
+    plt.savefig("control" + title + str(plot_no) + ".pdf", format="pdf", bbox_inches="tight")

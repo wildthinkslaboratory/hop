@@ -5,7 +5,7 @@
     "animation_forward": [0.0, -0.2, -1],
     "animation_up": [0, 1, 0],
     "animation_frame_rate": 0.8,
-    "num_iterations": 200,
+    "num_iterations": 500,
     "waypoint": [0.0, 0.0, 0.0],
     "title": "hover"
   },
@@ -15,7 +15,7 @@
     "animation_forward": [0.0, -0.2, -1],
     "animation_up": [0, 1, 0],
     "animation_frame_rate": 0.8,
-    "num_iterations": 200,
+    "num_iterations": 500,
     "waypoint": [0.0, 0.0, 0.0],
     "title": "drop_down"
   },
@@ -35,7 +35,7 @@
     "animation_forward": [1, -0.5, -1],
     "animation_up": [0, 1, 0],
     "animation_frame_rate": 0.4,
-    "num_iterations": 200,
+    "num_iterations": 500,
     "waypoint": [0.0, 0.0, 0.0],
     "title": "x1z1vx"
   },
@@ -45,7 +45,7 @@
     "animation_forward": [-1, -0.1, -0.2],
     "animation_up": [0, 1, 0],
     "animation_frame_rate": 0.4,
-    "num_iterations": 250,
+    "num_iterations": 500,
     "waypoint": [0.0, 0.0, 0.0],
     "title": "y115dx"
   }

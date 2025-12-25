@@ -3,11 +3,11 @@ from casadi import sin, cos
 import numpy as np
 
 from hop.constants import Constants
-mc = Constants()
+
 
 class DroneNMPCMultiShoot:
-    def __init__(self):
-
+    def __init__(self, mc):
+        self.mc = mc
         self.N = 10
         self.dt = 0.2
 
@@ -22,7 +22,7 @@ class DroneNMPCMultiShoot:
 
         # Now we build up the equations of motion and create a function
         # for the system dynamics
-        I_mat = ca.diag(mc.I_diag)
+        I_mat = ca.DM(mc.I)
         F = mc.a * self.u[2]**2 + mc.b * self.u[2] + mc.c 
         M = mc.d * mc.Izz * self.u[3]
 
@@ -98,10 +98,10 @@ class DroneNMPCMultiShoot:
 
         self.lbx[2: n_x_vars: self.size_x()] = 0     # keep z position above 0
 
-        self.lbx[n_x_vars:   num_vars: self.size_u()] = mc.outer_gimbal_range[0]     # outer gimbal lower bound
-        self.lbx[n_x_vars+1: num_vars: self.size_u()] = mc.inner_gimbal_range[0]     # inner gimbal lower bound
-        self.ubx[n_x_vars:   num_vars: self.size_u()] = mc.outer_gimbal_range[1]     # outer gimbal upper bound
-        self.ubx[n_x_vars+1: num_vars: self.size_u()] = mc.inner_gimbal_range[1]     # inner gimbal upper bound
+        self.lbx[n_x_vars:   num_vars: self.size_u()] = self.mc.outer_gimbal_range[0]     # outer gimbal lower bound
+        self.lbx[n_x_vars+1: num_vars: self.size_u()] = self.mc.inner_gimbal_range[0]     # inner gimbal lower bound
+        self.ubx[n_x_vars:   num_vars: self.size_u()] = self.mc.outer_gimbal_range[1]     # outer gimbal upper bound
+        self.ubx[n_x_vars+1: num_vars: self.size_u()] = self.mc.inner_gimbal_range[1]     # inner gimbal upper bound
 
         # g constraints contain an expression that is constrained by an upper and lower bound
         self.lbg = []   # will hold lower bounds for g constraints
@@ -121,8 +121,8 @@ class DroneNMPCMultiShoot:
 
             # here we build up the cost function by summing up the squared
             # error from the goal state over each time step
-            state_error_cost = (x_k - self.x_goal).T @ mc.Q @ (x_k - self.x_goal)
-            control_cost = (u_k - mc.ur).T @ mc.R @ (u_k - mc.ur)
+            state_error_cost = (x_k - self.x_goal).T @ self.mc.Q @ (x_k - self.x_goal)
+            control_cost = (u_k - self.mc.ur).T @ self.mc.R @ (u_k - self.mc.ur)
             self.cost = self.cost + state_error_cost + control_cost
 
             # here we create the constraints that require the solution
@@ -141,27 +141,27 @@ class DroneNMPCMultiShoot:
             self.ubg += [0.0]*int(next_state.numel())
 
             # build up the upper thrust limit constraints         
-            g   = ca.vertcat(g, u_k[2] + 0.5*u_k[3] - mc.prop_thrust_constraint)
-            g   = ca.vertcat(g, u_k[2] - 0.5*u_k[3] - mc.prop_thrust_constraint)
+            g   = ca.vertcat(g, u_k[2] + 0.5*u_k[3] - self.mc.prop_thrust_constraint)
+            g   = ca.vertcat(g, u_k[2] - 0.5*u_k[3] - self.mc.prop_thrust_constraint)
             self.lbg += [-ca.inf]*2
             self.ubg += [0.0]*2
 
-            if mc.nmpc_rate_constraints:
+            if self.mc.nmpc_rate_constraints:
                 if k < self.N-1:
                     next_u = U[:, k+1]  
-                    g   = ca.vertcat(g, u_k[0] - next_u[0] - mc.theta_dot_constraint)
-                    g   = ca.vertcat(g, u_k[1] - next_u[1] - mc.theta_dot_constraint)
+                    g   = ca.vertcat(g, u_k[0] - next_u[0] - self.mc.theta_dot_constraint)
+                    g   = ca.vertcat(g, u_k[1] - next_u[1] - self.mc.theta_dot_constraint)
                     self.lbg += [-ca.inf]*2
                     self.ubg += [0.0]*2
 
-                    g   = ca.vertcat(g, u_k[2] - next_u[2] - mc.thrust_dot_limit)
+                    g   = ca.vertcat(g, u_k[2] - next_u[2] - self.mc.thrust_dot_limit)
                     self.lbg += [-ca.inf]
                     self.ubg += [0.0]
 
 
         x_N = X[:, self.N]             # final state
         e_N = x_N - self.x_goal        # final error
-        Qf  = mc.Q                     # terminal weight matrix (scale Q heavier)
+        Qf  = self.mc.Q                     # terminal weight matrix (scale Q heavier)
         self.cost = self.cost + e_N.T @ Qf @ e_N
 
 
@@ -176,7 +176,7 @@ class DroneNMPCMultiShoot:
         }
 
         # dictionary for our solver options
-        opts = mc.ipopt_settings
+        opts = self.mc.ipopt_settings
 
         self.solver = ca.nlpsol('solver', 'ipopt', nlp_prob, opts)
         
@@ -186,7 +186,7 @@ class DroneNMPCMultiShoot:
         x_initial_guess = ca.DM([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
         X_init = np.tile(np.array(x_initial_guess).reshape(-1,1), (1, self.N+1))
         
-        U_init = np.tile(mc.ur, self.N)
+        U_init = np.tile(self.mc.ur, self.N)
         
         # glue this all together to make our initial guess
         self.init_guess = np.concatenate([X_init.reshape(-1, order='F'),

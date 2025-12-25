@@ -1,4 +1,4 @@
-#
+# This is an analysis of our maiden voyage
 #
 from hop.drone_model import DroneModel
 from hop.drone_model_randomized import DroneModelRandom
@@ -13,7 +13,7 @@ import statistics as stats
 from time import perf_counter
 import matplotlib.pyplot as plt
 from matplotlib import colors
-from plots import plot_comparison, plot_state_for_paper, plot_control_for_paper
+from plots import plot_comparison, plot_state_for_sensitivity, plot_control_for_sensitivity
 from hop.utilities import sig_figs
 mc = Constants()
 
@@ -21,17 +21,17 @@ print(mc.__dict__)
 
 test_list = import_data('./nmpc_test_cases.json')  
 
-# test_list = [
-#   {
-#     "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-#     "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-#     "animation_forward": [0.0, -0.2, -1],
-#     "animation_up": [0, 1, 0],
-#     "animation_frame_rate": 0.8,
-#     "num_iterations": 200,
-#     "title": "hover"
-#   },
-# ]
+test_list = [
+  {
+    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [0.0, -0.2, -1],
+    "animation_up": [0, 1, 0],
+    "animation_frame_rate": 0.8,
+    "num_iterations": 500,
+    "title": "hover"
+  },
+]
 
 
 for test in test_list:
@@ -42,13 +42,45 @@ for test in test_list:
     xr = ca.DM(test['xr'])
     tspan = np.arange(0,num_iterations* mc.dt,mc.dt)
 
-    # run fine grained solver for a reference trajectory
-    # the accuracy of other runs are assessed relative to this trajectory
-    model = DroneModel(mc)
-    mpc = DroneNMPCdompc(mc.dt, model.model)
+    # first we set up the constants used in our maiden voyage
+    # and create a model with those constants
+    mc.m = 1.5
+    mc.moment_arm = np.array([0.0, 0.0, -0.18 / 2])
+    mc.I = np.array([
+        [0.0600, 0.0000, 0.0000],
+        [0.0000, 0.0600, 0.0000],
+        [0.0000, 0.0000, 0.0120]
+        ])
+    model_believed = DroneModel(mc)
 
-    estimator = StateFeedback(model.model)
-    sim = Simulator(model.model)
+    # now we create a model with constants that more closely
+    # resemble the actual real world values
+    mc.m = 1.601
+    mc.moment_arm = np.array([0.005, -0.001, -0.21])
+    mc.I = np.array([
+        [0.0595, 0.0000, 0.0019],
+        [0.0000, 0.0601, 0.0009],
+        [0.0019, 0.0009, 0.0133]
+        ])
+    model_actual = DroneModel(mc)
+
+    # here's were we can try different things
+    #
+    # 1. try using the model_believed for the mpc, estimator and simulator
+    #    you will see the behavior we expected
+    #
+    # 2. try using the model_actual for mpc, estimator and simulator
+    #    You will see that the drone can handle these values, but the gimbal
+    #    angles steady state is not zero to adjust for the off center COM
+    #
+    # 3. try using model_believed for mpc and estimator, but use model_actual
+    #    for the simulator. The drone can't handle this. It can't seem to move in the
+    #    positive Y direction and gets stuck over at -1.5 meters. Notice that the
+    #    steady state gimbal values are about the same as in experiment #2.
+    mpc = DroneNMPCdompc(mc.dt, model_believed.model)
+
+    estimator = StateFeedback(model_believed.model)
+    sim = Simulator(model_actual.model)
     sim.set_param(t_step = mc.dt)
 
     # this is annoying but necessary
@@ -92,18 +124,11 @@ for test in test_list:
 
 
     
-    # error = xr - x0
-    # squared_error = error.T @ error
-    # terminal_error.append(squared_error)
-
-    # print('terminal error', squared_error)
     # # uncomment if you want to see plots of the trajectories
     print(test["title"])
-    plot_state_for_paper(tspan, state_data, test["title"], 1)
-    plot_control_for_paper(tspan, control_data, test["title"], 2)
+    plot_state_for_sensitivity(tspan, state_data, test["title"], 1)
+    plot_control_for_sensitivity(tspan, control_data, test["title"], 2)
     plt.show()
 
-# error = xr - x_init
-# print(error.T @ error)
-# print(terminal_error)
+
 
