@@ -37,7 +37,7 @@ class TestServos(OffBoardNode):
 def main(args=None):
     rclpy.init(args=args)
     servo_test = TestServos()
-    servo_test.logging_on = True
+    servo_test.logging_on = False
 
     try:
         rclpy.spin(servo_test)

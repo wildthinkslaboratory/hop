@@ -1,6 +1,6 @@
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
-from px4_msgs.msg import ActuatorMotors, ActuatorServos, OffboardControlMode, VehicleStatus, VehicleCommand, VehicleOdometry
+from px4_msgs.msg import VehicleStatus, ActuatorMotors, ActuatorServos, OffboardControlMode, VehicleStatus, VehicleCommand, VehicleOdometry
 from rclpy.qos import qos_profile_sensor_data
 from time import perf_counter
 
@@ -52,6 +52,14 @@ class OffBoardNode(Node):
             qos_profile_sensor_data
         )
 
+        self.vehicle_status = self.create_subscription(
+            VehicleStatus,
+            '/fmu/out/vehicle_status',
+            self.status_callback,
+            qos_profile_sensor_data
+        )
+
+
         # we create our own thread to listen for keyboard strokes
         self.settings = termios.tcgetattr(sys.stdin)
         tty.setcbreak(sys.stdin.fileno())
@@ -92,6 +100,7 @@ class OffBoardNode(Node):
 
         ####################  locally store data ###################
         self.state = mc.x0
+        self.armed = False
         self.control = np.array([0.0, 0.0, 0.0, 0.0])
         self.pwm_motors = [0.0, 0.0]
         self.pwm_servos = [0.0, 0.0]
@@ -111,12 +120,12 @@ class OffBoardNode(Node):
         if not self.timelimit == None and self.count * self.dt > self.timelimit:
             raise SystemExit  # time to exit node
 
-        if self.count > 10:
-            self.offboard_arm()
-
         self.maintain_offboard()
         self.run_motors()
         self.run_servos()
+
+        if self.count >= 50 and self.count % 50 == 0:
+            self.offboard_arm()
 
         self.log_rows.append({
             'state': self.state.full().flatten().tolist(),
@@ -126,6 +135,14 @@ class OffBoardNode(Node):
             # 'timestamp': perf_counter()
         })
 
+    # recieve armed status
+    def status_callback(self, msg):
+        was_armed = self.armed
+        if msg.arming_state == VehicleStatus.ARMING_STATE_ARMED:
+            self.armed = True
+            self.get_logger().info('Vehicle is ARMED', once=True)
+        else:
+            self.get_logger().info('Vehicle is NOT armed', once=True)
 
     # recieve vehicle odometry message
     def state_callback(self, msg):
@@ -211,7 +228,7 @@ class OffBoardNode(Node):
         msg.param1, msg.param2 = float(p1), float(p2)
         msg.target_system = 1
         msg.target_component = 1
-        msg.source_system = 1
+        msg.source_system = 2
         msg.source_component = 1
         msg.from_external = True
         self.publisher_vehicle_command.publish(msg)
