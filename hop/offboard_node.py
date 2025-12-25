@@ -141,8 +141,9 @@ class OffBoardNode(Node):
         if msg.arming_state == VehicleStatus.ARMING_STATE_ARMED:
             self.armed = True
             self.get_logger().info('Vehicle is ARMED', once=True)
-        else:
-            self.get_logger().info('Vehicle is NOT armed', once=True)
+        elif msg.arming_state == VehicleStatus.ARMING_STATE_DISARMED:
+            self.armed = False
+            self.get_logger().info('Vehicle is DISARMED', once=True)
 
     # recieve vehicle odometry message
     def state_callback(self, msg):
@@ -211,6 +212,8 @@ class OffBoardNode(Node):
         self.running = False
         termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.settings)
 
+        self.disarm()
+
         # data = {'constants': mc.__dict__, 'run_data': self.log_rows}
         data = {'run_data': self.log_rows}
         output_data(data, "src/hop/plotter_logs/current.json")
@@ -270,6 +273,10 @@ class OffBoardNode(Node):
         if self.logging_on:
             self.get_logger().info('Publishing arm and offboard mode commands')
 
+    def disarm(self):
+        self.publish_vehicle_command(
+            VehicleCommand.VEHICLE_CMD_COMPONENT_ARM_DISARM, 0.0
+        )
 
     def maintain_offboard(self):
         offboard_msg = OffboardControlMode()

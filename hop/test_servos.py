@@ -15,14 +15,14 @@ class TestServos(OffBoardNode):
         if self.key == 'u':
             self.key = ''
             self.pwm_servos[0] += 0.1
-            # self.pwm_servos[1] += 0.1
+            self.pwm_servos[1] += 0.1
             self.get_logger().info('servo pwm ' + str(self.pwm_servos))
 
             
         elif self.key == 'j':
             self.key = ''
             self.pwm_servos[0] -= 0.1
-            # self.pwm_servos[1] -= 0.1
+            self.pwm_servos[1] -= 0.1
             self.get_logger().info('motor pwm ' + str(self.pwm_servos))
 
         elif not self.key == '':
