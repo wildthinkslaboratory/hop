@@ -107,6 +107,8 @@ class OffBoardNode(Node):
         self.log_rows = []
         self.timer = self.create_timer(self.dt, self.timer_callback)
         self.count = 0
+        self.x_offset = 0.0  # offsets needed for optical flow
+        self.y_offset = 0.0
 
 
 
@@ -124,7 +126,8 @@ class OffBoardNode(Node):
         self.run_motors()
         self.run_servos()
 
-        if self.count >= 50 and self.count % 50 == 0:
+
+        if not self.armed and self.count >= 100 and self.count % 50 == 0:
             self.offboard_arm()
 
         self.log_rows.append({
@@ -140,6 +143,8 @@ class OffBoardNode(Node):
         was_armed = self.armed
         if msg.arming_state == VehicleStatus.ARMING_STATE_ARMED:
             self.armed = True
+            self.x_offset = state[0]
+            self.y_offset = state[1]
             self.get_logger().info('Vehicle is ARMED', once=True)
         elif msg.arming_state == VehicleStatus.ARMING_STATE_DISARMED:
             self.armed = False
@@ -161,7 +166,7 @@ class OffBoardNode(Node):
         # position is translated from NED to ENU
         pos = np.array(msg.position)
         vel = np.array(msg.velocity)
-        state[0:3] = [pos[1], pos[0], -pos[2]]
+        state[0:3] = [pos[1] - self.x_offset, pos[0] - self.y_offset, -pos[2]]
         state[3:6] = [vel[1], vel[0], -vel[2]]
     
         # Front Left Up to Front Right Down translation (w, x, y, z)
@@ -217,7 +222,7 @@ class OffBoardNode(Node):
         # data = {'constants': mc.__dict__, 'run_data': self.log_rows}
         data = {'run_data': self.log_rows}
         output_data(data, "src/hop/plotter_logs/current.json")
-        formatted_date = datetime.now().strftime("%Y-%m-%d")
+        formatted_date = datetime.now().strftime("%Y-%m-%d-%H-%M")
         output_data(data, "src/hop/plotter_logs/" + formatted_date + "log.json")
         super().destroy_node()
 
@@ -275,7 +280,9 @@ class OffBoardNode(Node):
 
     def disarm(self):
         self.publish_vehicle_command(
-            VehicleCommand.VEHICLE_CMD_COMPONENT_ARM_DISARM, 0.0
+            VehicleCommand.VEHICLE_CMD_COMPONENT_ARM_DISARM,
+            0.0,          # param1 = disarm
+            21196.0       # param2 = FORCE (disarm in-air)
         )
 
     def maintain_offboard(self):

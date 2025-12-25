@@ -24,6 +24,11 @@ class NMPC(OffBoardNode):
 
     def timer_callback(self):
 
+        # ramp up motors before arming
+        if self.count <= 70 and self.count % 5 == 0:
+            self.pwm_motors[0] += 0.05
+            self.pwm_motors[1] += 0.05
+
         # quit if someone pressed a key
         if self.key == 'u':
             self.key = ''
