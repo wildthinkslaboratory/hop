@@ -76,15 +76,15 @@ class Constants:
         # self.Q = ca.DM.eye(13)                                                       # state cost matrix
         self.Q = ca.diag([20.0, 20.0, 20.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 ]) 
         self.R = ca.diag([0.03, 0.03, 1, 0.03])                                      # control cost matrix
-        self.xr = ca.vertcat(0.0,0.0,0.0, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0) # goal state
+        self.xr = ca.vertcat(0.0,0.0,0.3, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0) # goal state
         self.ur = ca.DM([0.0, 0.0, self.hover_thrust, 0.0])                          # goal control
 
         # list of navigation waypoints for the flight to follow
         # these are (x,y,z) points in world frame meters
         self.waypoints = [
-            np.array([0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.40]),
-            np.array([0.0, 0.0, 0.0])
+            np.array([0.0, 0.0, 0.3]),
+            np.array([0.0, 0.0, 0.50]),
+            np.array([0.0, 0.0, 0.3])
         ]
 
         self.nmpc_rate_constraints = False
