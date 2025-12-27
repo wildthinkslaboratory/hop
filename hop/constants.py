@@ -67,7 +67,7 @@ class Constants:
         self.thrust_dot_limit = 20.0                # thrust rate of change limit in Newtons per second
         self.hover_thrust = 0.8                   # the thrust rate needed to hover
         self.prop_thrust_constraint = 1.0          # max thrust allowed 
-        self.diff_thrust_constraint = [-0.8,0.8]    # min and max thrust difference allowed
+        self.diff_thrust_constraint = [-0.2,0.2]    # min and max thrust difference allowed
 
         # NMPC related constants
         # ---------------------------------------------------------------        
@@ -83,7 +83,7 @@ class Constants:
         # these are (x,y,z) points in world frame meters
         self.waypoints = [
             np.array([0.0, 0.0, 0.3]),
-            np.array([0.0, 0.0, 0.50]),
+            np.array([0.0, 0.0, 0.70]),
             np.array([0.0, 0.0, 0.3])
         ]
 

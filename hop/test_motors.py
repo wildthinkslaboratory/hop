@@ -14,8 +14,8 @@ class TestMotors(OffBoardNode):
         # manage key presses
         if self.key == 'u':
             self.key = ''
-            self.pwm_motors[0] += 0.1
-            self.pwm_motors[1] += 0.1
+            self.pwm_motors[0] += 0.05
+            self.pwm_motors[1] += 0.05
             self.get_logger().info('motor pwm ' + str(self.pwm_motors))
 
         elif not self.key == '':

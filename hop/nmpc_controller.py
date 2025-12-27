@@ -24,6 +24,11 @@ class NMPC(OffBoardNode):
 
     def timer_callback(self):
 
+        # ramp up motors before arming
+        if self.count <= 70 and self.count % 5 == 0:
+            self.pwm_motors[0] += 0.05
+            self.pwm_motors[1] += 0.05
+
         # quit if someone pressed a key
         if self.key == 'u':
             self.key = ''
@@ -68,8 +73,8 @@ class NMPC(OffBoardNode):
         return outer_angle_pwm, inner_angle_pwm
     
     def get_thrust_pwm(self, thrust_values):
-        top_prop_thrust = thrust_values[0] + thrust_values[1]/2
-        bottom_prop_thrust = thrust_values[0] - thrust_values[1]/2
+        top_prop_thrust = thrust_values[0] - thrust_values[1]/2
+        bottom_prop_thrust = thrust_values[0] + thrust_values[1]/2
         top_prop_pwm = np.clip(top_prop_thrust, 0, 1)
         bottom_prop_pwm = np.clip(bottom_prop_thrust, 0, 1)
         return top_prop_pwm, bottom_prop_pwm
