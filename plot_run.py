@@ -9,6 +9,7 @@ from animation import RocketAnimation
 from plots import plot_state, plot_control, plot_pwm
 
 
+#log = import_data('./plotter_logs/2025-12-25-15-49log.json')  
 log = import_data('./plotter_logs/current.json')    
 # constants = log['constants']
 # dt = constants['dt']
@@ -33,7 +34,10 @@ for i, d in enumerate(data):
 print(tspan.shape, state_data.shape)
 plot_state(tspan, state_data)
 plot_control(tspan, control_data)
-plot_pwm(tspan, pwm_servos, pwm_motors)
+
+plt.show()
+
+# plot_pwm(tspan, pwm_servos, pwm_motors)
 
 # show an animation for state and control
 rc = RocketAnimation()

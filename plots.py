@@ -22,7 +22,7 @@ def plot_state(tspan, data):
     axs[3].set_ylabel('$w$')
 
     plt.xlabel('Time')
-    plt.show()
+    # plt.show()
 
 
 def plot_control(tspan, control):
@@ -47,7 +47,7 @@ def plot_control(tspan, control):
     axs[2].set_ylabel('$\\Delta P$')
 
     plt.xlabel('Time')
-    plt.show()
+    # plt.show()
 
 
 def plot_pwm(tspan, pwm_servos, pwm_motors):
