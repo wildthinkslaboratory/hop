@@ -126,7 +126,6 @@ class OffBoardNode(Node):
         self.run_motors()
         self.run_servos()
 
-
         if not self.armed and self.count >= 100 and self.count % 50 == 0:
             self.offboard_arm()
 
@@ -143,12 +142,15 @@ class OffBoardNode(Node):
         was_armed = self.armed
         if msg.arming_state == VehicleStatus.ARMING_STATE_ARMED:
             self.armed = True
-            self.x_offset = state[0]
-            self.y_offset = state[1]
-            self.get_logger().info('Vehicle is ARMED', once=True)
+            self.get_logger().info('Vehicle is ARMED')
         elif msg.arming_state == VehicleStatus.ARMING_STATE_DISARMED:
             self.armed = False
-            self.get_logger().info('Vehicle is DISARMED', once=True)
+            self.get_logger().info('Vehicle is DISARMED')
+
+        # if it switches from disarmed to armed then we set the x and y offsets
+        if not was_armed and self.armed:
+            self.x_offset = self.state[0]
+            self.y_offset = self.state[1]
 
     # recieve vehicle odometry message
     def state_callback(self, msg):
@@ -190,6 +192,8 @@ class OffBoardNode(Node):
         state[10:13] = [ang_vel[1], ang_vel[0], -ang_vel[2]]
 
         self.state = DM(state)
+
+        # self.get_logger().info('offsets ' + str(self.state[0:3]) + ' ' + str(self.x_offset) + ' ' + str(self.y_offset))
 
         if self.logging_on:
             self.get_logger().info(
