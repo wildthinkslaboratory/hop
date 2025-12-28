@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 from matplotlib import colors
 from plots import plot_comparison, plot_state_for_paper, plot_control_for_paper
 from hop.utilities import sig_figs
+from animation import RocketAnimation
 mc = Constants()
 
 print(mc.__dict__)
@@ -32,7 +33,18 @@ test_list = import_data('./nmpc_test_cases.json')
 #     "title": "hover"
 #   },
 # ]
-
+test_list = [
+  {
+    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.383, 0.924, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [-0.2, -0.5, 0.2],
+    "animation_up": [0, 1, 0],
+    "animation_frame_rate": 0.8,
+    "num_iterations": 1000,
+    "waypoint": [0.0, 0.0, 0.0],
+    "title": "45dz"
+  }
+]
 
 for test in test_list:
 
@@ -102,6 +114,9 @@ for test in test_list:
     plot_state_for_paper(tspan, state_data, test["title"], 1)
     plot_control_for_paper(tspan, control_data, test["title"], 2)
     plt.show()
+    rc = RocketAnimation()
+    rc.animate(tspan, state_data, control_data)
+
 
 # error = xr - x_init
 # print(error.T @ error)
