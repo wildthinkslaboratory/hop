@@ -53,17 +53,17 @@ class OffBoardNode(Node):
         )
 
         self.vehicle_status = self.create_subscription(
-            BatteryStatus,
+            VehicleStatus,
             '/fmu/out/vehicle_status',
             self.status_callback,
             qos_profile_sensor_data
         )
 
         self.battery_status = self.create_subscription(
-            VehicleStatus,
+            BatteryStatus,
             '/fmu/out/battery_status',
             self.battery_callback,
-            qos_profile_sensor_data
+            qos_pub
         )
 
 
@@ -164,7 +164,9 @@ class OffBoardNode(Node):
 
     # recieve armed status
     def battery_callback(self, msg):
+
         self.voltage = msg.voltage_v
+        self.get_logger().info('Voltage :' + str(self.voltage))
 
 
     # recieve vehicle odometry message
