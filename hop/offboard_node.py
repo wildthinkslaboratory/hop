@@ -1,6 +1,6 @@
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
-from px4_msgs.msg import VehicleStatus, ActuatorMotors, ActuatorServos, OffboardControlMode, VehicleStatus, VehicleCommand, VehicleOdometry
+from px4_msgs.msg import BatteryStatus, VehicleStatus, ActuatorMotors, ActuatorServos, OffboardControlMode, VehicleStatus, VehicleCommand, VehicleOdometry
 from rclpy.qos import qos_profile_sensor_data
 from time import perf_counter
 
@@ -53,9 +53,16 @@ class OffBoardNode(Node):
         )
 
         self.vehicle_status = self.create_subscription(
-            VehicleStatus,
+            BatteryStatus,
             '/fmu/out/vehicle_status',
             self.status_callback,
+            qos_profile_sensor_data
+        )
+
+        self.battery_status = self.create_subscription(
+            VehicleStatus,
+            '/fmu/out/battery_status',
+            self.battery_callback,
             qos_profile_sensor_data
         )
 
@@ -109,6 +116,7 @@ class OffBoardNode(Node):
         self.count = 0
         self.x_offset = 0.0  # offsets needed for optical flow
         self.y_offset = 0.0
+        self.voltage = 0.0
 
 
 
@@ -133,7 +141,8 @@ class OffBoardNode(Node):
             'state': self.state.full().flatten().tolist(),
             'control': self.control.tolist(),
             'pwm_motors': self.pwm_motors,
-            'pwm_servos': self.pwm_servos
+            'pwm_servos': self.pwm_servos,
+            'voltage': self.voltage
             # 'timestamp': perf_counter()
         })
 
@@ -151,6 +160,12 @@ class OffBoardNode(Node):
         if not was_armed and self.armed:
             self.x_offset = self.state[0]
             self.y_offset = self.state[1]
+
+
+    # recieve armed status
+    def battery_callback(self, msg):
+        self.voltage = msg.voltage_v
+
 
     # recieve vehicle odometry message
     def state_callback(self, msg):
