@@ -166,7 +166,7 @@ class OffBoardNode(Node):
     def battery_callback(self, msg):
 
         self.voltage = msg.voltage_v
-        self.get_logger().info('Voltage :' + str(self.voltage))
+        # self.get_logger().info('Voltage :' + str(self.voltage))
 
 
     # recieve vehicle odometry message
