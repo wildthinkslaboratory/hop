@@ -8,6 +8,7 @@ class Constants:
         # ---------------------------------------------------------------
         self.timelimit = 1 # time limit for a flight in seconds 
 
+        self.battery_v = 25.0 # 25 volt battery
 
         # model related constants
         # ---------------------------------------------------------------
@@ -52,9 +53,9 @@ class Constants:
         self.tcc = 9.81 # thrust curve constant 
         # these values are based on the 21V data from 
         # https://drive.google.com/file/d/1KMV0z-SipDZAr_uxRndRSnhmOHLBXNA5/view
-        self.a = 0.542 * self.tcc
-        self.b = 1.437 * self.tcc
-        self.c = 0.0 * self.tcc
+        self.a = 1.647 * self.tcc
+        self.b = 0.9797 * self.tcc
+        self.c = 0.03 * self.tcc
         # rotation about z axis caused by differential thrust between motors is modeled linearly with d
         self.d = 0.1
 
@@ -65,7 +66,7 @@ class Constants:
         self.inner_gimbal_range = [-13.5,13.5]      # inner gimbal range limit in degrees
         self.theta_dot_constraint = 6.16            # gimbal rate of change limit in degrees per second
         self.thrust_dot_limit = 20.0                # thrust rate of change limit in Newtons per second
-        self.hover_thrust = 0.8                   # the thrust rate needed to hover
+        self.hover_thrust = 0.72                   # the thrust rate needed to hover
         self.prop_thrust_constraint = 1.0          # max thrust allowed 
         self.diff_thrust_constraint = [-0.2,0.2]    # min and max thrust difference allowed
 

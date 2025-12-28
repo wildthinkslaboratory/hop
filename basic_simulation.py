@@ -18,7 +18,6 @@ from hop.utilities import sig_figs
 from animation import RocketAnimation
 mc = Constants()
 
-print(mc.__dict__)
 
 test_list = import_data('./nmpc_test_cases.json')  
 
@@ -33,18 +32,18 @@ test_list = import_data('./nmpc_test_cases.json')
 #     "title": "hover"
 #   },
 # ]
-test_list = [
-  {
-    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.383, 0.924, 0.0, 0.0, 0.0],
-    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [-0.2, -0.5, 0.2],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.8,
-    "num_iterations": 1000,
-    "waypoint": [0.0, 0.0, 0.0],
-    "title": "45dz"
-  }
-]
+# test_list = [
+#   {
+#     "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.383, 0.924, 0.0, 0.0, 0.0],
+#     "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+#     "animation_forward": [-0.2, -0.5, 0.2],
+#     "animation_up": [0, 1, 0],
+#     "animation_frame_rate": 0.8,
+#     "num_iterations": 1000,
+#     "waypoint": [0.0, 0.0, 0.0],
+#     "title": "45dz"
+#   }
+# ]
 
 for test in test_list:
 
@@ -63,14 +62,10 @@ for test in test_list:
     sim = Simulator(model.model)
     sim.set_param(t_step = mc.dt)
 
-    # this is annoying but necessary
-    # the model has a parameter for waypoints
-    # it's used in the mpc cost function only
-    # the simulator get's confused if it has undefined parameters
-    # so we give it a dummy function
+    parameters = np.array([0.0, 0.0, 0.0, 22.0])
     p_template = sim.get_p_template()
     def dummy(t_now):
-        p_template['p_goal'] = np.array([0.0, 0.0, 0.0])
+        p_template['parameters'] = parameters
         return p_template
     sim.set_p_fun(dummy)
 
@@ -85,10 +80,11 @@ for test in test_list:
     time_data = []
     cost_data = []
 
+    
     # print('running reference do-mpc solver')
     for k in range(num_iterations):
         start_time = perf_counter()
-        # mpc.set_waypoint(np.array([0.0, 0.0, 0.0]))
+        mpc.set_waypoint(parameters)
         u0 = mpc.mpc.make_step(x0)
         step_time = perf_counter() - start_time
 
@@ -114,8 +110,8 @@ for test in test_list:
     plot_state_for_paper(tspan, state_data, test["title"], 1)
     plot_control_for_paper(tspan, control_data, test["title"], 2)
     plt.show()
-    rc = RocketAnimation()
-    rc.animate(tspan, state_data, control_data)
+    # rc = RocketAnimation()
+    # rc.animate(tspan, state_data, control_data)
 
 
 # error = xr - x_init
