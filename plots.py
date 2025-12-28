@@ -64,9 +64,9 @@ def plot_pwm(tspan, pwm_servos, pwm_motors):
 
     # pwm thrust
     axs[1].plot(tspan, pwm_motors[:,0])
-    axs[1].set_ylabel('$\\overline{P}$')
+    axs[1].set_ylabel('top motor')
     axs[2].plot(tspan, pwm_motors[:,1])
-    axs[2].set_ylabel('$\\Delta P$')
+    axs[2].set_ylabel('lower motor')
 
     plt.xlabel('Time')
     plt.show()

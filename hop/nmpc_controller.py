@@ -33,7 +33,6 @@ class NMPC(OffBoardNode):
         if self.key == 'u':
             self.key = ''
             self.waypoint_i += 1
-            self.mpc.set_waypoint(mc.waypoints[self.waypoint_i])
             self.get_logger().info('new waypoint ' + str(mc.waypoints[self.waypoint_i]))
     
         elif self.key == 'l':
@@ -48,14 +47,7 @@ class NMPC(OffBoardNode):
             raise SystemExit
 
 
-        # # for attitude testing we are turning off the position data and velocity
-        # self.state[0] = 0.0
-        # self.state[1] = 0.0
-        # self.state[2] = 1.0
-        # self.state[3] = 0.0
-        # self.state[4] = 0.0
-        # self.state[5] = 0.0
-
+        self.mpc.set_waypoint(np.append(mc.waypoints[self.waypoint_i], self.voltage))
         control = self.mpc.mpc.make_step(self.state)
         self.control = np.array(control).flatten()
         self.control_translator()   

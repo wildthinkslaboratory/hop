@@ -59,17 +59,18 @@ class DroneNMPCdompc:
     # set a positional waypoint
     # this gets fed into the NMPC as parameters that are
     # in the goal state.
-    def set_waypoint(self, p_goal):
-        self.p_goal['_p'] = p_goal
+    def set_waypoint(self, parameters):
+        self.parameters['_p'] = parameters
 
     def setup_cost(self):
 
-        # set up the (x,y,z) position as parameters
+        # set up the (x,y,z, voltage) as parameters
         # so we can adjust the goal state with different waypoints
-        self.p_goal = self.mpc.get_p_template(1)
-        self.p_goal['_p'] = np.array([0.0, 0.0, 0.0])
+        # and adjust the voltage
+        self.parameters = self.mpc.get_p_template(1)
+        self.parameters['_p'] = np.array([0.0, 0.0, 0.0, 25.0])
         def p_fun(t_now):
-            return self.p_goal
+            return self.parameters
         self.mpc.set_p_fun(p_fun)
 
         self.mpc.set_objective(lterm=self.model.aux['cost'], mterm=self.model.aux['x_cost'])
