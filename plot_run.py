@@ -47,12 +47,12 @@ plt.plot(tspan, voltage)
 # build the plots
 print(tspan.shape, state_data.shape)
 plot_state(tspan, state_data)
-# plot_control(tspan, control_data)
-# plot_pwm(tspan, pwm_servos, pwm_motors)
+plot_control(tspan, control_data)
+plot_pwm(tspan, pwm_servos, pwm_motors)
 plt.show()
 
 # plot_pwm(tspan, pwm_servos, pwm_motors)
 
 # show an animation for state and control
-# rc = RocketAnimation()
-# rc.animate(tspan, state_data, control_data)
+rc = RocketAnimation()
+rc.animate(tspan, state_data, control_data)

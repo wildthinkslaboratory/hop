@@ -3,10 +3,10 @@ import matplotlib.pyplot as plt
 
 
 
-def plot_state(tspan, data):
+def plot_state(tspan, data, title='State'):
     fig, axs = plt.subplots(4)
     fig.set_figheight(8)
-    fig.suptitle("State")
+    fig.suptitle(title)
 
     for i in range(3):
         axs[0].plot(tspan, data[:,i])
@@ -25,12 +25,12 @@ def plot_state(tspan, data):
     # plt.show()
 
 
-def plot_control(tspan, control):
+def plot_control(tspan, control, title='Control'):
     plt.rcParams['ytick.labelsize'] = 8 
     plt.rcParams['xtick.labelsize'] = 8
     fig, axs = plt.subplots(3)
     fig.set_figheight(8)
-    fig.suptitle("Control")
+    fig.suptitle(title)
 
 
     # gimbal angles
@@ -50,12 +50,12 @@ def plot_control(tspan, control):
     # plt.show()
 
 
-def plot_pwm(tspan, pwm_servos, pwm_motors):
+def plot_pwm(tspan, pwm_servos, pwm_motors, title='pwm'):
     plt.rcParams['ytick.labelsize'] = 8 
     plt.rcParams['xtick.labelsize'] = 8
     fig, axs = plt.subplots(3)
     fig.set_figheight(8)
-    fig.suptitle("Control PWM")
+    fig.suptitle(title)
 
     # pwm gimbal angles
     for i in range(2):

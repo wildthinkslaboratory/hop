@@ -21,36 +21,35 @@ class NMPC(OffBoardNode):
         self.mpc.set_start_state(mc.x0)
 
         self.waypoint_i = 0
+        self.nmpc_on = False
 
     def timer_callback(self):
 
-        # ramp up motors before arming
-        if self.count <= 70 and self.count % 5 == 0:
-            self.pwm_motors[0] += 0.05
-            self.pwm_motors[1] += 0.05
-
-        # quit if someone pressed a key
+        # key press controls
+        # u for next way point
+        # l for land
+        # any other key to cut motors
         if self.key == 'u':
             self.key = ''
             self.waypoint_i += 1
             self.get_logger().info('new waypoint ' + str(mc.waypoints[self.waypoint_i]))
-    
         elif self.key == 'l':
             self.key = ''
             land = np.array([self.state[0], self.state[1], 0.0])
-            self.mpc.set_waypoint(land)
+            self.mpc.set_waypoint(mc.land)
             self.get_logger().info('landing ' + str(land))
-
         elif not self.key == '':
             self.pwm_motors = [0.0, 0.0]
             self.run_motors()
             raise SystemExit
 
-
-        self.mpc.set_waypoint(np.append(mc.waypoints[self.waypoint_i], self.voltage))
-        control = self.mpc.mpc.make_step(self.state)
-        self.control = np.array(control).flatten()
-        self.control_translator()   
+        if self.armed:
+            mc.waypoints[self.waypoint_i][3] = self.voltage
+            self.mpc.set_waypoint(mc.waypoints[self.waypoint_i])
+            control = self.mpc.mpc.make_step(self.state)
+            self.control = np.array(control).flatten()
+            self.control_translator()   
+            
         super().timer_callback()
     
     

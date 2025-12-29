@@ -62,7 +62,7 @@ for test in test_list:
     sim = Simulator(model.model)
     sim.set_param(t_step = mc.dt)
 
-    parameters = np.array([0.0, 0.0, 0.0, 22.0])
+    parameters = np.array([0.0, 0.0, 0.0, 25.0])
     p_template = sim.get_p_template()
     def dummy(t_now):
         p_template['parameters'] = parameters

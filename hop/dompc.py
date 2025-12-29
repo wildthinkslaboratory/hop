@@ -25,7 +25,7 @@ class DroneNMPCdompc:
             mc.outer_gimbal_range[0],
             mc.inner_gimbal_range[0],
             -np.inf,
-            -np.inf
+            mc.diff_thrust_constraint[0]
         ]
 
         # upper bounds on control
@@ -33,7 +33,7 @@ class DroneNMPCdompc:
             mc.outer_gimbal_range[1],
             mc.inner_gimbal_range[1],
             np.inf,
-            np.inf
+            mc.diff_thrust_constraint[1]
         ]
 
         # upper and lower bounds on position (x,y,z)
