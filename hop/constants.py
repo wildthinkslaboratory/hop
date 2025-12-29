@@ -83,10 +83,12 @@ class Constants:
         # list of navigation waypoints for the flight to follow
         # these are (x,y,z) points in world frame meters
         self.waypoints = [
-            np.array([0.0, 0.0, 0.3]),
-            np.array([0.0, 0.0, 0.70]),
-            np.array([0.0, 0.0, 0.3])
+            np.array([0.0, 0.0, 0.3, 25.0]),
+            np.array([0.0, 0.0, 0.7, 25.0]),
+            np.array([0.0, 0.0, 0.3, 25.0])
         ]
+
+        self.land = np.array([0.0, 0.0, 0.3, 23.0])
 
         self.nmpc_rate_constraints = False
 

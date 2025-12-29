@@ -13,7 +13,7 @@ import statistics as stats
 from time import perf_counter
 import matplotlib.pyplot as plt
 from matplotlib import colors
-from plots import plot_state, plot_control
+from plots import plot_state, plot_control, plot_pwm
 from hop.multiShooting import DroneNMPCMultiShoot
 
 import sys
@@ -21,7 +21,7 @@ import sys
 log_file_name = './plotter_logs/current.json'
 start_time = 0.0
 if len(sys.argv) > 1:
-    log_file_name = './plotter_logs/' + sys.argv[1]
+    log_file_name = sys.argv[1]
     start_time = float(sys.argv[2])
     print(log_file_name, start_time)
 
@@ -45,14 +45,10 @@ estimator = StateFeedback(model.model)
 sim = Simulator(model.model)
 sim.set_param(t_step = mc.dt)
 
-# this is annoying but necessary
-# the model has a parameter for waypoints
-# it's used in the mpc cost function only
-# the simulator get's confused if it has undefined parameters
-# so we give it a dummy function
+parameters = np.array([0.0, 0.0, 0.0, 22.0])
 p_template = sim.get_p_template()
 def dummy(t_now):
-    p_template['p_goal'] = np.array([0.0, 0.0, 0.0])
+    p_template['parameters'] = parameters
     return p_template
 sim.set_p_fun(dummy)
 
@@ -75,18 +71,29 @@ len_used_data = len(data) - stop_index -1
 tspan = np.arange(0, len_used_data * dt , dt)
 control_data_computed = np.empty([len_used_data-1,4])
 error = np.empty([len_used_data-1,13])
+residual_state = np.empty([len_used_data,13])
+residual_control = np.empty([len_used_data,4])
 cum_error = np.empty([len_used_data-1,13])
+voltage = []
 
 state_data = np.empty([len(data),13])
 control_data = np.empty([len(data),4])
+pwm_motors = np.empty([len(data),2])
+pwm_servos = np.empty([len(data),2])
 # collect all the data into arrays
 for i, d in enumerate(data):
     state_data[i] = np.array(d['state'])
     control_data[i] = np.array(d['control'])
+    voltage.append(d['voltage'])
+    pwm_motors[i] = np.array(d['pwm_motors'])
+    pwm_servos[i] = np.array(d['pwm_servos'])
 
 # Truncate the data to start at the takeoff
 state_data = state_data[stop_index+1:]
 control_data = control_data[stop_index+1:]
+voltage = voltage[stop_index+1:]
+pwm_motors = pwm_motors[stop_index+1:]
+pwm_servos = pwm_servos[stop_index+1:]
 
 # Now we set the initial state
 x_init = ca.DM(state_data[0])
@@ -99,17 +106,25 @@ estimator.x0 = x_init
 x0 = x_init
 time_data = []
 cost_data = []
-
+xrnp = np.array([0.0, 0.0, 0.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
+urnp = np.array([0.0, 0.0, mc.hover_thrust, 0.0])
+waypoint = [0.0, 0.0, 0.7, 25.0]
 # run the simulation
 for i in range(len(state_data)-1):
 
     # first run the nmpc on the state
+    waypoint[3] = voltage[i]
     start_time = perf_counter()
-    mpc.set_waypoint(np.array([0.0, 0.0, 0.7]))
+    mpc.set_waypoint(np.array(waypoint))
     u0 = mpc.mpc.make_step(state_data[i])
     step_time = perf_counter() - start_time
 
     control_data_computed[i] = np.reshape(u0, (4,))
+    
+    state_error = state_data[i] - xrnp
+    control_error = control_data[i] - urnp
+    residual_state[i] = np.absolute(state_error)
+    residual_control[i] = np.absolute(control_error)
 
     y_next = sim.make_step(np.reshape(control_data[i], (4,1)))
     x_cum = estimator.make_step(y_next)
@@ -137,19 +152,27 @@ plt.figure(figsize=(6,3))
 
 plt.figure(1)
 plt.plot(tspan[:-1], cost_data, label='Cost', marker='+', linestyle='None', markersize=4)
-
+plt.title('cost function')
 plt.figure(2)
 plt.plot(tspan[:-1], time_data, label='CPU Time', marker='+', linestyle='None', markersize=4)
-
+plt.title('cpu time')
 
 
 # # build the plots
 # print(tspan.shape, state_data.shape)
-plot_state(tspan, state_data)
-plot_state(tspan[:-1], error)
-plot_state(tspan[:-1], cum_error)
-plot_control(tspan, control_data)
-plot_control(tspan[:-1], control_data_computed)
+plot_state(tspan, residual_state, 'state residuals')
+plot_control(tspan, residual_control, 'control residuals')
+plot_state(tspan, state_data, 'state')
+plot_state(tspan[:-1], error, 'state error')
+# plot_state(tspan[:-1], cum_error, 'state residuals')
+plot_control(tspan, control_data, 'control flight data')
+plot_control(tspan[:-1], control_data_computed, 'control computed')
+plot_pwm(tspan, pwm_servos, pwm_motors, 'pwm')
+
+plt.figure()
+plt.plot(tspan, voltage)
+plt.title('voltage')
+
 plt.show()
 
 
