@@ -32,7 +32,7 @@ class NMPC(OffBoardNode):
         if self.key == 'u':
             self.key = ''
             self.waypoint_i += 1
-            self.get_logger().info('new waypoint ' + str(mc.waypoints[self.waypoint_i]))
+            self.get_logger().info('new waypoint ' + str(mc.waypoints[self.waypoint_i][:3]))
         elif self.key == 'l':
             self.key = ''
             land = np.array([self.state[0], self.state[1], 0.0])

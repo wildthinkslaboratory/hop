@@ -49,6 +49,30 @@ def plot_control(tspan, control, title='Control'):
     plt.xlabel('Time')
     # plt.show()
 
+def plot_attitude(tspan, attitude, title='Attitude'):
+    plt.rcParams['ytick.labelsize'] = 8 
+    plt.rcParams['xtick.labelsize'] = 8
+    fig, axs = plt.subplots(3)
+    fig.set_figheight(8)
+    fig.suptitle(title)
+
+
+    # x angle
+
+    axs[0].plot(tspan, attitude[:,0])
+    axs[0].set_ylabel('$x$')
+   
+    # y angle
+    axs[1].plot(tspan, attitude[:,1])
+    axs[1].set_ylabel('$y$')
+
+    # total angle
+    axs[2].plot(tspan, attitude[:,2])
+    axs[2].set_ylabel('tilt')
+
+    plt.xlabel('Time')
+    # plt.show()
+
 
 def plot_pwm(tspan, pwm_servos, pwm_motors, title='pwm'):
     plt.rcParams['ytick.labelsize'] = 8 
