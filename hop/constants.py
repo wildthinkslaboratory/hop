@@ -57,7 +57,7 @@ class Constants:
         self.b = 0.9797 * self.tcc
         self.c = 0.03 * self.tcc
         # rotation about z axis caused by differential thrust between motors is modeled linearly with d
-        self.d = 0.4
+        self.d = 6.0
 
  
         # mechanical and hardware constants
@@ -75,7 +75,7 @@ class Constants:
         self.dt = 0.02 # 50 Hz like in paper
         self.x0 = ca.vertcat(0.0,0.0,0.0, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0) # initial state 
         # self.Q = ca.DM.eye(13)                                                       # state cost matrix
-        self.Q = ca.diag([20.0,20.0,20.0, 1.0,1.0,1.0, 300.0,300.0,1000.0,300.0, 1.0,1.0,1.0 ]) 
+        self.Q = ca.diag([20.0,20.0,20.0, 1.0,1.0,1.0, 200.0,200.0,200.0,200.0, 1.0,1.0,1.0 ]) 
         self.R = ca.diag([0.03, 0.03, 1, 0.03])                                      # control cost matrix
         self.xr = ca.vertcat(0.0,0.0,0.3, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0) # goal state
         self.ur = ca.DM([0.0, 0.0, self.hover_thrust, 0.0])                          # goal control
@@ -83,10 +83,10 @@ class Constants:
         # list of navigation waypoints for the flight to follow
         # these are (x,y,z) points in world frame meters
         self.waypoints = [
-            np.array([0.0, 0.0, 0.5, 25.0]),
-            np.array([0.0, 0.0, 0.5, 25.0]),    
-            np.array([0.0, 0.0, 0.5, 25.0]),
-            np.array([0.0, 0.0, 0.5, 25.0])
+            np.array([0.0, 0.0, 0.9, 25.0]),
+            np.array([0.0, 0.0, 1.0, 25.0]),    
+            np.array([0.0, 0.0, 1.2, 25.0]),
+            np.array([0.0, 0.0, 0.9, 25.0])
         ]
 
         self.land = np.array([0.0, 0.0, 0.3, 23.0])
