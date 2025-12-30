@@ -74,6 +74,7 @@ class OffBoardNode(Node):
         self.listener_thread = threading.Thread(target=self.keyboard_callback, daemon=True)
         self.listener_thread.start()
         self.key = ''
+        self.waypoint_i = 0
 
 
         ############ Publishers #########################
@@ -142,7 +143,8 @@ class OffBoardNode(Node):
             'control': self.control.tolist(),
             'pwm_motors': self.pwm_motors,
             'pwm_servos': self.pwm_servos,
-            'voltage': self.voltage
+            'voltage': self.voltage,
+            'parameters': mc.waypoints[self.waypoint_i].tolist()
             # 'timestamp': perf_counter()
         })
 

@@ -20,9 +20,6 @@ class NMPC(OffBoardNode):
         self.mpc.setup_cost()
         self.mpc.set_start_state(mc.x0)
 
-        self.waypoint_i = 0
-        self.nmpc_on = False
-
     def timer_callback(self):
 
         # key press controls
