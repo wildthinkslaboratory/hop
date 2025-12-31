@@ -76,8 +76,8 @@ class Constants:
         # ---------------------------------------------------------------        
         self.dt = 0.02 # 50 Hz like in paper
         self.x0 = ca.vertcat(0.0,0.0,0.0, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0) # initial state                                                    # state cost matrix
-        self.Q = ca.diag([20.0,20.0,20.0, 1.0,1.0,1.0, 200.0,200.0,200.0,200.0, 1.0,1.0,1.0 ]) 
-        self.R = ca.diag([0.03, 0.03, 1, 0.03])                                      # control cost matrix
+        self.Q = ca.diag([20.0,20.0,20.0, 1.0,1.0,1.0, 1000.0,1000.0,200.0,200.0, 1.0,1.0,1.0 ]) 
+        self.R = ca.diag([0.005, 0.005, 1, 0.03])                                      # control cost matrix
         self.xr = ca.vertcat(0.0,0.0,self.px4_height, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0) # goal state
         self.ur = ca.DM([0.0, 0.0, self.hover_thrust, 0.0])                          # goal control
 
