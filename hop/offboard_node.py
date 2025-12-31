@@ -243,7 +243,6 @@ class OffBoardNode(Node):
         self.disarm()
 
         data = {'constants': mc.__dict__(), 'run_data': self.log_rows}
-        data = {'run_data': self.log_rows}
         output_data(data, "src/hop/plotter_logs/current.json")
         formatted_date = datetime.now().strftime("%Y-%m-%d-%H-%M")
         output_data(data, "src/hop/plotter_logs/" + formatted_date + "log.json")
