@@ -54,8 +54,8 @@ def quaternion_to_angle(q):
     R = quat_to_rot(q)     # your function
     v = R[:, 2]            # body z-axis in world
 
-    x_tilt = -np.degrees(np.arctan(v[1] / v[2]))
-    y_tilt = -np.degrees(np.arctan(v[0] / v[2]))
+    x_tilt = np.degrees(np.arctan(v[1] / v[2]))
+    y_tilt = np.degrees(np.arctan(v[0] / v[2]))
     tilt = np.degrees(np.arccos(np.clip(v[2], -1.0, 1.0)))
 
 
