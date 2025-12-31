@@ -145,7 +145,7 @@ class OffBoardNode(Node):
             'pwm_servos': self.pwm_servos,
             'voltage': self.voltage,
             'parameters': mc.waypoints[self.waypoint_i].tolist()
-            # 'timestamp': perf_counter()
+            'timestamp': perf_counter()
         })
 
     # recieve armed status
