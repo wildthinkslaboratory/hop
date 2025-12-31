@@ -14,6 +14,8 @@ class Constants:
         # ---------------------------------------------------------------
         self.m = 1.584    # mass of drone in kg
 
+        self.px4_height = 0.3
+
         self.gx = 0     # acceleration due to gravity in world frame
         self.gy = 0
         self.gz = -9.81
@@ -73,11 +75,10 @@ class Constants:
         # NMPC related constants
         # ---------------------------------------------------------------        
         self.dt = 0.02 # 50 Hz like in paper
-        self.x0 = ca.vertcat(0.0,0.0,0.0, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0) # initial state 
-        # self.Q = ca.DM.eye(13)                                                       # state cost matrix
-        self.Q = ca.diag([20.0,20.0,20.0, 1.0,1.0,1.0, 200.0,200.0,200.0,200.0, 1.0,1.0,1.0 ]) 
-        self.R = ca.diag([0.03, 0.03, 1, 0.03])                                      # control cost matrix
-        self.xr = ca.vertcat(0.0,0.0,0.3, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0) # goal state
+        self.x0 = ca.vertcat(0.0,0.0,0.0, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0) # initial state                                                    # state cost matrix
+        self.Q = ca.diag([20.0,20.0,20.0, 1.0,1.0,1.0, 1000.0,1000.0,200.0,200.0, 1.0,1.0,1.0 ]) 
+        self.R = ca.diag([0.005, 0.005, 1, 0.03])                                      # control cost matrix
+        self.xr = ca.vertcat(0.0,0.0,self.px4_height, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0) # goal state
         self.ur = ca.DM([0.0, 0.0, self.hover_thrust, 0.0])                          # goal control
 
         # list of navigation waypoints for the flight to follow
@@ -89,7 +90,7 @@ class Constants:
             np.array([0.0, 0.0, 0.9, 25.0])
         ]
 
-        self.land = np.array([0.0, 0.0, 0.3, 23.0])
+        self.land = np.array([0.0, 0.0, self.px4_height, 23.0])
 
         self.nmpc_rate_constraints = False
 
@@ -124,6 +125,27 @@ class Constants:
 
 
 
+    def __dict__(self):
+        mcd = {}
+        mcd['battery_v'] = self.battery_v
+        mcd['m'] = self.m
+        mcd['a'] = self.a
+        mcd['b'] = self.b
+        mcd['c'] = self.c
+        mcd['d'] = self.d
+        mcd['px4_height'] = self.px4_height
+        mcd['dt'] = self.dt
+        mcd['hover_thrust'] = self.hover_thrust
+        mcd['Q'] = ca.diag(self.Q).full().flatten().tolist()
+        mcd['R'] = ca.diag(self.R).full().flatten().tolist()
+        mcd['g'] = self.g.tolist()
+        mcd['x0'] = self.x0.full().flatten().tolist()
+        mcd['xr'] = self.xr.full().flatten().tolist()
+        mcd['ur'] = self.ur.full().flatten().tolist()
+        mcd['moment_arm'] = self.moment_arm.tolist()
+        mcd['I'] = self.I.tolist()
+        mcd['ipopt_settings'] = self.ipopt_settings
+        return mcd
 
     # This function makes it possible to print the Constants with print function
     # This way we can add our constants to our runs and simulation logs.
@@ -135,7 +157,6 @@ class Constants:
         s += 'Model related constants: \n'
         s += '-----------------------------------------------\n'
         s += f"{'m:':10}  {str(self.m):15}\n"
-        s += f"{'l:':10}  {str(self.l):15}\n"
         s += f"{'gx:':10}  {str(self.gx):15}\n"
         s += f"{'gy:':10}  {str(self.gy):15}\n"
         s += f"{'gz:':10}  {str(self.gz):15}\n"

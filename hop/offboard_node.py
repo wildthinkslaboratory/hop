@@ -144,8 +144,8 @@ class OffBoardNode(Node):
             'pwm_motors': self.pwm_motors,
             'pwm_servos': self.pwm_servos,
             'voltage': self.voltage,
-            'parameters': mc.waypoints[self.waypoint_i].tolist()
-            # 'timestamp': perf_counter()
+            'parameters': mc.waypoints[self.waypoint_i].tolist(),
+            'timestamp': perf_counter()
         })
 
     # recieve armed status
@@ -242,7 +242,7 @@ class OffBoardNode(Node):
 
         self.disarm()
 
-        # data = {'constants': mc.__dict__, 'run_data': self.log_rows}
+        data = {'constants': mc.__dict__(), 'run_data': self.log_rows}
         data = {'run_data': self.log_rows}
         output_data(data, "src/hop/plotter_logs/current.json")
         formatted_date = datetime.now().strftime("%Y-%m-%d-%H-%M")

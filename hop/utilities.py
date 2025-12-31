@@ -1,6 +1,6 @@
 import json
 import numpy as np
-
+import math
 
 def quaternion_multiply(quaternion1, quaternion0):
     w0, x0, y0, z0 = quaternion0
@@ -36,3 +36,28 @@ def sig_figs(x: float, precision: int):
     if x == 0.0:
         return x
     return round(x, -int(floor(log10(abs(x)))) + (precision - 1))
+
+
+def quat_to_rot(q):
+    x, y, z, w = q
+    xx, yy, zz = x * x, y * y, z * z
+    xy, xz, yz = x * y, x * z, y * z
+    wx, wy, wz = w * x, w * y, w * z
+    return np.array([
+        [1 - 2 * (yy + zz), 2 * (xy - wz), 2 * (xz + wy)],
+        [2 * (xy + wz), 1 - 2 * (xx + zz), 2 * (yz - wx)],
+        [2 * (xz - wy), 2 * (yz + wx), 1 - 2 * (xx + yy)]
+    ])
+    
+def quaternion_to_angle(q):
+    q = q / np.linalg.norm(q)
+    R = quat_to_rot(q)     # your function
+    v = R[:, 2]            # body z-axis in world
+
+    x_tilt = -np.degrees(np.arctan(v[1] / v[2]))
+    y_tilt = -np.degrees(np.arctan(v[0] / v[2]))
+    tilt = np.degrees(np.arccos(np.clip(v[2], -1.0, 1.0)))
+
+
+    
+    return np.array([x_tilt, y_tilt, tilt])

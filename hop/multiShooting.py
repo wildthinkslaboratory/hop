@@ -17,13 +17,15 @@ class DroneNMPCMultiShoot:
         v = ca.SX.sym('v', 3, 1)
         q = ca.SX.sym('q', 4, 1)
         w = ca.SX.sym('w', 3, 1)
+        self.parameters = ca.SX.sym('waypoint_voltage', 4)
         self.x = ca.vertcat(p,v,q,w)
         self.u = ca.SX.sym('u', 4, 1)
 
         # Now we build up the equations of motion and create a function
         # for the system dynamics
         I_mat = ca.DM(mc.I)
-        F = mc.a * self.u[2]**2 + mc.b * self.u[2] + mc.c 
+        norm_P_avg = self.u[2] * self.parameters[3] / mc.battery_v
+        F = mc.a * norm_P_avg**2 + mc.b * norm_P_avg + mc.c 
         M = mc.d * mc.Izz * self.u[3]
 
         F_vector = F * ca.vertcat(
@@ -60,7 +62,7 @@ class DroneNMPCMultiShoot:
         )
 
         # f is function that returns the change in state for a given state and control values
-        self.f = ca.Function('f', [self.x, self.u], [RHS])
+        self.f = ca.Function('f', [self.x, self.u, self.parameters], [RHS])
         
         self.record_nlp_stats = False
         
@@ -73,7 +75,7 @@ class DroneNMPCMultiShoot:
 
         X0 = ca.SX.sym('X0', self.size_x())            # these are variables representing our initial state
         U0 = ca.SX.sym('U0', self.size_u())
-        self.p_goal = ca.SX.sym('p_goal', 3)
+        
         P0 = ca.vertcat(X0, U0, self.p_goal)
 
         # we make a copy of the state variables for each N+1 time steps
