@@ -113,7 +113,7 @@ def plot_pwm(tspan, pwm_servos, pwm_motors, title='pwm'):
     axs[2].set_ylabel('lower motor')
 
     plt.xlabel('Time')
-    plt.show()
+
 
 
 # this plots state and control together so you can see
