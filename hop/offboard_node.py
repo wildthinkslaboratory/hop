@@ -144,7 +144,7 @@ class OffBoardNode(Node):
             'pwm_motors': self.pwm_motors,
             'pwm_servos': self.pwm_servos,
             'voltage': self.voltage,
-            'parameters': mc.waypoints[self.waypoint_i].tolist()
+            'parameters': mc.waypoints[self.waypoint_i].tolist(),
             'timestamp': perf_counter()
         })
 
