@@ -5,7 +5,7 @@ from hop.multiShooting import DroneNMPCMultiShoot
 from hop.dompc import DroneNMPCdompc
 from hop.constants import Constants
 from do_mpc.simulator import Simulator
-from hop.utilities import quaternion_to_angle, import_data
+from hop.utilities import quaternion_to_angle, import_data, output_data
 import casadi as ca
 from do_mpc.estimator import StateFeedback
 import numpy as np
@@ -13,7 +13,7 @@ import statistics as stats
 from time import perf_counter
 import matplotlib.pyplot as plt
 from matplotlib import colors
-from plots import plot_state, plot_control, plot_pwm, plot_attitude
+from plots import plot_state, plot_control, plot_pwm, plot_attitude, plot_parameters
 from hop.multiShooting import DroneNMPCMultiShoot
 
 import sys
@@ -28,6 +28,9 @@ if len(sys.argv) > 1:
 # first we make a model
 mc = Constants()
 model = DroneModel(mc)  
+
+data = {'constants': mc.__dict__()}
+output_data(data, "test_constants.json")
 
 # now we need two nmpc algorithms
 # the first is the one used during the live flight
@@ -76,6 +79,7 @@ residual_control = np.empty([len_used_data,4])
 cum_error = np.empty([len_used_data-1,13])
 attitude = np.empty([len_used_data,3])
 voltage = []
+control_computed_diff = np.empty([len_used_data-1,4])
 
 state_data = np.empty([len(data),13])
 control_data = np.empty([len(data),4])
@@ -97,7 +101,7 @@ control_data = control_data[stop_index+1:]
 voltage = voltage[stop_index+1:]
 pwm_motors = pwm_motors[stop_index+1:]
 pwm_servos = pwm_servos[stop_index+1:]
-waypoints = waypoints[stop_index+1:]
+waypoints = waypoints[stop_index+1:-1]
 
 # Now we set the initial state
 x_init = ca.DM(state_data[0])
@@ -114,7 +118,7 @@ xrnp = np.array([0.0, 0.0, 0.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0
 urnp = np.array([0.0, 0.0, mc.hover_thrust, 0.0])
 # run the simulation
 for i in range(len(state_data)-1):
-
+    waypoints[i][3] = voltage[i]
     # first run the nmpc on the state
     start_time = perf_counter()
     mpc.set_waypoint(np.array(waypoints[i]))
@@ -124,6 +128,7 @@ for i in range(len(state_data)-1):
     q = state_data[6:10].copy()
     control_data_computed[i] = np.reshape(u0, (4,))
     
+    control_computed_diff[i] = control_data[i] - control_data_computed[i]
     state_error = state_data[i] - xrnp
     control_error = control_data[i] - urnp
 
@@ -133,6 +138,9 @@ for i in range(len(state_data)-1):
     for j in range(len(state_error)):
         residual_state[i][j] = state_error[j] * mc.Q[j,j] * state_error[j]
     residual_control[i] = np.absolute(control_error)
+
+    for j in range(len(control_error)):
+        residual_control[i][j] = control_error[j] * mc.R[j,j] * control_error[j]
 
     y_next = sim.make_step(np.reshape(control_data[i], (4,1)))
     x_cum = estimator.make_step(y_next)
@@ -176,8 +184,10 @@ plot_control(tspan, residual_control, 'control residuals')
 plot_state(tspan, state_data, 'state')
 plot_state(tspan[:-1], error, 'state error')
 plot_attitude(tspan, attitude, 'attitude')
+plot_parameters(tspan[:-1], waypoints, 'parameters')
 plot_control(tspan, control_data, 'control flight data')
 plot_control(tspan[:-1], control_data_computed, 'control computed')
+plot_control(tspan[:-1], control_computed_diff, 'control computed difference')
 plot_pwm(tspan, pwm_servos, pwm_motors, 'pwm')
 
 

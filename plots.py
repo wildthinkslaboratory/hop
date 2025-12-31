@@ -73,6 +73,26 @@ def plot_attitude(tspan, attitude, title='Attitude'):
     plt.xlabel('Time')
     # plt.show()
 
+def plot_parameters(tspan, parameters, title='Parameters'):
+    plt.rcParams['ytick.labelsize'] = 8 
+    plt.rcParams['xtick.labelsize'] = 8
+    fig, axs = plt.subplots(2)
+    fig.set_figheight(8)
+    fig.suptitle(title)
+
+    for i in range(3):
+        axs[0].plot(tspan, parameters[:,i])
+    axs[0].set_ylabel('$x$')
+ 
+
+    axs[1].plot(tspan, parameters[:,3])
+    axs[1].set_ylabel('V')
+   
+
+
+    plt.xlabel('Time')
+    # plt.show()
+
 
 def plot_pwm(tspan, pwm_servos, pwm_motors, title='pwm'):
     plt.rcParams['ytick.labelsize'] = 8 
