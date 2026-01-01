@@ -76,16 +76,17 @@ class Constants:
         # ---------------------------------------------------------------        
         self.dt = 0.02 # 50 Hz like in paper
         self.x0 = ca.vertcat(0.0,0.0,0.0, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0) # initial state                                                    # state cost matrix
-        self.Q = ca.diag([20.0,20.0,20.0, 1.0,1.0,1.0, 1500.0,1500.0,200.0,200.0, 1.0,1.0,1.0 ]) 
+        self.Q = ca.diag([80.0,80.0,100.0, 20.0,20.0,25.0, 2500.0,2500.0,200.0,200.0, 20.0,20.0,1.0 ])
         self.R = ca.diag([0.005, 0.005, 1, 0.03])                                      # control cost matrix
+        self.terminal_cost_factor = 1
         self.xr = ca.vertcat(0.0,0.0,self.px4_height, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0) # goal state
         self.ur = ca.DM([0.0, 0.0, self.hover_thrust, 0.0])                          # goal control
 
         # list of navigation waypoints for the flight to follow
         # these are (x,y,z) points in world frame meters
         self.waypoints = [
-            np.array([0.0, 0.0, 0.9, 25.0]),
-            np.array([0.0, 0.0, 0.9, 25.0]),    
+            np.array([0.0, 0.0, 1.1, 25.0]),
+            np.array([0.0, 0.0, 1.1, 25.0]),    
             np.array([0.0, 0.0, 0.5, 25.0]),
             np.array([0.0, 0.0, 0.5, 25.0])
         ]
@@ -135,6 +136,7 @@ class Constants:
         mcd['d'] = self.d
         mcd['px4_height'] = self.px4_height
         mcd['dt'] = self.dt
+        mcd['terminal_cost_factor'] = self.terminal_cost_factor
         mcd['hover_thrust'] = self.hover_thrust
         mcd['Q'] = ca.diag(self.Q).full().flatten().tolist()
         mcd['R'] = ca.diag(self.R).full().flatten().tolist()

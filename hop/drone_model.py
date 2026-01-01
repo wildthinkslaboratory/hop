@@ -63,11 +63,12 @@ class DroneModel:
         x_r = ca.vertcat(parameters[:3], mc.xr[3:])
         x_error = state - x_r
         x_cost = x_error.T @ mc.Q @ x_error 
+        terminal_cost = x_error.T @ (mc.terminal_cost_factor * mc.Q) @ x_error 
         u_goal = ca.DM([0.0, 0.0, mc.hover_thrust, 0.0])
         u_error = u - u_goal
         u_cost = u_error.T @ mc.R @ u_error
         cost = x_cost + u_cost
-        self.model.set_expression(expr_name='x_cost', expr=x_cost)
+        self.model.set_expression(expr_name='x_cost', expr=terminal_cost )
         self.model.set_expression(expr_name='cost', expr=cost)
 
         self.model.setup()
