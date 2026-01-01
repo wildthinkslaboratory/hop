@@ -76,7 +76,7 @@ class Constants:
         # ---------------------------------------------------------------        
         self.dt = 0.02 # 50 Hz like in paper
         self.x0 = ca.vertcat(0.0,0.0,0.0, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0) # initial state                                                    # state cost matrix
-        self.Q = ca.diag([20.0,20.0,20.0, 1.0,1.0,1.0, 1000.0,1000.0,200.0,200.0, 1.0,1.0,1.0 ]) 
+        self.Q = ca.diag([80.0,80.0,100.0, 20.0,20.0,25.0, 2500.0,2500.0,200.0,200.0, 20.0,20.0,1.0 ]) 
         self.R = ca.diag([0.005, 0.005, 1, 0.03])                                      # control cost matrix
         self.xr = ca.vertcat(0.0,0.0,self.px4_height, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0) # goal state
         self.ur = ca.DM([0.0, 0.0, self.hover_thrust, 0.0])                          # goal control
@@ -146,6 +146,27 @@ class Constants:
         mcd['I'] = self.I.tolist()
         mcd['ipopt_settings'] = self.ipopt_settings
         return mcd
+
+
+    def update_from_dictionary(self, mcd):
+        self.battery_v = mcd['battery_v']
+        self.m = mcd['m']
+        self.a = mcd['a'] 
+        self.b = mcd['b'] 
+        self.c = mcd['c'] 
+        self.d = mcd['d'] 
+        self.px4_height = mcd['px4_height']
+        self.dt = mcd['dt']
+        self.hover_thrust = mcd['hover_thrust']
+        self.Q = ca.diag(mcd['Q'])
+        self.R = ca.diag(mcd['R'])
+        self.g = np.array(mcd['g'])
+        self.x0 = ca.vertcat(mcd['x0'])
+        self.xr = ca.vertcat(mcd['xr'])
+        self.ur = ca.DM(mcd['ur'])
+        self.moment_arm = np.array(mcd['moment_arm'])
+        self.I = np.array(mcd['I'])
+        self.ipopt_settings = mcd['ipopt_settings']
 
     # This function makes it possible to print the Constants with print function
     # This way we can add our constants to our runs and simulation logs.

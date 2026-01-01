@@ -57,7 +57,7 @@ def quaternion_to_angle(q):
     x_tilt = np.degrees(np.arctan(v[1] / v[2]))
     y_tilt = np.degrees(np.arctan(v[0] / v[2]))
     tilt = np.degrees(np.arccos(np.clip(v[2], -1.0, 1.0)))
-
-
     
     return np.array([x_tilt, y_tilt, tilt])
+
+

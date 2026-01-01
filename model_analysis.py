@@ -5,7 +5,7 @@ from hop.multiShooting import DroneNMPCMultiShoot
 from hop.dompc import DroneNMPCdompc
 from hop.constants import Constants
 from do_mpc.simulator import Simulator
-from hop.utilities import quaternion_to_angle, import_data, output_data
+from hop.utilities import quaternion_to_angle, import_data
 import casadi as ca
 from do_mpc.estimator import StateFeedback
 import numpy as np
@@ -13,9 +13,10 @@ import statistics as stats
 from time import perf_counter
 import matplotlib.pyplot as plt
 from matplotlib import colors
-from plots import plot_state, plot_control, plot_pwm, plot_attitude, plot_parameters
+from plots import plot_state, plot_control, plot_pwm, plot_attitude, plot_parameters, plot_weighted_error_state, plot_weighted_error_control
 from hop.multiShooting import DroneNMPCMultiShoot
 import sys
+
 
 # read in logfile and time point to begin analyzing
 log_file_name = './plotter_logs/current.json'
@@ -26,7 +27,8 @@ if len(sys.argv) > 1:
     print(log_file_name, start_time)
 
 # Import the flight data
-log = import_data(log_file_name)    
+log = import_data(log_file_name)   
+flight_constants = log['constants'] 
 data = log['run_data']
 
 # read in the flight data
@@ -65,6 +67,10 @@ parameters = parameters[stop_index+1:-1]
 
 # first we make a model
 mc = Constants()
+
+# update the constants with those used in the flight
+mc.update_from_dictionary(flight_constants)
+
 model = DroneModel(mc)  
 
 # create an nmpc to compute the control
@@ -171,8 +177,8 @@ plot_pwm(tspan, pwm_servos, pwm_motors, 'pwm')
 plot_control(tspan[:-1], control_data_computed, 'control computed')
 plot_control(tspan[:-1], control_computed_diff, 'control computed difference')
 plot_state(tspan[:-1], flight_model_error, 'flight state vs model predicted state error')
-plot_state(tspan, residual_state, 'state weighted squared errors')
-plot_control(tspan, residual_control, 'control weighted squared errors')
+plot_weighted_error_state(tspan, residual_state, 'state weighted squared errors')
+plot_weighted_error_control(tspan, residual_control, 'control weighted squared errors')
 plot_attitude(tspan, attitude, 'attitude')
 plot_control(tspan, control_data, 'flight control data')
 plot_state(tspan, state_data, 'state')
