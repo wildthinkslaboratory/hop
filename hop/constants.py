@@ -149,6 +149,27 @@ class Constants:
         mcd['ipopt_settings'] = self.ipopt_settings
         return mcd
 
+
+    def update_from_dictionary(self, mcd):
+        self.battery_v = mcd['battery_v']
+        self.m = mcd['m']
+        self.a = mcd['a'] 
+        self.b = mcd['b'] 
+        self.c = mcd['c'] 
+        self.d = mcd['d'] 
+        self.px4_height = mcd['px4_height']
+        self.dt = mcd['dt']
+        self.hover_thrust = mcd['hover_thrust']
+        self.Q = ca.diag(mcd['Q'])
+        self.R = ca.diag(mcd['R'])
+        self.g = np.array(mcd['g'])
+        self.x0 = ca.vertcat(mcd['x0'])
+        self.xr = ca.vertcat(mcd['xr'])
+        self.ur = ca.DM(mcd['ur'])
+        self.moment_arm = np.array(mcd['moment_arm'])
+        self.I = np.array(mcd['I'])
+        self.ipopt_settings = mcd['ipopt_settings']
+
     # This function makes it possible to print the Constants with print function
     # This way we can add our constants to our runs and simulation logs.
     def __repr__(self):
