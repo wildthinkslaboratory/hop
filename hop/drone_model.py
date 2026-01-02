@@ -68,7 +68,7 @@ class DroneModel:
         u_error = u - u_goal
         u_cost = u_error.T @ mc.R @ u_error
         cost = x_cost + u_cost
-        self.model.set_expression(expr_name='x_cost', expr=terminal_cost )
+        self.model.set_expression(expr_name='terminal_cost', expr=terminal_cost )
         self.model.set_expression(expr_name='cost', expr=cost)
 
         self.model.setup()
