@@ -91,6 +91,7 @@ tspan = np.arange(0, len_used_data * dt , dt)
 flight_model_error = np.empty([len_used_data-1,13])
 control_data_computed = np.empty([len_used_data-1,4])
 control_computed_diff = np.empty([len_used_data-1,4])
+predicted_state = np.empty([len_used_data-1,13])
 residual_state = np.empty([len_used_data,13])
 residual_control = np.empty([len_used_data,4])
 attitude = np.empty([len_used_data,3])
@@ -148,7 +149,8 @@ for i in range(len(state_data)-1):
 
     # predict the next state and compare with actual next state
     x0 = state_data[i] + mc.dt* ms_mpc.f(state_data[i],np.reshape(control_data[i], (4,1)), parameters[i])
-    flight_model_error[i] = np.reshape(x0, (13,)) - state_data[i+1]
+    flight_model_error[i] = state_data[i+1] -  np.reshape(x0, (13,))
+    predicted_state[i] = np.reshape(x0, (13,))
 
 
 
@@ -177,6 +179,7 @@ plot_pwm(tspan, pwm_servos, pwm_motors, 'pwm')
 plot_control(tspan[:-1], control_data_computed, 'control computed')
 plot_control(tspan[:-1], control_computed_diff, 'control computed difference')
 plot_state(tspan[:-1], flight_model_error, 'flight state vs model predicted state error')
+# plot_state(tspan[:-1], predicted_state, 'predicted state')
 plot_weighted_error_state(tspan, residual_state, 'state weighted squared errors')
 plot_weighted_error_control(tspan, residual_control, 'control weighted squared errors')
 plot_attitude(tspan, attitude, 'attitude')
