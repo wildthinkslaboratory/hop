@@ -73,7 +73,7 @@ class DroneNMPCdompc:
             return self.parameters
         self.mpc.set_p_fun(p_fun)
 
-        self.mpc.set_objective(lterm=self.model.aux['cost'], mterm=self.model.aux['x_cost'])
+        self.mpc.set_objective(mterm=self.model.aux['terminal_cost'], lterm=self.model.aux['cost'])
 
         # if mc.nmpc_rate_constraints:
         # self.mpc.set_rterm(u=np.array([0.5, 0.5, 1.0, 1.0], dtype=float))

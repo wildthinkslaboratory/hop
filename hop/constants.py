@@ -39,8 +39,8 @@ class Constants:
         ])
 
         self.moment_arm = np.array([
-             0.000053,
-            -0.000033,
+            0.0015,
+            0.007,
             -0.209799
         ])
 
@@ -76,9 +76,9 @@ class Constants:
         # ---------------------------------------------------------------        
         self.dt = 0.02 # 50 Hz like in paper
         self.x0 = ca.vertcat(0.0,0.0,0.0, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0) # initial state                                                    # state cost matrix
-        self.Q = ca.diag([80.0,80.0,100.0, 20.0,20.0,25.0, 2500.0,2500.0,200.0,200.0, 20.0,20.0,1.0 ])
-        self.R = ca.diag([0.005, 0.005, 1, 0.03])                                      # control cost matrix
-        self.terminal_cost_factor = 1
+        self.Q = ca.diag([40.0,40.0,50.0, 10.0,10.0,15.0, 2500.0,2500.0,200.0,200.0, 30.0,30.0,1.0 ])
+        self.R = ca.diag([0.5, 0.5, 1, 0.03])                                      # control cost matrix
+        self.terminal_cost_factor = 2.0
         self.xr = ca.vertcat(0.0,0.0,self.px4_height, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0) # goal state
         self.ur = ca.DM([0.0, 0.0, self.hover_thrust, 0.0])                          # goal control
 
