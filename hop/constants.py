@@ -80,6 +80,7 @@ class Constants:
 
 
         self.Q = ca.diag([40.0,40.0,50.0, 10.0,10.0,15.0, 2500.0,2500.0,200.0,200.0, 30.0,30.0,1.0 ])
+
         # previous divided by 40.0 to match with rate constaints
         # self.Q = ca.diag([1.0,1.0,1.25, 0.25,0.25,0.375, 62.0,62.0,5.0,5.0, 0.75,0.75,0.25 ])
 
@@ -221,20 +222,20 @@ class Constants:
         mcd['dt'] = self.dt
         mcd['terminal_cost_factor'] = self.terminal_cost_factor
         mcd['hover_thrust'] = self.hover_thrust
-        mcd['pos_max'] = self.pos_max = 0.16  # meters
-        mcd['vel_max'] = self.vel_max = 0.31  # m / s
-        mcd['q_xy_max'] = self.q_xy_max = 0.02 # quaternion [-1, 1] this is about 2.3 degrees
-        mcd['q_z_max'] = self.q_z_max = 0.07  # quaternion this is about 8 degrees
-        mcd['w_max'] = self.w_max = 0.18    # degrees / second
-        mcd['w_z_max'] = self.w_z_max = 1.0   # degrees / second
-        mcd['gmb_max'] = self.gmb_max = 1.41   # in degrees
-        mcd['P_avg_max'] = self.P_avg_max = 1.0  # scale of 0 - 1
-        mcd['P_diff_max'] = self.P_diff_max = 5.77 # scale of 0 - 1
-        mcd['gmb_deg_dt'] = self.gmb_deg_dt = 6.0
-        mcd['P_avg_dt'] = self.P_avg_dt = 0.04
-        mcd['P_diff_dt'] = self.P_diff_dt = 0.02   
-        mcd['w_max_term'] = self.w_max_term = 1.0 # degrees / second
-        mcd['w_z_max_term'] = self.w_z_max_term = 1.0 # degrees / second             
+        mcd['pos_max'] = self.pos_max 
+        mcd['vel_max'] = self.vel_max 
+        mcd['q_xy_max'] = self.q_xy_max 
+        mcd['q_z_max'] = self.q_z_max 
+        mcd['w_max'] = self.w_max 
+        mcd['w_z_max'] = self.w_z_max 
+        mcd['gmb_max'] = self.gmb_max 
+        mcd['P_avg_max'] = self.P_avg_max 
+        mcd['P_diff_max'] = self.P_diff_max 
+        mcd['gmb_deg_dt'] = self.gmb_deg_dt 
+        mcd['P_avg_dt'] = self.P_avg_dt 
+        mcd['P_diff_dt'] = self.P_diff_dt
+        mcd['w_max_term'] = self.w_max_term 
+        mcd['w_z_max_term'] = self.w_z_max_term            
         mcd['Q'] = ca.diag(self.Q).full().flatten().tolist()
         mcd['R'] = ca.diag(self.R).full().flatten().tolist()
         mcd['g'] = self.g.tolist()
@@ -257,6 +258,20 @@ class Constants:
         self.px4_height = mcd['px4_height']
         self.dt = mcd['dt']
         self.hover_thrust = mcd['hover_thrust']
+        self.pos_max = mcd['pos_max']
+        self.vel_max = mcd['vel_max']
+        self.q_xy_max = mcd['q_xy_max']
+        self.q_z_max = mcd['q_z_max']
+        self.w_max = mcd['w_max']
+        self.w_z_max = mcd['w_z_max']
+        self.gmb_max = mcd['gmb_max']
+        self.P_avg_max = mcd['P_avg_max']
+        self.P_diff_max = mcd['P_diff_max']
+        self.gmb_deg_dt = mcd['gmb_deg_dt']
+        self.P_avg_dt = mcd['P_avg_dt']
+        self.P_diff_dt = mcd['P_diff_dt']
+        self.w_max_term = mcd['w_max_term']
+        self.w_z_max_term = mcd['w_z_max_term']
         self.Q = ca.diag(mcd['Q'])
         self.R = ca.diag(mcd['R'])
         self.g = np.array(mcd['g'])
