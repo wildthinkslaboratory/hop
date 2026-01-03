@@ -7,6 +7,7 @@ import do_mpc
 from hop.drone_model import DroneModel
 from hop.dompc import DroneNMPCdompc
 from hop.offboard_node import OffBoardNode
+from hop.utilities import distance
 from hop.constants import Constants
 mc = Constants()
 
@@ -19,6 +20,7 @@ class NMPC(OffBoardNode):
         self.mpc = DroneNMPCdompc(mc.dt, self.model.model)
         self.mpc.setup_cost()
         self.mpc.set_start_state(mc.x0)
+        self.acheive_logged = False
 
     def timer_callback(self):
 
@@ -46,6 +48,12 @@ class NMPC(OffBoardNode):
             control = self.mpc.mpc.make_step(self.state)
             self.control = np.array(control).flatten()
             self.control_translator()   
+
+            if distance(mc.waypoints[self.waypoint_i][:3], self.state[:3]) < 0.05 and not self.acheive_logged:
+                self.get_logger().info('\nWAYPOINT ACHEIVED ' + str(mc.waypoints[self.waypoint_i][:3]))
+                self.acheive_logged = True
+            
+                
             
         super().timer_callback()
     

@@ -81,7 +81,7 @@ class Constants:
 
         # self.Q = ca.diag([40.0,40.0,50.0, 10.0,10.0,15.0, 2500.0,2500.0,200.0,200.0, 30.0,30.0,1.0 ])
 
-        self.Q = ca.diag([25.0,25.0,25.0, 4.0,4.0,4.0, 526.0,526.0,15.0,0.0, 0.001,0.001,1.0 ])
+        self.Q = ca.diag([50.0,50.0,50.0, 10.0,10.0,10.0, 526.0,526.0,15.0,0.0, 15.0,15.0,1.0 ])
         self.R = ca.diag([0.01, 0.01, 100, 100])
 
 
@@ -110,11 +110,27 @@ class Constants:
 
         # list of navigation waypoints for the flight to follow
         # these are (x,y,z) points in world frame meters
+        # self.waypoints = [
+        #     np.array([0.0, 0.0, 0.3, 25.0]),
+        #     np.array([0.0, 0.0, 0.4, 25.0]),    
+        #     np.array([0.0, 0.0, 0.5, 25.0]),
+        #     np.array([0.0, 0.0, 0.6, 25.0]),
+        #     np.array([0.0, 0.1, 0.6, 25.0]),
+        #     np.array([0.0, 0.2, 0.6, 25.0]),    
+        #     np.array([0.0, 0.3, 0.6, 25.0]),
+        #     np.array([0.0, 0.0, 0.5, 25.0]),
+        #     np.array([0.0, 0.0, 0.4, 25.0]),
+        #     np.array([0.0, 0.0, 0.3, 25.0])
+        # ]
+
         self.waypoints = [
-            np.array([0.0, 0.0, 1.1, 25.0]),
-            np.array([0.0, 0.0, 1.1, 25.0]),    
+            np.array([0.0, 0.0, 0.3, 25.0]),
+            np.array([0.0, 0.0, 0.4, 25.0]),    
             np.array([0.0, 0.0, 0.5, 25.0]),
-            np.array([0.0, 0.0, 0.5, 25.0])
+            np.array([0.0, 0.0, 0.6, 25.0]),
+            np.array([0.0, 0.0, 0.5, 25.0]),
+            np.array([0.0, 0.0, 0.4, 25.0]),
+            np.array([0.0, 0.0, 0.4, 25.0])
         ]
 
         self.land = np.array([0.0, 0.0, self.px4_height, 23.0])

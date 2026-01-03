@@ -148,6 +148,7 @@ class OffBoardNode(Node):
             'timestamp': perf_counter()
         })
 
+
     # recieve armed status
     def status_callback(self, msg):
         was_armed = self.armed
