@@ -79,57 +79,10 @@ class Constants:
     
 
 
-        self.Q = ca.diag([40.0,40.0,50.0, 10.0,10.0,15.0, 2500.0,2500.0,200.0,200.0, 30.0,30.0,1.0 ])
+        # self.Q = ca.diag([40.0,40.0,50.0, 10.0,10.0,15.0, 2500.0,2500.0,200.0,200.0, 30.0,30.0,1.0 ])
 
-        # previous divided by 40.0 to match with rate constaints
-        # self.Q = ca.diag([1.0,1.0,1.25, 0.25,0.25,0.375, 62.0,62.0,5.0,5.0, 0.75,0.75,0.25 ])
-
-
-        # these are the maximum allowed divergences from the goal state beyond which we want to discourage
-        # with the cost function
-        # self.pos_max = 1.0 # meters
-        # self.vel_max = 1.0 # m / s
-        # self.q_xy_max = 0.1 # quaternion [-1, 1] this is about 11 degrees
-        # self.q_z_max = 0.7 # quaternion this is about 90 degrees
-        # self.w_max = 100 # degrees / second
-
-        # These things are all equally bad
-        self.pos_max = 0.16  # meters
-        self.vel_max = 0.31  # m / s
-        self.q_xy_max = 0.02 # quaternion [-1, 1] this is about 2.3 degrees
-        self.q_z_max = 0.07  # quaternion this is about 8 degrees
-        self.w_max = 0.18    # degrees / second
-        self.w_z_max = 1.0   # degrees / second
-
-        self.Q = ca.diag([
-            1/self.pos_max**2,
-            1/self.pos_max**2,
-            1/self.pos_max**2, 
-            1/self.vel_max**2,
-            1/self.vel_max**2,
-            1/self.vel_max**2,
-            1/self.q_xy_max**2,
-            1/self.q_xy_max**2,
-            1/self.q_z_max**2,
-            1/self.q_z_max**2,
-            1/self.w_max**2,
-            1/self.w_max**2,
-            1/self.w_z_max**2
-        ])
-
-        self.R = ca.diag([0.5, 0.5, 1, 0.03])
-
-        # these are the maximum values for control beyond which we want to discourage
-        self.gmb_max = 1.41   # in degrees
-        self.P_avg_max = 1.0  # scale of 0 - 1
-        self.P_diff_max = 5.77 # scale of 0 - 1
-
-        self.R = ca.diag([
-            1/self.gmb_max**2, 
-            1/self.gmb_max**2, 
-            1/self.P_avg_max**2, 
-            1/self.P_diff_max**2
-        ])
+        self.Q = ca.diag([25.0,25.0,25.0, 4.0,4.0,4.0, 526.0,526.0,15.0,0.0, 0.001,0.001,1.0 ])
+        self.R = ca.diag([0.01, 0.01, 100, 100])
 
 
         # The JX PDI-6221MG servo has a speed of 0.18 sec/60° at 4.8V 
@@ -150,19 +103,8 @@ class Constants:
             1.0/self.P_diff_dt
         ])
 
-        # the terminal Q matrix places tighter control on angular momentum
-        self.w_max_term = 1.0 # degrees / second
-        self.w_z_max_term = 1.0 # degrees / second
-
-        self.Q_term = self.Q
-        self.Q_term[10:13] = np.array([
-            1/self.w_max_term**2,
-            1/self.w_max_term**2,
-            1/self.w_max_term**2
-        ])
-
         # control cost matrix
-        self.terminal_cost_factor = 2.0
+        self.terminal_cost_factor = 15.0
         self.xr = ca.vertcat(0.0,0.0,self.px4_height, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0) # goal state
         self.ur = ca.DM([0.0, 0.0, self.hover_thrust, 0.0])                          # goal control
 
@@ -221,21 +163,10 @@ class Constants:
         mcd['px4_height'] = self.px4_height
         mcd['dt'] = self.dt
         mcd['terminal_cost_factor'] = self.terminal_cost_factor
-        mcd['hover_thrust'] = self.hover_thrust
-        mcd['pos_max'] = self.pos_max 
-        mcd['vel_max'] = self.vel_max 
-        mcd['q_xy_max'] = self.q_xy_max 
-        mcd['q_z_max'] = self.q_z_max 
-        mcd['w_max'] = self.w_max 
-        mcd['w_z_max'] = self.w_z_max 
-        mcd['gmb_max'] = self.gmb_max 
-        mcd['P_avg_max'] = self.P_avg_max 
-        mcd['P_diff_max'] = self.P_diff_max 
+        mcd['hover_thrust'] = self.hover_thrust 
         mcd['gmb_deg_dt'] = self.gmb_deg_dt 
         mcd['P_avg_dt'] = self.P_avg_dt 
-        mcd['P_diff_dt'] = self.P_diff_dt
-        mcd['w_max_term'] = self.w_max_term 
-        mcd['w_z_max_term'] = self.w_z_max_term            
+        mcd['P_diff_dt'] = self.P_diff_dt           
         mcd['Q'] = ca.diag(self.Q).full().flatten().tolist()
         mcd['R'] = ca.diag(self.R).full().flatten().tolist()
         mcd['g'] = self.g.tolist()
@@ -258,20 +189,8 @@ class Constants:
         self.px4_height = mcd['px4_height']
         self.dt = mcd['dt']
         self.hover_thrust = mcd['hover_thrust']
-        self.pos_max = mcd['pos_max']
-        self.vel_max = mcd['vel_max']
-        self.q_xy_max = mcd['q_xy_max']
-        self.q_z_max = mcd['q_z_max']
-        self.w_max = mcd['w_max']
-        self.w_z_max = mcd['w_z_max']
-        self.gmb_max = mcd['gmb_max']
-        self.P_avg_max = mcd['P_avg_max']
-        self.P_diff_max = mcd['P_diff_max']
-        self.gmb_deg_dt = mcd['gmb_deg_dt']
         self.P_avg_dt = mcd['P_avg_dt']
         self.P_diff_dt = mcd['P_diff_dt']
-        self.w_max_term = mcd['w_max_term']
-        self.w_z_max_term = mcd['w_z_max_term']
         self.Q = ca.diag(mcd['Q'])
         self.R = ca.diag(mcd['R'])
         self.g = np.array(mcd['g'])
