@@ -75,8 +75,7 @@ class DroneNMPCdompc:
 
         self.mpc.set_objective(mterm=self.model.aux['terminal_cost'], lterm=self.model.aux['cost'])
 
-        # if mc.nmpc_rate_constraints:
-        # self.mpc.set_rterm(u=np.array([0.5, 0.5, 1.0, 1.0], dtype=float))
+        self.mpc.set_rterm(u=mc.actuator_rate_costs, dtype=float)
 
         self.mpc.setup()
 
