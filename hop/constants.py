@@ -12,7 +12,7 @@ class Constants:
 
         # model related constants
         # ---------------------------------------------------------------
-        self.m = 1.584    # mass of drone in kg
+        self.m = 1.545    # mass of drone in kg
 
         self.px4_height = 0.3
 
@@ -68,7 +68,7 @@ class Constants:
         self.inner_gimbal_range = [-13.5,13.5]      # inner gimbal range limit in degrees
         self.theta_dot_constraint = 6.16            # gimbal rate of change limit in degrees per second
         self.thrust_dot_limit = 20.0                # thrust rate of change limit in Newtons per second
-        self.hover_thrust = 0.72                   # the thrust rate needed to hover
+        self.hover_thrust = 0.70                   # the thrust rate needed to hover
         self.prop_thrust_constraint = 1.0          # max thrust allowed 
         self.diff_thrust_constraint = [-0.2,0.2]    # min and max thrust difference allowed
 
@@ -111,25 +111,26 @@ class Constants:
         # list of navigation waypoints for the flight to follow
         # these are (x,y,z) points in world frame meters
         # self.waypoints = [
-        #     np.array([0.0, 0.0, 0.3, 25.0]),
-        #     np.array([0.0, 0.0, 0.4, 25.0]),    
-        #     np.array([0.0, 0.0, 0.5, 25.0]),
-        #     np.array([0.0, 0.0, 0.6, 25.0]),
-        #     np.array([0.0, 0.1, 0.6, 25.0]),
-        #     np.array([0.0, 0.2, 0.6, 25.0]),    
-        #     np.array([0.0, 0.3, 0.6, 25.0]),
-        #     np.array([0.0, 0.0, 0.5, 25.0]),
-        #     np.array([0.0, 0.0, 0.4, 25.0]),
-        #     np.array([0.0, 0.0, 0.3, 25.0])
+        #     np.array([0.0, 0.0, 0.3, 25.0, 0.0]),
+        #     np.array([0.0, 0.0, 0.4, 25.0, self.hover_thrust]),    
+        #     np.array([0.0, 0.0, 0.5, 25.0, self.hover_thrust]),
+        #     np.array([0.0, 0.0, 0.6, 25.0, self.hover_thrust]),
+        #     np.array([0.0, 0.1, 0.6, 25.0, self.hover_thrust]),
+        #     np.array([0.0, 0.2, 0.6, 25.0, self.hover_thrust]),    
+        #     np.array([0.0, 0.3, 0.6, 25.0, self.hover_thrust]),
+        #     np.array([0.0, 0.0, 0.5, 25.0, self.hover_thrust]),
+        #     np.array([0.0, 0.0, 0.4, 25.0, self.hover_thrust]),
+        #     np.array([0.0, 0.0, 0.3, 25.0, self.hover_thrust])
         # ]
 
         self.waypoints = [
-            # np.array([0.0, 0.0, 0.4, 25.0]),    
-            # np.array([0.0, 0.0, 0.5, 25.0]),
-            # np.array([0.0, 0.0, 0.6, 25.0]),
-            # np.array([0.0, 0.0, 0.5, 25.0]),
-            np.array([0.0, 0.0, 0.4, 25.0]),
-            np.array([0.0, 0.0, 0.0, 25.0])
+   
+            # np.array([0.0, 0.0, 0.5, 25.0, self.hover_thrust]),
+            # np.array([0.0, 0.0, 0.6, 25.0, self.hover_thrust]),
+            # np.array([0.0, 0.0, 0.5, 25.0, self.hover_thrust]),
+            np.array([0.0, 0.0, 0.4, 25.0, self.hover_thrust]),
+            np.array([0.0, 0.0, 0.3, 25.0, 0.4]),
+            np.array([0.0, 0.0, 0.3, 25.0, 0.0]),
         ]
 
         self.land = np.array([0.0, 0.0, self.px4_height, 23.0])

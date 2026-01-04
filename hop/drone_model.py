@@ -17,9 +17,14 @@ class DroneModel:
         state = ca.vertcat(p,v,q,w)
         u = self.model.set_variable(var_type='_u', var_name='u', shape=(4,1))
 
-        # this is the parameters for the position and the voltage. We use it to feed in
-        # the goal position for use in the cost function
-        parameters = self.model.set_variable(var_type='_p', var_name='parameters', shape=(4,1))
+        # Parameters 
+        # -------------------
+        # x position
+        # y position
+        # z position
+        # battery voltage
+        # goal thrust
+        parameters = self.model.set_variable(var_type='_p', var_name='parameters', shape=(5,1))
 
 
         # I_mat = ca.diag(mc.I_diag)
@@ -64,7 +69,7 @@ class DroneModel:
         x_error = state - x_r
         x_cost = x_error.T @ mc.Q @ x_error 
         terminal_cost = x_error.T @ (mc.terminal_cost_factor * mc.Q) @ x_error 
-        u_goal = ca.DM([0.0, 0.0, mc.hover_thrust, 0.0])
+        u_goal = ca.DM([0.0, 0.0, parameters[4] * mc.battery_v / parameters[3], 0.0])
         u_error = u - u_goal
         u_cost = u_error.T @ mc.R @ u_error
         cost = x_cost + u_cost
