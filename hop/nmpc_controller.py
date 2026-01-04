@@ -50,7 +50,7 @@ class NMPC(OffBoardNode):
             self.control_translator()   
 
             if distance(mc.waypoints[self.waypoint_i][:3], self.state[:3]) < 0.05 and not self.acheive_logged:
-                self.get_logger().info('\nWAYPOINT ACHEIVED ' + str(mc.waypoints[self.waypoint_i][:3]))
+                self.get_logger().info('\nWAYPOINT ACHEIVED ' + str(self.waypoint_i))
                 self.acheive_logged = True
             
                 

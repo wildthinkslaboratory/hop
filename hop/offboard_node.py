@@ -75,6 +75,7 @@ class OffBoardNode(Node):
         self.listener_thread.start()
         self.key = ''
         self.waypoint_i = 0
+        self.first_arm = True
 
 
         ############ Publishers #########################
@@ -154,7 +155,9 @@ class OffBoardNode(Node):
         was_armed = self.armed
         if msg.arming_state == VehicleStatus.ARMING_STATE_ARMED:
             self.armed = True
-            self.get_logger().info('Vehicle is ARMED')
+            if self.first_arm:
+                self.first_arm = False
+                self.get_logger().info('Vehicle is ARMED')
         elif msg.arming_state == VehicleStatus.ARMING_STATE_DISARMED:
             self.armed = False
             self.get_logger().info('Vehicle is DISARMED')
