@@ -79,6 +79,9 @@
 \begin{document}
 \maketitle
 	
+\begin{abstract}
+	We developed a nonlinear model predictive control (NMPC) algorithm for a thrust vector drone with a two-axis gimbal and two stacked counter-rotating brushless motors for thrust.  The goal was to create a control loop that runs at 50Hz on the Raspberry Pi 5. The primary computation task of an NMPC solver is the solution of the embedded nonlinear programming problem (NLP). To meet our time requirement, we experimented with three formulations for the NLP,  a standard multiple shooting version, a Chebyshev pseudospectral collocation method and an orthogonal collocation method.  We then compared their efficiency and accuracy. With proper tuning, all of these methods met the stated performance requirement  and produced robust trajectories that converged to the goal state. 
+\end{abstract}
 \section*{Introduction}	
 	This paper is part of a larger project inspired by the small-scale rocket prototype presented by \cite{TVCDrone} which aims to study thrust vector control (TVC) and vertical takeoff and landing (VTOL) using a gimballed-thrust rocket prototype. 
 	VTOL milestones like NASA's Lunar Landing Research Vehicle (LLRV) which allowed Apollo astronauts to practice lunar landings, McDonnell Douglas’s DC-X (Delta Clipper), and SpaceX's Falcon 9 and Starship landings, the latter to be used in the planned Artemis III mission that aims to land and return astronauts from the moon illustrate the value of propulsive VTOL with TVC. 	

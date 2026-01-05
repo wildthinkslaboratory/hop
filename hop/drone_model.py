@@ -69,7 +69,7 @@ class DroneModel:
         x_error = state - x_r
         x_cost = x_error.T @ mc.Q @ x_error 
         terminal_cost = x_error.T @ (mc.terminal_cost_factor * mc.Q) @ x_error 
-        u_goal = ca.DM([0.0, 0.0, parameters[4] * mc.battery_v / parameters[3], 0.0])
+        u_goal = ca.vertcat(0.0, 0.0, parameters[4] * mc.battery_v / parameters[3], 0.0)
         u_error = u - u_goal
         u_cost = u_error.T @ mc.R @ u_error
         cost = x_cost + u_cost

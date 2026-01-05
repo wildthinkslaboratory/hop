@@ -68,7 +68,7 @@ class DroneNMPCdompc:
         # so we can adjust the goal state with different waypoints
         # and adjust the voltage
         self.parameters = self.mpc.get_p_template(1)
-        self.parameters['_p'] = np.array([0.0, 0.0, 0.0, 25.0])
+        self.parameters['_p'] = np.array([0.0, 0.0, 0.0, mc.battery_v, mc.hover_thrust])
         def p_fun(t_now):
             return self.parameters
         self.mpc.set_p_fun(p_fun)

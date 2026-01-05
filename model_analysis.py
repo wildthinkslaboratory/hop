@@ -36,7 +36,7 @@ state_data = np.empty([len(data),13])
 control_data = np.empty([len(data),4])
 pwm_motors = np.empty([len(data),2])
 pwm_servos = np.empty([len(data),2])
-parameters = np.empty([len(data),4])
+parameters = np.empty([len(data),5])
 voltage = []
 # collect all the data into arrays
 for i, d in enumerate(data):

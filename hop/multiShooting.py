@@ -17,7 +17,7 @@ class DroneNMPCMultiShoot:
         v = ca.SX.sym('v', 3, 1)
         q = ca.SX.sym('q', 4, 1)
         w = ca.SX.sym('w', 3, 1)
-        self.parameters = ca.SX.sym('waypoint_voltage', 4)
+        self.parameters = ca.SX.sym('waypoint_voltage', 5)
         self.x = ca.vertcat(p,v,q,w)
         self.u = ca.SX.sym('u', 4, 1)
 
