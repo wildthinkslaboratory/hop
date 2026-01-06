@@ -1,5 +1,7 @@
 import numpy as np
 import casadi as ca
+from hop.utilities import q_component_to_angle
+
 
 class Constants:
     def __init__(self):
@@ -166,6 +168,34 @@ class Constants:
             # 'ipopt.mu_init': 1e-3,  
         }
 
+
+    def tuning_info(self):
+        s = 'Q Tuning Information\n'
+        s += '-----------------------\n'
+        s += 'position deviation\n'
+        s += 'x: ' +  str(np.sqrt(1 / self.Q[0, 0])) + ' m\n'
+        s += 'y: ' +  str(np.sqrt(1 / self.Q[1, 1])) + ' m\n'
+        s += 'z: ' +  str(np.sqrt(1 / self.Q[2, 2])) + ' m\n'
+        s += 'velocity deviation\n'
+        s += 'vx: ' +  str(np.sqrt(1 / self.Q[3, 3])) + ' m / s\n'
+        s += 'vy: ' +  str(np.sqrt(1 / self.Q[4, 4])) + ' m / s\n'
+        s += 'vz: ' +  str(np.sqrt(1 / self.Q[5, 5])) + ' m / s\n'
+        s += 'angle deviation\n'
+        s += 'qx: ' +  str(round(q_component_to_angle(np.sqrt(1 / self.Q[6, 6])))) + ' degrees\n'
+        s += 'qy: ' +  str(round(q_component_to_angle(np.sqrt(1 / self.Q[7, 7])))) + ' degrees\n'
+        s += 'qz: ' +  str(round(q_component_to_angle(np.sqrt(1 / self.Q[8, 8])))) + ' degrees\n'
+        s += 'angular velocity deviation\n'
+        s += 'vx: ' +  str(np.sqrt(1 / self.Q[10, 10])) + ' rad / s\n'
+        s += 'vy: ' +  str(np.sqrt(1 / self.Q[11, 11])) + ' rad / s\n'
+        s += 'vz: ' +  str(np.sqrt(1 / self.Q[12, 12])) + ' rad / s\n'
+        s += '\nR Tuning Information\n'
+        s += '-----------------------\n'
+        s += 'gimbal deviation\n'
+        s += 'theta 1: ' +  str(np.sqrt(1 / self.R[0, 0])) + ' degrees / sed\n'
+        s += 'theta 2: ' +  str(np.sqrt(1 / self.R[1, 1])) + ' degrees / sed\n'
+        s += 'P avg: ' +  str(np.sqrt(1 / self.Q[2, 2])) + ' [0-1]\n'
+        s += 'P diff: ' +  str(np.sqrt(1 / self.Q[3, 3])) + ' [0-1]\n'
+        return s
 
 
     def __dict__(self):
