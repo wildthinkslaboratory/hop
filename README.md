@@ -1,3 +1,23 @@
+## Running Simulations and Experiments
+
+```
+python3 -m venv venv
+```
+
+```
+source venv/bin/activate
+```
+
+```
+python -m pip install --upgrade pip
+```
+
+```
+python -m pip install numpy
+python -m pip install matplotlib
+python -m pip install casadi
+```
+
 ### Running the NMPC Controller on the Pi
 
 #### Start the MicroAgent

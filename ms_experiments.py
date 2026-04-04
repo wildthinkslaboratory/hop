@@ -44,21 +44,21 @@ for test in test_list_for_paper:
 
     # run fine grained solver for a reference trajectory
     # the accuracy of other runs are assessed relative to this trajectory
-    ms_nmpc = DroneNMPCMultiShoot()
+    ms_nmpc = DroneNMPCMultiShoot(mc)
     ms_nmpc.dt = 0.02
     ms_nmpc.N = 100
     ms_nmpc.record_nlp_stats = True
-    ms_nmpc.set_goal_state(xr)
+    ms_nmpc.set_up_nlp()
     ms_nmpc.set_start_state(x_init)
     x0 = x_init
     u0 = np.zeros(4)
     reference_data = np.empty([num_iterations,13])
+    p0 = np.array([0.0, 0.0, 0.0, mc.battery_v, mc.hover_thrust])
 
     print('running multiple shooter nmpc solver with N:', ms_nmpc.N)
     for k in range(num_iterations):
-
-        u0 = ms_nmpc.make_step(x0, u0, np.array([0.0, 0.0, 0.0]))
-        x0 = x0 + mc.dt* ms_nmpc.f(x0,u0)
+        u0 = ms_nmpc.make_step(x0, u0, p0)
+        x0 = x0 + mc.dt* ms_nmpc.f(x0,u0,p0)
         reference_data[k] = np.reshape(x0, (13,))
 
 
@@ -72,11 +72,11 @@ for test in test_list_for_paper:
 
 
         # run the multiple shooter nmpc
-        ms_nmpc = DroneNMPCMultiShoot()
+        ms_nmpc = DroneNMPCMultiShoot(mc)
         ms_nmpc.dt = ts
         ms_nmpc.N = int(2.0 / ts)
         ms_nmpc.record_nlp_stats = True
-        ms_nmpc.set_goal_state(xr)
+        ms_nmpc.set_up_nlp()
         ms_nmpc.set_start_state(x_init)
         x0 = x_init
         u0 = np.zeros(4)
@@ -86,11 +86,11 @@ for test in test_list_for_paper:
 
             start_time = perf_counter()
             # Solve the NMPC for the current state x_current
-            u0 = ms_nmpc.make_step(x0, u0, np.array([0.0, 0.0, 0.0]))
+            u0 = ms_nmpc.make_step(x0, u0, p0)
             step_time = perf_counter() - start_time
 
             # Propagate the system using the discrete dynamics f (Euler forward integration)
-            x0 = x0 + mc.dt* ms_nmpc.f(x0,u0)
+            x0 = x0 + mc.dt* ms_nmpc.f(x0,u0,p0)
             
             state_data[k] = np.reshape(x0, (13,))
             control_data[k] = np.reshape(u0, (4,))

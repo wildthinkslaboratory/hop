@@ -17,7 +17,15 @@ class DroneNMPCMultiShoot:
         v = ca.SX.sym('v', 3, 1)
         q = ca.SX.sym('q', 4, 1)
         w = ca.SX.sym('w', 3, 1)
-        self.parameters = ca.SX.sym('waypoint_voltage', 5)
+
+        # Parameters 
+        # -------------------
+        # x position
+        # y position
+        # z position
+        # battery voltage
+        # goal thrust
+        self.parameters = ca.SX.sym('parameters', 5)
         self.x = ca.vertcat(p,v,q,w)
         self.u = ca.SX.sym('u', 4, 1)
 
@@ -65,18 +73,18 @@ class DroneNMPCMultiShoot:
         self.f = ca.Function('f', [self.x, self.u, self.parameters], [RHS])
         
         self.record_nlp_stats = False
+
         
+    def set_up_nlp(self):
 
-     # In this function we build up the NMPC problem instance
-     # we can't build it until we know the goal state
-    def set_goal_state(self, x_goal):
-
-        self.x_goal = x_goal
+        self.x_goal = ca.vertcat(self.parameters[:3], self.mc.xr[3:])
+        self.u_goal = ca.vertcat(self.mc.ur[:2], self.parameters[4:], self.mc.ur[3:])
 
         X0 = ca.SX.sym('X0', self.size_x())            # these are variables representing our initial state
         U0 = ca.SX.sym('U0', self.size_u())
         
-        P0 = ca.vertcat(X0, U0, self.p_goal)
+        
+        P0 = ca.vertcat(X0, U0, self.parameters)
 
         # we make a copy of the state variables for each N+1 time steps
         X = ca.SX.sym('X', self.x.size1(), self.N+1)    
@@ -115,8 +123,6 @@ class DroneNMPCMultiShoot:
 
         self.cost = 0.0
 
-        self.x_goal = ca.vertcat(self.p_goal, self.x_goal[3:])
-
         for k in range(self.N):
             x_k = X[:, k]    # state at time step k
             u_k = U[:, k]  # control at time step k
@@ -124,7 +130,7 @@ class DroneNMPCMultiShoot:
             # here we build up the cost function by summing up the squared
             # error from the goal state over each time step
             state_error_cost = (x_k - self.x_goal).T @ self.mc.Q @ (x_k - self.x_goal)
-            control_cost = (u_k - self.mc.ur).T @ self.mc.R @ (u_k - self.mc.ur)
+            control_cost = (u_k - self.u_goal).T @ self.mc.R @ (u_k - self.u_goal)
             self.cost = self.cost + state_error_cost + control_cost
 
             # here we create the constraints that require the solution
@@ -133,10 +139,10 @@ class DroneNMPCMultiShoot:
             # the state at time k+1 to equal the system dynamics applied to the 
             # the state at time k.
             next_state = X[:, k+1]
-            k1 = self.f(x_k, u_k)
-            k2 = self.f(x_k + self.dt/2*k1, u_k)
-            k3 = self.f(x_k + self.dt/2*k2, u_k)
-            k4 = self.f(x_k + self.dt * k3, u_k)
+            k1 = self.f(x_k, u_k, self.parameters)
+            k2 = self.f(x_k + self.dt/2*k1, u_k, self.parameters)
+            k3 = self.f(x_k + self.dt/2*k2, u_k, self.parameters)
+            k4 = self.f(x_k + self.dt * k3, u_k, self.parameters)
             next_state_RK4 = x_k + (self.dt / 6) * (k1 + 2 * k2 + 2 * k3 + k4)
             g = ca.vertcat(g, next_state - next_state_RK4)
             self.lbg += [0.0]*int(next_state.numel())
@@ -200,9 +206,12 @@ class DroneNMPCMultiShoot:
         self.first_iteration = True
 
 
-    def make_step(self, x, u, p_goal):
+    # take the current state, control and parameters and 
+    # compute the optimal control values
+    def make_step(self, x, u, params):
 
-        x = ca.vertcat(x,u,p_goal)
+        x = ca.vertcat(x,u,params)
+
         # if it's not the first iteration, use a warm start from previous solution.
         # we shift the trajectory forward by on time step and then just repeat
         # the last timestep twice
@@ -226,8 +235,8 @@ class DroneNMPCMultiShoot:
 
         # keep track of some accuracy measures from solving the nlp
         if self.record_nlp_stats:
-            f_fun = ca.Function("f_fun", [self.opt_vars, self.p_goal], [self.cost])
-            cost = float(f_fun(sol_opt, p_goal))
+            f_fun = ca.Function("f_fun", [self.opt_vars, self.parameters], [self.cost])
+            cost = float(f_fun(sol_opt, params))
             self.solver_stats = {
                 'status': self.solver.stats()['return_status'], 
                 'cost': cost, 
