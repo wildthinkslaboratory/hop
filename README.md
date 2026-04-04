@@ -1,24 +1,29 @@
 ## Running Simulations and Experiments
 
-```
-python3 -m venv venv
-```
+In the `hop` directory build a virtual python environment and activate it
 
 ```
+python3 -m venv venv
 source venv/bin/activate
 ```
 
-```
-python -m pip install --upgrade pip
-```
+Now we can install needed libraries
 
 ```
+python -m pip install --upgrade pip
 python -m pip install numpy
 python -m pip install matplotlib
 python -m pip install casadi
+python -m pip install 'do-mpc[full]'
 ```
 
-### Running the NMPC Controller on the Pi
+#### multi shooting experiments
+
+```
+python ms_experiements.py
+```
+
+## Running the NMPC Controller on the Pi
 
 #### Start the MicroAgent
 

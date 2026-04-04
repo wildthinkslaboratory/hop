@@ -4,12 +4,12 @@ import numpy as np
 
 from hop.chebyshev import chebyshev_D, weights, cheb_nodes_weights, barycentric_resample_matrix
 
-from hop.constants import Constants
-mc = Constants()
+
 
 class DroneNMPCwithCPS:
-    def __init__(self):
+    def __init__(self, mc):
 
+        self.mc = mc
         self.T = mc.mpc_horizon * mc.dt
         self.N = mc.spectral_order
 
@@ -18,13 +18,23 @@ class DroneNMPCwithCPS:
         v = ca.SX.sym('v', 3, 1)
         q = ca.SX.sym('q', 4, 1)
         w = ca.SX.sym('w', 3, 1)
+
+        # Parameters 
+        # -------------------
+        # x position
+        # y position
+        # z position
+        # battery voltage
+        # goal thrust
+        self.parameters = ca.SX.sym('parameters', 5)
         self.x = ca.vertcat(p,v,q,w)
         self.u = ca.SX.sym('u', 4, 1)
-
+  
         # Now we build up the equations of motion and create a function
         # for the system dynamics
-        I_mat = ca.diag(mc.I_diag)
-        F = mc.a * self.u[2]**2 + mc.b * self.u[2] + mc.c 
+        I_mat = ca.DM(mc.I)
+        norm_P_avg = self.u[2] * self.parameters[3] / mc.battery_v
+        F = mc.a * norm_P_avg**2 + mc.b * norm_P_avg + mc.c 
         M = mc.d * mc.Izz * self.u[3]
 
         F_vector = F * ca.vertcat(
@@ -61,20 +71,20 @@ class DroneNMPCwithCPS:
         )
 
         # f is function that returns the change in state for a given state and control values
-        self.f = ca.Function('f', [self.x, self.u], [RHS])
+        self.f = ca.Function('f', [self.x, self.u, self.parameters], [RHS])
 
         self.record_nlp_stats = False
 
      # In this function we build up the NMPC problem instance
      # we can't build it until we know the goal state
-    def set_goal_state(self, x_goal):
+    def set_up_nlp(self):
 
-        self.x_goal = x_goal
+        self.x_goal = ca.vertcat(self.parameters[:3], self.mc.xr[3:])
+        self.u_goal = ca.vertcat(self.mc.ur[:2], self.parameters[4:], self.mc.ur[3:])
 
         X0 = ca.SX.sym('X0', self.x.size1())            # initial state
         U0 = ca.SX.sym('U0', self.size_u())
-        self.p_goal = ca.SX.sym('p_goal', 3)
-        P0 = ca.vertcat(X0, U0, self.p_goal)
+        P0 = ca.vertcat(X0, U0, self.parameters)
 
         X = ca.SX.sym('X', self.x.size1(), self.N+1)    
 
@@ -91,10 +101,10 @@ class DroneNMPCwithCPS:
 
         self.lbx[2: n_x_vars: self.size_x()] = 0     # keep z position above 0
 
-        self.lbx[n_x_vars:   num_vars: self.size_u()] = mc.outer_gimbal_range[0]     # outer gimbal lower bound
-        self.lbx[n_x_vars+1: num_vars: self.size_u()] = mc.inner_gimbal_range[0]     # inner gimbal lower bound
-        self.ubx[n_x_vars:   num_vars: self.size_u()] = mc.outer_gimbal_range[1]     # outer gimbal upper bound
-        self.ubx[n_x_vars+1: num_vars: self.size_u()] = mc.inner_gimbal_range[1]     # inner gimbal upper bound
+        self.lbx[n_x_vars:   num_vars: self.size_u()] = self.mc.outer_gimbal_range[0]     # outer gimbal lower bound
+        self.lbx[n_x_vars+1: num_vars: self.size_u()] = self.mc.inner_gimbal_range[0]     # inner gimbal lower bound
+        self.ubx[n_x_vars:   num_vars: self.size_u()] = self.mc.outer_gimbal_range[1]     # outer gimbal upper bound
+        self.ubx[n_x_vars+1: num_vars: self.size_u()] = self.mc.inner_gimbal_range[1]     # inner gimbal upper bound
 
         tau_2_time = (self.T/2)
         D = chebyshev_D(self.N)
@@ -112,37 +122,37 @@ class DroneNMPCwithCPS:
 
         # cost function
         self.cost = 0.0
-        self.x_goal = ca.vertcat(self.p_goal, self.x_goal[3:])
+
         for j in range(self.N + 1):
             x_k = X[:, j]
             u_k = U[:, j]
 
             # cost function
-            state_cost = (x_k - self.x_goal).T @ mc.Q @ (x_k - self.x_goal)
-            control_cost = (u_k - mc.ur).T @ mc.R @ (u_k - mc.ur)
+            state_cost = (x_k - self.x_goal).T @ self.mc.Q @ (x_k - self.x_goal)
+            control_cost = (u_k - self.u_goal).T @ self.mc.R @ (u_k - self.u_goal)
             running_cost = state_cost + control_cost 
             self.cost = self.cost + w[j] * running_cost
 
             # dynamics constraints
-            f_k = self.f(x_k, u_k)
+            f_k = self.f(x_k, u_k, self.parameters)
             g = ca.vertcat(g, (D_ca[j,:] @ X.T).T - tau_2_time * f_k)
             self.lbg += [0.0]*int(self.size_x())
             self.ubg += [0.0]*int(self.size_x())
 
 
             # upper thrust limit constraints         
-            g   = ca.vertcat(g, (u_k[2] + 0.5*u_k[3]) - mc.prop_thrust_constraint)
-            g   = ca.vertcat(g, (u_k[2] - 0.5*u_k[3]) - mc.prop_thrust_constraint)
+            g   = ca.vertcat(g, (u_k[2] + 0.5*u_k[3]) - self.mc.prop_thrust_constraint)
+            g   = ca.vertcat(g, (u_k[2] - 0.5*u_k[3]) - self.mc.prop_thrust_constraint)
             self.lbg += [-ca.inf]*2
             self.ubg += [0.0]*2
 
-            if mc.nmpc_rate_constraints:
+            if self.mc.nmpc_rate_constraints:
                 print('need to add rate constraints for Chebyshev PS')
 
         
         x_N = X[:, self.N]
         e_N = x_N - self.x_goal
-        Qf = mc.Q
+        Qf = self.mc.Q
         self.cost = self.cost + e_N.T @ Qf @ e_N
 
         self.cost = self.cost * tau_2_time
@@ -155,11 +165,11 @@ class DroneNMPCwithCPS:
             'p': P0
         }
 
-        self.solver = ca.nlpsol('solver', 'ipopt', nlp_prob, mc.ipopt_settings)
+        self.solver = ca.nlpsol('solver', 'ipopt', nlp_prob, self.mc.ipopt_settings)
         
         x_initial_guess = ca.DM([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
         X_init = np.tile(np.array(x_initial_guess).reshape(-1,1), (1, self.N+1))
-        U_init = np.tile(mc.ur, self.N+1)
+        U_init = np.tile(self.mc.ur, self.N+1)
         self.init_guess = np.concatenate([X_init.reshape(-1, order='F'), U_init.reshape(-1, order='F')])
         
         # Here we initialize our stored solution to zeros
@@ -168,9 +178,9 @@ class DroneNMPCwithCPS:
         self.first_iteration = True
 
 
-    def make_step(self, x, u, p_goal):
+    def make_step(self, x, u, params):
 
-        x = ca.vertcat(x,u,p_goal)
+        x = ca.vertcat(x,u,params)
 
         if self.first_iteration:
             self.first_iteration = False
@@ -195,8 +205,8 @@ class DroneNMPCwithCPS:
 
         # keep track of some accuracy measures from solving the nlp
         if self.record_nlp_stats:
-            f_fun = ca.Function("f_fun", [self.opt_vars, self.p_goal], [self.cost])
-            cost = float(f_fun(sol_opt, p_goal))
+            f_fun = ca.Function("f_fun", [self.opt_vars, self.parameters], [self.cost])
+            cost = float(f_fun(sol_opt, params))
             self.solver_stats = {
                 'status': self.solver.stats()['return_status'], 
                 'cost': cost, 

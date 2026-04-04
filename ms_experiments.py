@@ -1,5 +1,5 @@
 #
-# This is for tuning the multipleShooting implementation
+# This is a set of experiments for tuning the multipleShooting implementation
 #
 
 from hop.constants import Constants
