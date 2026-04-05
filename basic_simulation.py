@@ -1,5 +1,11 @@
+
 #
+# This runs a simple simulation of the dompc formulation with an animation at the end.
+# It's good for checking the algorithm after major to constants 
+# or the model
 #
+
+
 from hop.drone_model import DroneModel
 from hop.drone_model_randomized import DroneModelRandom
 from hop.dompc import DroneNMPCdompc
@@ -110,8 +116,8 @@ for test in test_list:
     plot_state_for_paper(tspan, state_data, test["title"], 1)
     plot_control_for_paper(tspan, control_data, test["title"], 2)
     plt.show()
-    # rc = RocketAnimation()
-    # rc.animate(tspan, state_data, control_data)
+    rc = RocketAnimation()
+    rc.animate(tspan, state_data, control_data)
 
 
 # error = xr - x_init

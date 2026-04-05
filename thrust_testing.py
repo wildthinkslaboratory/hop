@@ -1,3 +1,8 @@
+
+#
+# fit our thrust data with a quadratic curve
+#
+
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import curve_fit

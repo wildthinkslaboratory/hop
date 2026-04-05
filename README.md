@@ -15,6 +15,14 @@ python -m pip install numpy
 python -m pip install matplotlib
 python -m pip install casadi
 python -m pip install 'do-mpc[full]'
+
+```
+
+For the animation you need
+
+```
+python -m pip install vpython
+python -m pip install numpy-quaternion
 ```
 
 #### multi shooting experiments
