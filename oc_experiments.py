@@ -50,7 +50,7 @@ for test in test_list:
 
     # run fine grained solver for a reference trajectory
     # the accuracy of other runs are assessed relative to this trajectory
-    model = DroneModel()
+    model = DroneModel(mc)
     mpc = DroneNMPCdompc(mc.dt, model.model)
 
     mpc.mpc.settings.t_step = 0.02
@@ -66,9 +66,10 @@ for test in test_list:
     # it's used in the mpc cost function only
     # the simulator get's confused if it has undefined parameters
     # so we give it a dummy function
+
     p_template = sim.get_p_template()
     def dummy(t_now):
-        p_template['p_goal'] = np.array([0.0, 0.0, 0.0])
+        p_template['parameters'] = np.array([0.0, 0.0, 0.0, mc.battery_v, mc.hover_thrust])
         return p_template
     sim.set_p_fun(dummy)
 
@@ -83,6 +84,7 @@ for test in test_list:
     print('running reference do-mpc solver')
     for k in range(num_iterations):
         start_time = perf_counter()
+        mpc.set_waypoint(np.array([0.0, 0.0, 0.0, mc.battery_v, mc.hover_thrust]))
         u0 = mpc.mpc.make_step(x0)
         step_time = perf_counter() - start_time
 
@@ -99,7 +101,7 @@ for test in test_list:
 
             # first we set up the do-mpc solver
             # it uses orthagonal collocation
-            model = DroneModel()
+            model = DroneModel(mc)
             mpc = DroneNMPCdompc(mc.dt, model.model)
 
             mpc.mpc.settings.t_step = tstep

@@ -148,14 +148,14 @@ class Constants:
         self.spectral_order = 6
 
         # do-mpc constants
-        self.finite_interval_size = 0.3
-        self.number_intervals = 6
+        self.finite_interval_size = 0.4
+        self.number_intervals = 5
         self.collocation_degree = 2
 
         # IPOPT settings
         # --------------------------------------------------------------- 
         self.ipopt_settings = {
-            "ipopt.max_iter": 100,                   
+            "ipopt.max_iter": 30,                   
             "ipopt.tol": 1e-3,                     
             "ipopt.acceptable_tol": 1e-4,
             'ipopt.print_level': 0,

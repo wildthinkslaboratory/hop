@@ -9,7 +9,6 @@ def plot_state(tspan, data, title='State'):
     fig.suptitle(title)
 
     for i in range(3):
-        
         axs[0].plot(tspan, data[:,i])
     axs[0].set_ylabel('$x$')
     for i in range(3):
@@ -23,6 +22,7 @@ def plot_state(tspan, data, title='State'):
     axs[3].set_ylabel('$w$')
 
     plt.xlabel('Time')
+    plt.savefig("flight_model_comp.pdf", format="pdf", bbox_inches="tight")
     # plt.show()
 
 def plot_weighted_error_state(tspan, data, title='State'):
@@ -204,6 +204,7 @@ def plot_state_control(axs, tspan, data, control):
     axs[6].set_ylabel('$\\Delta P$')
 
     axs[6].set_ylim(min(min_val, -0.01), max(max_val, 0.01))
+    
 
 
 ##########################################################################
