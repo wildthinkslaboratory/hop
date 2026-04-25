@@ -30,7 +30,8 @@ class OffBoardNode(Node):
         self.dt = dt
         qos_pub = QoSProfile(
             reliability=QoSReliabilityPolicy.BEST_EFFORT,
-            durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
+            durability=QoSDurabilityPolicy.VOLATILE,
+            # durability=QoSDurabilityPolicy.VOLATILE, # changing to this could fix the lag maybe
             history=QoSHistoryPolicy.KEEP_LAST,
             depth=1
         )
