@@ -45,7 +45,10 @@ for i, d in enumerate(data):
     voltage.append(d['voltage'])
     pwm_motors[i] = np.array(d['pwm_motors'])
     pwm_servos[i] = np.array(d['pwm_servos'])
-    parameters[i] = np.array(d['parameters'])
+    if len(d['parameters']) == 4:
+        parameters[i] = np.array(d['parameters'] + [0.0])
+    else:
+        parameters[i] = np.array(d['parameters'])
 
 
 # we often want to cut off the beginning of the data
@@ -64,6 +67,7 @@ pwm_motors = pwm_motors[stop_index+1:]
 pwm_servos = pwm_servos[stop_index+1:]
 parameters = parameters[stop_index+1:-1]
 
+wx_vs_tilt = np.empty([len_used_data, 2])
 
 # first we make a model
 mc = Constants()
@@ -83,6 +87,20 @@ mpc.setup_cost()
 # the next state from current flight state and current flight
 # control. Then we can see if the model prediction of state
 # matches the actual change in state
+
+theta = [ 0.06629151,  0.06187037,  0.005, -0.00229176,  0.00172769,  0.000987, 0.00679447,  0.00957006, -0.3 ]
+mc.moment_arm = theta[6:]
+mc.I[0][0] = theta[0]
+mc.I[1][1] = theta[1]
+mc.I[2][2] = theta[2]
+mc.I[0][1] = theta[3]
+mc.I[1][0] = theta[3]
+mc.I[0][2] = theta[4]
+mc.I[2][0] = theta[4]
+mc.I[1][2] = theta[5]
+mc.I[2][1] = theta[5]
+
+
 ms_mpc = DroneNMPCMultiShoot(mc)
 
 
@@ -151,6 +169,8 @@ for i in range(len(state_data)-1):
     x0 = state_data[i] + mc.dt* ms_mpc.f(state_data[i],np.reshape(control_data[i], (4,1)), parameters[i])
     flight_model_error[i] = state_data[i+1] -  np.reshape(x0, (13,))
     predicted_state[i] = np.reshape(x0, (13,))
+    wx_vs_tilt[i][0] = state_data[i][10] * -10
+    wx_vs_tilt[i][1] = attitude[i][0]
 
 
 
@@ -159,6 +179,28 @@ mean_time = round(stats.mean(time_data),3)
 max_time = round(max(time_data),3) 
 print('mean time: ', mean_time)
 print('max time: ', max_time)
+
+def plot_temp(tspan, wx_tilt, title='wx vs tilt'):
+    plt.rcParams['ytick.labelsize'] = 8 
+    plt.rcParams['xtick.labelsize'] = 8
+    fig, axs = plt.subplots(1)
+    fig.set_figheight(8)
+    fig.suptitle(title)
+
+
+    # x angle
+
+    axs.plot(tspan, wx_tilt[:,0])
+
+   
+    # y angle
+    axs.plot(tspan, wx_tilt[:,1])
+
+
+
+    plt.xlabel('Time')
+    # plt.show()
+
 
 # now all the plots
 plt.figure(figsize=(6,3))
@@ -186,6 +228,7 @@ plot_attitude(tspan, attitude, 'attitude')
 plot_control(tspan, control_data, 'flight control data')
 plot_state(tspan, state_data, 'state')
 
+plot_temp(tspan, wx_vs_tilt)
 plt.show()
 
 

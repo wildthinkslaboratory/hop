@@ -70,7 +70,7 @@ for test in test_list_for_paper:
     if 'oc' in nlps_to_run:
       # first we set up the do-mpc solver
       # it uses orthagonal collocation
-      model = DroneModel()
+      model = DroneModel(mc)
       mpc = DroneNMPCdompc(mc.dt, model.model)
       estimator = StateFeedback(model.model)
       sim = Simulator(model.model)
@@ -83,7 +83,7 @@ for test in test_list_for_paper:
       # so we give it a dummy function
       p_template = sim.get_p_template()
       def dummy(t_now):
-          p_template['p_goal'] = np.array([0.0, 0.0, 0.0])
+          p_template['parameters'] = np.array([0.0, 0.0, 0.0, mc.battery_v, mc.hover_thrust])
           return p_template
       sim.set_p_fun(dummy)
 
@@ -143,7 +143,7 @@ for test in test_list_for_paper:
 
     if 'ms' in nlps_to_run:
       # run the multiple shooter nmpc
-      ms_nmpc = DroneNMPCMultiShoot()
+      ms_nmpc = DroneNMPCMultiShoot(mc)
       ms_nmpc.record_nlp_stats = True
       ms_nmpc.set_goal_state(xr)
       ms_nmpc.set_start_state(x_init)

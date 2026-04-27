@@ -13,7 +13,7 @@ import statistics as stats
 from time import perf_counter
 import matplotlib.pyplot as plt
 from matplotlib import colors
-from plots import plot_comparison, plot_state_for_paper, plot_control_for_paper
+from plots import plot_comparison, plot_state_for_paper, plot_control_for_paper, plot_state
 from hop.utilities import sig_figs
 from animation import RocketAnimation
 mc = Constants()
@@ -21,28 +21,72 @@ mc = Constants()
 
 test_list = import_data('./nmpc_test_cases.json')  
 
-# test_list = [
-#   {
-#     "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+test_list =[
+    {
+    "x0": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [0, -0.2, 1],
+    "animation_up": [0, 1, 0],
+    "animation_frame_rate": 0.4,
+    "num_iterations": 500,
+    "waypoint": [0.0, 0.0, 0.0],
+    "title": "x1"
+  },
+
+    {
+    "x0": [1.0, 0.0, 1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [-1, -0.5, 2],
+    "animation_up": [0, 1, 0],
+    "animation_frame_rate": 0.4,
+    "num_iterations": 500,
+    "waypoint": [0.0, 0.0, 0.0],
+    "title": "x1z1vx"
+  },
+    {
+    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.383, 0.924, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [-0.1, -0.35, 0.25],
+    "animation_up": [0, 1, 0],
+    "animation_frame_rate": 0.8,
+    "num_iterations": 500,
+    "waypoint": [0.0, 0.0, 0.0],
+    "title": "45dz"
+  },
+  {
+    "x0": [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [-1.5, -0.2, 1],
+    "animation_up": [0, 1, 0],
+    "animation_frame_rate": 0.8,
+    "num_iterations": 500,
+    "waypoint": [0.0, 0.0, 0.0],
+    "title": "drop_down"
+  },
+  {
+    "x0": [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [-1, -0.1, -0.2],
+    "animation_up": [0, 1, 0],
+    "animation_frame_rate": 0.4,
+    "num_iterations": 500,
+    "waypoint": [0.0, 0.0, 0.0],
+    "title": "y115dx"
+  }
+]
+
+# test_list =[
+#     {
+#     "x0": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
 #     "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-#     "animation_forward": [0.0, -0.2, -1],
+#     "animation_forward": [0, -0.2, 1],
 #     "animation_up": [0, 1, 0],
-#     "animation_frame_rate": 0.8,
-#     "num_iterations": 200,
-#     "title": "hover"
-#   },
-# ]
-# test_list = [
-#   {
-#     "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.383, 0.924, 0.0, 0.0, 0.0],
-#     "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-#     "animation_forward": [-0.2, -0.5, 0.2],
-#     "animation_up": [0, 1, 0],
-#     "animation_frame_rate": 0.8,
-#     "num_iterations": 1000,
+#     "animation_frame_rate": 0.4,
+#     "num_iterations": 500,
 #     "waypoint": [0.0, 0.0, 0.0],
-#     "title": "45dz"
+#     "title": "x1"
 #   }
+
 # ]
 
 for test in test_list:
@@ -106,15 +150,42 @@ for test in test_list:
 
     # print('terminal error', squared_error)
     # # uncomment if you want to see plots of the trajectories
-    print(test["title"])
-    plot_state_for_paper(tspan, state_data, test["title"], 1)
-    plot_control_for_paper(tspan, control_data, test["title"], 2)
-    plt.show()
-    # rc = RocketAnimation()
-    # rc.animate(tspan, state_data, control_data)
+
+
+
+    plt.ion()
+    fig, axs = plt.subplots(4)
+    fig.set_figheight(7)
+    fig.set_figwidth(5)
+    fig.suptitle(test["title"])
+
+    for i in range(3):
+        axs[0].plot(tspan, state_data[:,i])
+    axs[0].set_ylabel('$x$')
+    for i in range(3):
+        axs[1].plot(tspan, state_data[:,i+3])
+    axs[1].set_ylabel('$v$')
+    for i in range(4):
+        axs[2].plot(tspan, state_data[:,i+6])
+    axs[2].set_ylabel('$q$')
+    for i in range(3):
+        axs[3].plot(tspan, state_data[:,i+10])
+    axs[3].set_ylabel('$w$')
+    plt.xlabel('Time')
+
+    fig.canvas.draw()           # Force render
+    fig.canvas.flush_events()   # Let GUI process
+
+    plt.show(block=False)
+    plt.pause(0.01)
+    input("Press Enter to continue...")
+    rc = RocketAnimation(forward=test['animation_forward'], up=test['animation_up'])
+    rc.animate(tspan, state_data, control_data)
 
 
 # error = xr - x_init
 # print(error.T @ error)
 # print(terminal_error)
 
+    # plot_state_for_paper(tspan, state_data, test["title"], 1)
+    # plot_control_for_paper(tspan, control_data, test["title"], 2)

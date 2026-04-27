@@ -1,4 +1,4 @@
-from vpython import canvas, curve, vec, vector, color, label, arrow, cylinder, cone, rate
+from vpython import canvas, curve, vec, vector, color, label, arrow, cylinder, cone, rate, distant_light
 import numpy as np
 from math import cos, sin
 import quaternion
@@ -10,6 +10,7 @@ class RocketAnimation:
         self.scene.forward = vector(forward[0], forward[1], forward[2])
         self.scene.up = vector(up[0], up[1], up[2])
         self.scene.range = 2.5
+        distant_light(direction=vector(1,1,-0.5), color=color.white)
         self.frame_rate = frame_rate
 
         self.draw_grid()
@@ -25,7 +26,7 @@ class RocketAnimation:
         rocket_radius = 0.1
         self.rocket_length = 1.0
         self.nose_length = 0.2
-        self.thrust_length = 0.05
+        self.thrust_length = 0.5
 
         
         self.body = cylinder(pos=vec(0, 0.01, 0), axis=vec(0, self.rocket_length, 0), radius=rocket_radius, color=vec(0.8, 0.7, 1))

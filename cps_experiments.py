@@ -1,19 +1,13 @@
 #
-# This runs drone simulations, plots results and gives timing summaries
+# This is for tuning the chebyshev pseudo spectral collocation implementation
 #
-from hop.drone_model import DroneModel
-from hop.dompc import DroneNMPCdompc
 from hop.constants import Constants
-from do_mpc.simulator import Simulator
 import casadi as ca
-from do_mpc.estimator import StateFeedback
 import numpy as np
 import statistics as stats
 from hop.utilities import import_data
 from time import perf_counter
-from hop.multiShooting import DroneNMPCMultiShoot
 from hop.chebyshev_ps import DroneNMPCwithCPS
-from animation import RocketAnimation
 import matplotlib.pyplot as plt
 from plots import plot_comparison, plot_state_for_paper, plot_control_for_paper
 
@@ -34,10 +28,11 @@ single_test = [
 
 
 # Here is the full set of tests if you want to run all the simulations
-test_list_for_paper = import_data('nmpc_test_cases.json')
+# test_list_for_paper = import_data('nmpc_test_cases.json')
+test_list_for_paper = single_test
 
-spectral_order = [16, 20]
-# spectral_order = [6, 8, 10, 12, 14]
+# spectral_order = [16, 20]
+spectral_order = [6, 8, 10, 12, 14]
 for order in spectral_order:
     for test in test_list_for_paper:
 
@@ -54,25 +49,25 @@ for order in spectral_order:
         stats_data = 0
 
         # set up the Chebyshev pseudospectral nmpc solver
-        cheb_nmpc = DroneNMPCwithCPS()
+        cheb_nmpc = DroneNMPCwithCPS(mc)
         cheb_nmpc.N = order
         cheb_nmpc.record_nlp_stats = True
-        cheb_nmpc.set_goal_state(xr)
+        cheb_nmpc.build_nmpc_instance()
         cheb_nmpc.set_start_state(x_init)
         x0 = x_init
         u0 = np.zeros(4)
-
+        params = np.array([0.0, 0.0, 0.0, 24.0, mc.hover_thrust])
 
         print('running Chebyshev pseudospectral nmpc solver')
         for k in range(num_iterations):
 
             start_time = perf_counter()
             # Solve the NMPC for the current state x_current
-            u0 = cheb_nmpc.make_step(x0, u0, np.array([0.0, 0.0, 0.0]))
+            u0 = cheb_nmpc.make_step(x0, u0, params)
             step_time = perf_counter() - start_time
 
             # Propagate the system using the discrete dynamics f (Euler forward integration)
-            x0 = x0 + mc.dt* cheb_nmpc.f(x0,u0)
+            x0 = x0 + mc.dt* cheb_nmpc.f(x0,u0,params)
             
             state_data[k] = np.reshape(x0, (13,))
             control_data[k] = np.reshape(u0, (4,))

@@ -17,9 +17,17 @@ class DroneNMPCMultiShoot:
         v = ca.SX.sym('v', 3, 1)
         q = ca.SX.sym('q', 4, 1)
         w = ca.SX.sym('w', 3, 1)
-        self.parameters = ca.SX.sym('waypoint_voltage', 5)
         self.x = ca.vertcat(p,v,q,w)
         self.u = ca.SX.sym('u', 4, 1)
+
+        # Parameters 
+        # -------------------
+        # x position
+        # y position
+        # z position
+        # battery voltage
+        # goal thrust
+        self.parameters = ca.SX.sym('waypoint_voltage', 5)
 
         # Now we build up the equations of motion and create a function
         # for the system dynamics
@@ -68,15 +76,14 @@ class DroneNMPCMultiShoot:
         
 
      # In this function we build up the NMPC problem instance
-     # we can't build it until we know the goal state
-    def set_goal_state(self, x_goal):
+    def build_nmpc_instance(self):
 
-        self.x_goal = x_goal
+        # self.x_goal = x_goal
 
         X0 = ca.SX.sym('X0', self.size_x())            # these are variables representing our initial state
         U0 = ca.SX.sym('U0', self.size_u())
         
-        P0 = ca.vertcat(X0, U0, self.p_goal)
+        P0 = ca.vertcat(X0, U0, self.parameters)
 
         # we make a copy of the state variables for each N+1 time steps
         X = ca.SX.sym('X', self.x.size1(), self.N+1)    
@@ -115,7 +122,8 @@ class DroneNMPCMultiShoot:
 
         self.cost = 0.0
 
-        self.x_goal = ca.vertcat(self.p_goal, self.x_goal[3:])
+        x_r = ca.vertcat(self.parameters[:3], self.mc.xr[3:])
+        u_r = ca.vertcat(0.0, 0.0, self.parameters[4] * self.mc.battery_v / self.parameters[3], 0.0)
 
         for k in range(self.N):
             x_k = X[:, k]    # state at time step k
@@ -123,8 +131,8 @@ class DroneNMPCMultiShoot:
 
             # here we build up the cost function by summing up the squared
             # error from the goal state over each time step
-            state_error_cost = (x_k - self.x_goal).T @ self.mc.Q @ (x_k - self.x_goal)
-            control_cost = (u_k - self.mc.ur).T @ self.mc.R @ (u_k - self.mc.ur)
+            state_error_cost = (x_k - x_r).T @ self.mc.Q @ (x_k - x_r)
+            control_cost = (u_k - u_r).T @ self.mc.R @ (u_k - u_r)
             self.cost = self.cost + state_error_cost + control_cost
 
             # here we create the constraints that require the solution
@@ -133,10 +141,10 @@ class DroneNMPCMultiShoot:
             # the state at time k+1 to equal the system dynamics applied to the 
             # the state at time k.
             next_state = X[:, k+1]
-            k1 = self.f(x_k, u_k)
-            k2 = self.f(x_k + self.dt/2*k1, u_k)
-            k3 = self.f(x_k + self.dt/2*k2, u_k)
-            k4 = self.f(x_k + self.dt * k3, u_k)
+            k1 = self.f(x_k, u_k, self.parameters)
+            k2 = self.f(x_k + self.dt/2*k1, u_k, self.parameters)
+            k3 = self.f(x_k + self.dt/2*k2, u_k, self.parameters)
+            k4 = self.f(x_k + self.dt * k3, u_k, self.parameters)
             next_state_RK4 = x_k + (self.dt / 6) * (k1 + 2 * k2 + 2 * k3 + k4)
             g = ca.vertcat(g, next_state - next_state_RK4)
             self.lbg += [0.0]*int(next_state.numel())
@@ -162,7 +170,7 @@ class DroneNMPCMultiShoot:
 
 
         x_N = X[:, self.N]             # final state
-        e_N = x_N - self.x_goal        # final error
+        e_N = x_N - x_r        # final error
         Qf  = self.mc.Q                     # terminal weight matrix (scale Q heavier)
         self.cost = self.cost + e_N.T @ Qf @ e_N
 
@@ -226,7 +234,7 @@ class DroneNMPCMultiShoot:
 
         # keep track of some accuracy measures from solving the nlp
         if self.record_nlp_stats:
-            f_fun = ca.Function("f_fun", [self.opt_vars, self.p_goal], [self.cost])
+            f_fun = ca.Function("f_fun", [self.opt_vars, self.parameters], [self.cost])
             cost = float(f_fun(sol_opt, p_goal))
             self.solver_stats = {
                 'status': self.solver.stats()['return_status'], 

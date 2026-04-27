@@ -64,7 +64,7 @@ class DroneNMPCdompc:
 
     def setup_cost(self):
 
-        # set up the (x,y,z, voltage) as parameters
+        # set up the (x,y,z, voltage, goal_thrust) as parameters
         # so we can adjust the goal state with different waypoints
         # and adjust the voltage
         self.parameters = self.mpc.get_p_template(1)
