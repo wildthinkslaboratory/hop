@@ -13,9 +13,9 @@ from hop.utilities import import_data
 from time import perf_counter
 from hop.multiShooting import DroneNMPCMultiShoot
 from hop.chebyshev_ps import DroneNMPCwithCPS
-from animation import RocketAnimation
+from tools.animation import RocketAnimation
 import matplotlib.pyplot as plt
-from plots import plot_comparison, plot_state_for_paper, plot_control_for_paper
+from plotting.plots import plot_comparison, plot_state_for_paper, plot_control_for_paper
 
 mc = Constants()
 

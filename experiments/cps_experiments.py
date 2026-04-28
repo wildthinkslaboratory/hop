@@ -14,7 +14,7 @@ from hop.utilities import import_data
 from time import perf_counter
 from hop.chebyshev_ps import DroneNMPCwithCPS
 import matplotlib.pyplot as plt
-from plots import plot_comparison, plot_state_for_paper, plot_control_for_paper
+from plotting.plots import plot_comparison, plot_state_for_paper, plot_control_for_paper
 
 mc = Constants()
 

@@ -11,7 +11,7 @@ from hop.utilities import import_data, sig_figs
 from time import perf_counter
 from hop.multiShooting import DroneNMPCMultiShoot
 import matplotlib.pyplot as plt
-from plots import plot_comparison, plot_state_for_paper, plot_control_for_paper
+from plotting.plots import plot_comparison, plot_state_for_paper, plot_control_for_paper
 
 mc = Constants()
 

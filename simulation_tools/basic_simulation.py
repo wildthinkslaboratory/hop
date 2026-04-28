@@ -19,9 +19,9 @@ import statistics as stats
 from time import perf_counter
 import matplotlib.pyplot as plt
 from matplotlib import colors
-from plots import plot_comparison, plot_state_for_paper, plot_control_for_paper, plot_state
+from plotting.plots import plot_comparison, plot_state_for_paper, plot_control_for_paper, plot_state
 from hop.utilities import sig_figs
-from animation import RocketAnimation
+from tools.animation import RocketAnimation
 mc = Constants()
 
 
