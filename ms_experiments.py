@@ -1,5 +1,5 @@
 #
-# This is for tuning the multipleShooting implementation
+# This is a set of experiments for tuning the multipleShooting implementation
 #
 
 from hop.constants import Constants
@@ -48,7 +48,9 @@ for test in test_list_for_paper:
     ms_nmpc.dt = 0.02
     ms_nmpc.N = 100
     ms_nmpc.record_nlp_stats = True
+
     ms_nmpc.build_nmpc_instance()
+
     ms_nmpc.set_start_state(x_init)
     x0 = x_init
     u0 = np.zeros(4)

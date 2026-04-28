@@ -1,7 +1,12 @@
 #
-# This is for tuning the chebyshev pseudo spectral collocation implementation
+
+# This is a set of experiments for tuning the chebyshev pseudo-spectral implementation
 #
+
+
 from hop.constants import Constants
+
+
 import casadi as ca
 import numpy as np
 import statistics as stats
@@ -52,11 +57,12 @@ for order in spectral_order:
         cheb_nmpc = DroneNMPCwithCPS(mc)
         cheb_nmpc.N = order
         cheb_nmpc.record_nlp_stats = True
+
         cheb_nmpc.build_nmpc_instance()
         cheb_nmpc.set_start_state(x_init)
         x0 = x_init
         u0 = np.zeros(4)
-        params = np.array([0.0, 0.0, 0.0, 24.0, mc.hover_thrust])
+        params = np.array([0.0, 0.0, 0.0, mc.battery_v, mc.hover_thrust])
 
         print('running Chebyshev pseudospectral nmpc solver')
         for k in range(num_iterations):
@@ -68,6 +74,7 @@ for order in spectral_order:
 
             # Propagate the system using the discrete dynamics f (Euler forward integration)
             x0 = x0 + mc.dt* cheb_nmpc.f(x0,u0,params)
+
             
             state_data[k] = np.reshape(x0, (13,))
             control_data[k] = np.reshape(u0, (4,))

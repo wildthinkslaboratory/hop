@@ -1,4 +1,37 @@
-### Running the NMPC Controller on the Pi
+## Running Simulations and Experiments
+
+In the `hop` directory build a virtual python environment and activate it
+
+```
+python3 -m venv venv
+source venv/bin/activate
+```
+
+Now we can install needed libraries
+
+```
+python -m pip install --upgrade pip
+python -m pip install numpy
+python -m pip install matplotlib
+python -m pip install casadi
+python -m pip install 'do-mpc[full]'
+
+```
+
+For the animation you need
+
+```
+python -m pip install vpython
+python -m pip install numpy-quaternion
+```
+
+#### multi shooting experiments
+
+```
+python ms_experiements.py
+```
+
+## Running the NMPC Controller on the Pi
 
 #### Start the MicroAgent
 

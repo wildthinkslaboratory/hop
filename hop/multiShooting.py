@@ -27,7 +27,7 @@ class DroneNMPCMultiShoot:
         # z position
         # battery voltage
         # goal thrust
-        self.parameters = ca.SX.sym('waypoint_voltage', 5)
+        self.parameters = ca.SX.sym('parameters', 5)
 
         # Now we build up the equations of motion and create a function
         # for the system dynamics
@@ -73,6 +73,7 @@ class DroneNMPCMultiShoot:
         self.f = ca.Function('f', [self.x, self.u, self.parameters], [RHS])
         
         self.record_nlp_stats = False
+
         
 
      # In this function we build up the NMPC problem instance
@@ -208,9 +209,12 @@ class DroneNMPCMultiShoot:
         self.first_iteration = True
 
 
-    def make_step(self, x, u, p_goal):
+    # take the current state, control and parameters and 
+    # compute the optimal control values
+    def make_step(self, x, u, params):
 
-        x = ca.vertcat(x,u,p_goal)
+        x = ca.vertcat(x,u,params)
+
         # if it's not the first iteration, use a warm start from previous solution.
         # we shift the trajectory forward by on time step and then just repeat
         # the last timestep twice
@@ -235,7 +239,7 @@ class DroneNMPCMultiShoot:
         # keep track of some accuracy measures from solving the nlp
         if self.record_nlp_stats:
             f_fun = ca.Function("f_fun", [self.opt_vars, self.parameters], [self.cost])
-            cost = float(f_fun(sol_opt, p_goal))
+            cost = float(f_fun(sol_opt, params))
             self.solver_stats = {
                 'status': self.solver.stats()['return_status'], 
                 'cost': cost, 

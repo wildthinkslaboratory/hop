@@ -4,7 +4,6 @@ import numpy as np
 
 from hop.chebyshev import chebyshev_D, weights, cheb_nodes_weights, barycentric_resample_matrix
 
-from hop.constants import Constants
 
 class DroneNMPCwithCPS:
     def __init__(self, mc):
@@ -17,6 +16,15 @@ class DroneNMPCwithCPS:
         v = ca.SX.sym('v', 3, 1)
         q = ca.SX.sym('q', 4, 1)
         w = ca.SX.sym('w', 3, 1)
+
+        # Parameters 
+        # -------------------
+        # x position
+        # y position
+        # z position
+        # battery voltage
+        # goal thrust
+        self.parameters = ca.SX.sym('parameters', 5)
         self.x = ca.vertcat(p,v,q,w)
         self.u = ca.SX.sym('u', 4, 1)
 
@@ -177,9 +185,9 @@ class DroneNMPCwithCPS:
         self.first_iteration = True
 
 
-    def make_step(self, x, u, p_goal):
+    def make_step(self, x, u, params):
 
-        x = ca.vertcat(x,u,p_goal)
+        x = ca.vertcat(x,u,params)
 
         if self.first_iteration:
             self.first_iteration = False
@@ -205,7 +213,7 @@ class DroneNMPCwithCPS:
         # keep track of some accuracy measures from solving the nlp
         if self.record_nlp_stats:
             f_fun = ca.Function("f_fun", [self.opt_vars, self.parameters], [self.cost])
-            cost = float(f_fun(sol_opt, p_goal))
+            cost = float(f_fun(sol_opt, params))
             self.solver_stats = {
                 'status': self.solver.stats()['return_status'], 
                 'cost': cost, 

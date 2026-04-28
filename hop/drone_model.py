@@ -26,8 +26,6 @@ class DroneModel:
         # goal thrust
         parameters = self.model.set_variable(var_type='_p', var_name='parameters', shape=(5,1))
 
-
-        # I_mat = ca.diag(mc.I_diag)
         I_mat = ca.DM(mc.I)
         norm_P_avg = u[2] * parameters[3] / mc.battery_v
         F = mc.a * norm_P_avg**2 + mc.b * norm_P_avg + mc.c 
