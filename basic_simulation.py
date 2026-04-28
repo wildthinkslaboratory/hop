@@ -25,61 +25,7 @@ from animation import RocketAnimation
 mc = Constants()
 
 
-test_list = import_data('./nmpc_test_cases.json')  
-
-test_list =[
-    {
-    "x0": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [0, -0.2, 1],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.4,
-    "num_iterations": 500,
-    "waypoint": [0.0, 0.0, 0.0],
-    "title": "x1"
-  },
-
-    {
-    "x0": [1.0, 0.0, 1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [-1, -0.5, 2],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.4,
-    "num_iterations": 500,
-    "waypoint": [0.0, 0.0, 0.0],
-    "title": "x1z1vx"
-  },
-    {
-    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.383, 0.924, 0.0, 0.0, 0.0],
-    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [-0.1, -0.35, 0.25],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.8,
-    "num_iterations": 500,
-    "waypoint": [0.0, 0.0, 0.0],
-    "title": "45dz"
-  },
-  {
-    "x0": [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [-1.5, -0.2, 1],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.8,
-    "num_iterations": 500,
-    "waypoint": [0.0, 0.0, 0.0],
-    "title": "drop_down"
-  },
-  {
-    "x0": [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
-    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [-1, -0.1, -0.2],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.4,
-    "num_iterations": 500,
-    "waypoint": [0.0, 0.0, 0.0],
-    "title": "y115dx"
-  }
-]
+# test_list = import_data('./nmpc_test_cases.json')  
 
 # test_list =[
 #     {
@@ -91,9 +37,63 @@ test_list =[
 #     "num_iterations": 500,
 #     "waypoint": [0.0, 0.0, 0.0],
 #     "title": "x1"
-#   }
+#   },
 
+#     {
+#     "x0": [1.0, 0.0, 1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+#     "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+#     "animation_forward": [-1, -0.5, 2],
+#     "animation_up": [0, 1, 0],
+#     "animation_frame_rate": 0.4,
+#     "num_iterations": 500,
+#     "waypoint": [0.0, 0.0, 0.0],
+#     "title": "x1z1vx"
+#   },
+#     {
+#     "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.383, 0.924, 0.0, 0.0, 0.0],
+#     "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+#     "animation_forward": [-0.1, -0.35, 0.25],
+#     "animation_up": [0, 1, 0],
+#     "animation_frame_rate": 0.8,
+#     "num_iterations": 500,
+#     "waypoint": [0.0, 0.0, 0.0],
+#     "title": "45dz"
+#   },
+#   {
+#     "x0": [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+#     "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+#     "animation_forward": [-1.5, -0.2, 1],
+#     "animation_up": [0, 1, 0],
+#     "animation_frame_rate": 0.8,
+#     "num_iterations": 500,
+#     "waypoint": [0.0, 0.0, 0.0],
+#     "title": "drop_down"
+#   },
+#   {
+#     "x0": [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
+#     "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+#     "animation_forward": [-1, -0.1, -0.2],
+#     "animation_up": [0, 1, 0],
+#     "animation_frame_rate": 0.4,
+#     "num_iterations": 500,
+#     "waypoint": [0.0, 0.0, 0.0],
+#     "title": "y115dx"
+#   }
 # ]
+
+test_list =[
+    {
+    "x0": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [0, -0.2, 1],
+    "animation_up": [0, 1, 0],
+    "animation_frame_rate": 0.4,
+    "num_iterations": 500,
+    "waypoint": [0.0, 0.0, 0.0],
+    "title": "x1"
+  }
+
+]
 
 for test in test_list:
 
@@ -185,12 +185,12 @@ for test in test_list:
     plt.show(block=False)
     plt.pause(0.01)
     input("Press Enter to continue...")
-    # rc = RocketAnimation(forward=test['animation_forward'], up=test['animation_up'])
+    rc = RocketAnimation(forward=test['animation_forward'], up=test['animation_up'])
     print(test["title"])
     # plot_state_for_paper(tspan, state_data, test["title"], 1)
     # plot_control_for_paper(tspan, control_data, test["title"], 2)
     plt.show()
-    rc = RocketAnimation()
+    # rc = RocketAnimation()
     rc.animate(tspan, state_data, control_data)
 
 
