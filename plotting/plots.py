@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-
+plotdir = "plots/"
 
 def plot_state(tspan, data, title='State'):
     fig, axs = plt.subplots(4)
@@ -22,7 +22,7 @@ def plot_state(tspan, data, title='State'):
     axs[3].set_ylabel('$w$')
 
     plt.xlabel('Time')
-    plt.savefig("flight_model_comp.pdf", format="pdf", bbox_inches="tight")
+    plt.savefig(plotdir + "flight_model_comp.pdf", format="pdf", bbox_inches="tight")
     # plt.show()
 
 def plot_weighted_error_state(tspan, data, title='State'):
@@ -330,7 +330,7 @@ def plot_state_for_paper(tspan, data, title, plot_no):
     plt.ylabel('$w$')
 
     plt.xlabel('Time (sec)')
-    plt.savefig("state" + title + str(plot_no) + ".pdf", format="pdf", bbox_inches="tight")
+    plt.savefig(plotdir + "state" + title + str(plot_no) + ".pdf", format="pdf", bbox_inches="tight")
 
 
 control_lims = {
@@ -375,7 +375,7 @@ def plot_control_for_paper(tspan, control, title, plot_no):
 
 
     plt.xlabel('Time (sec)')
-    plt.savefig("control" + title + str(plot_no) + ".pdf", format="pdf", bbox_inches="tight")
+    plt.savefig(plotdir + "control" + title + str(plot_no) + ".pdf", format="pdf", bbox_inches="tight")
 
 markers = { 'oc': '+', 'cps': '.', 'ms':'^'}
 def plot_comparison(tspan, data, title, plot_no, ylab):
@@ -417,7 +417,7 @@ def plot_state_for_sensitivity(tspan, data, title, plot_no):
     plt.ylabel('$w$')
 
     plt.xlabel('Time (sec)')
-    plt.savefig("state" + title + str(plot_no) + ".pdf", format="pdf", bbox_inches="tight")
+    plt.savefig(plotdir + "state" + title + str(plot_no) + ".pdf", format="pdf", bbox_inches="tight")
 
 
 
@@ -449,4 +449,4 @@ def plot_control_for_sensitivity(tspan, control, title, plot_no):
 
 
     plt.xlabel('Time (sec)')
-    plt.savefig("control" + title + str(plot_no) + ".pdf", format="pdf", bbox_inches="tight")
+    plt.savefig(plotdir + "control" + title + str(plot_no) + ".pdf", format="pdf", bbox_inches="tight")
