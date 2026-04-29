@@ -18,19 +18,21 @@ mc = Constants()
 # If you just want to run a single test you can loop over this list
 single_test = [
   {
-    "x0": [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
-    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [-1, -0.1, -0.2],
+    "x0": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [1, -0.5, -1],
     "animation_up": [0, 1, 0],
     "animation_frame_rate": 0.4,
     "num_iterations": 250,
-    "title": "y115dx"
+    "waypoint": [0.0, 0.0, 0.0],
+    "title": "x1z1"
   },
 ]
 
 
 # Here is the full set of tests if you want to run all the simulations
-test_list_for_paper = import_data('nmpc_test_cases.json')
+# test_list_for_paper = import_data('nmpc_test_cases.json')
+test_list_for_paper = single_test
 
 time_steps = [0.02, 0.025, 0.04, 0.05, 0.1, 0.2, 0.4, 0.5, 1]
 # time_steps = [0.4, 0.5, 1]
@@ -39,14 +41,15 @@ for test in test_list_for_paper:
     # set up the test case
     num_iterations = test['num_iterations']
     x_init = ca.DM(test['x0'])
-    xr = ca.DM(test['xr'])
+    xr = np.array(test['xr'])
     tspan = np.arange(0,num_iterations* mc.dt,mc.dt)
 
     # run fine grained solver for a reference trajectory
     # the accuracy of other runs are assessed relative to this trajectory
+    horizon_time = 2.0
     ms_nmpc = DroneNMPCMultiShoot(mc)
     ms_nmpc.dt = 0.02
-    ms_nmpc.N = 100
+    ms_nmpc.N = int(horizon_time / ms_nmpc.dt)
     ms_nmpc.record_nlp_stats = True
 
     ms_nmpc.build_nmpc_instance()
@@ -55,7 +58,7 @@ for test in test_list_for_paper:
     x0 = x_init
     u0 = np.zeros(4)
     reference_data = np.empty([num_iterations,13])
-    params = np.array([0.0, 0.0, 0.0, 24.0, mc.hover_thrust])
+    params = np.array([xr[0], xr[1], xr[2], mc.battery_v, mc.hover_thrust])
     print('running multiple shooter nmpc solver with N:', ms_nmpc.N)
     for k in range(num_iterations):
 
@@ -76,7 +79,7 @@ for test in test_list_for_paper:
         # run the multiple shooter nmpc
         ms_nmpc = DroneNMPCMultiShoot(mc)
         ms_nmpc.dt = ts
-        ms_nmpc.N = int(2.0 / ts)
+        ms_nmpc.N = int(horizon_time / ts)
         ms_nmpc.record_nlp_stats = True
         ms_nmpc.build_nmpc_instance()
         ms_nmpc.set_start_state(x_init)
