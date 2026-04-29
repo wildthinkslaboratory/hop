@@ -22,17 +22,31 @@ mc = Constants()
 
 
 # If you just want to run a single test you can loop over this list
+# test_list = [
+#   {
+#     "x0": [1.0, 1.0, 0.5, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
+#     "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+#     "animation_forward": [-1, -0.1, -0.2],
+#     "animation_up": [0, 1, 0],
+#     "animation_frame_rate": 0.4,
+#     "num_iterations": 200,
+#     "title": "x1y1z05_15deg"
+#   }
+# ]
+
 test_list = [
   {
-    "x0": [1.0, 1.0, 0.5, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
-    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [-1, -0.1, -0.2],
+    "x0": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [1, -0.5, -1],
     "animation_up": [0, 1, 0],
     "animation_frame_rate": 0.4,
-    "num_iterations": 200,
-    "title": "x=1 y=1 z=0.5 15deg rotation "
-  }
+    "num_iterations": 250,
+    "waypoint": [0.0, 0.0, 0.0],
+    "title": "x1z1"
+  },
 ]
+
 
 collocations = [1, 2, 3]                        # number of collocation points
 timesteps = [0.1, 0.2, 0.3, 0.4, 0.5]   # size of the time intervals (within a 2 second horizon)
@@ -45,7 +59,7 @@ for test in test_list:
     # set up the test case
     num_iterations = test['num_iterations']
     x_init = ca.DM(test['x0'])
-    xr = ca.DM(test['xr'])
+    xr = np.array(test['xr'])
     tspan = np.arange(0,num_iterations* mc.dt,mc.dt)
 
     # run fine grained solver for a reference trajectory
@@ -53,8 +67,9 @@ for test in test_list:
     model = DroneModel(mc)
     mpc = DroneNMPCdompc(mc.dt, model.model)
 
+    horizon_time = 1.0
     mpc.mpc.settings.t_step = 0.02
-    mpc.mpc.settings.n_horizon = 100
+    mpc.mpc.settings.n_horizon = int(horizon_time / 0.02)
     mpc.mpc.settings.collocation_deg = 3 
 
     estimator = StateFeedback(model.model)
@@ -84,7 +99,7 @@ for test in test_list:
     print('running reference do-mpc solver')
     for k in range(num_iterations):
         start_time = perf_counter()
-        mpc.set_waypoint(np.array([0.0, 0.0, 0.0, mc.battery_v, mc.hover_thrust]))
+        mpc.set_waypoint(np.array([xr[0], xr[1], xr[2], mc.battery_v, mc.hover_thrust]))
         u0 = mpc.mpc.make_step(x0)
         step_time = perf_counter() - start_time
 
@@ -97,7 +112,7 @@ for test in test_list:
     # size of the time intervals
     for c in collocations:
         for n,tstep in enumerate(timesteps):
-            n_horizon = int(2.0 / tstep)
+            n_horizon = int(horizon_time / tstep)
 
             # first we set up the do-mpc solver
             # it uses orthagonal collocation
@@ -126,6 +141,7 @@ for test in test_list:
             # print('running do-mpc solver')
             for k in range(num_iterations):
                 start_time = perf_counter()
+                mpc.set_waypoint(np.array([xr[0], xr[1], xr[2], mc.battery_v, mc.hover_thrust]))
                 u0 = mpc.mpc.make_step(x0)
                 step_time = perf_counter() - start_time
 
@@ -157,8 +173,8 @@ for test in test_list:
             # print('mean: ', mean_time, ' max: ', max_time)
 
             # uncomment if you want to see plots of the trajectories
-            plot_state_for_paper(tspan, dompc_state_data, test["title"], 1)
-            plot_control_for_paper(tspan, dompc_control_data, test["title"], 2)
+            plot_state_for_paper(tspan, dompc_state_data, test["title"] + "_oc", 1)
+            plot_control_for_paper(tspan, dompc_control_data, test["title"] + "_oc", 2)
             plt.show()
 
 
@@ -179,6 +195,7 @@ for test in test_list:
 
     print(accuracy)
 
+    plotdir = "plots/"
     # create a heat plot 
     # plt.figure(1)
     fig, ax = plt.subplots()
@@ -202,7 +219,7 @@ for test in test_list:
 
     ax.set_title("Average CPU time")
 
-    plt.savefig("CPU.pdf", format="pdf", bbox_inches="tight")
+    plt.savefig(plotdir + "CPU.pdf", format="pdf", bbox_inches="tight")
 
     
     fig1, ax1 = plt.subplots()
@@ -225,7 +242,7 @@ for test in test_list:
 
     ax1.set_title("Accuracy") 
 
-    plt.savefig("Accuracy.pdf", format="pdf", bbox_inches="tight")
+    plt.savefig(plotdir + "Accuracy.pdf", format="pdf", bbox_inches="tight")
 
     
     plt.show()
