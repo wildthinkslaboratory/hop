@@ -8,7 +8,7 @@
 # from experiments import oc_experiments
 
 # experiments for tuning multiple shooting encoding of NLP
-from experiments import ms_experiments
+# from experiments import ms_experiments
 
 # experiments for tuning Chebyshev pseudo-spectral collocation encoding of NLP
 # from experiments import cps_experiments

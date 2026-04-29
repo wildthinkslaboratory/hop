@@ -20,14 +20,15 @@ mc = Constants()
 
 # If you just want to run a single test you can loop over this list
 single_test = [
-  {
-    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [0.0, -0.2, -1],
+{
+    "x0": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [1, -0.5, -1],
     "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.8,
-    "num_iterations": 200,
-    "title": "hover"
+    "animation_frame_rate": 0.4,
+    "num_iterations": 250,
+    "waypoint": [0.0, 0.0, 0.0],
+    "title": "x1z1"
   },
 ]
 
@@ -36,7 +37,6 @@ single_test = [
 # test_list_for_paper = import_data('nmpc_test_cases.json')
 test_list_for_paper = single_test
 
-# spectral_order = [16, 20]
 spectral_order = [6, 8, 10, 12, 14]
 for order in spectral_order:
     for test in test_list_for_paper:
@@ -44,8 +44,9 @@ for order in spectral_order:
         # set up the test case
         num_iterations = test['num_iterations']
         x_init = ca.DM(test['x0'])
-        xr = ca.DM(test['xr'])
+        xr = np.array(test['xr'])
         tspan = np.arange(0,num_iterations* mc.dt,mc.dt)
+        horizon_time = 1.0
 
         state_data = np.empty([num_iterations,13])
         control_data = np.empty([num_iterations,4])
@@ -56,13 +57,14 @@ for order in spectral_order:
         # set up the Chebyshev pseudospectral nmpc solver
         cheb_nmpc = DroneNMPCwithCPS(mc)
         cheb_nmpc.N = order
+        cheb_nmpc.T = horizon_time
         cheb_nmpc.record_nlp_stats = True
 
         cheb_nmpc.build_nmpc_instance()
         cheb_nmpc.set_start_state(x_init)
         x0 = x_init
         u0 = np.zeros(4)
-        params = np.array([0.0, 0.0, 0.0, mc.battery_v, mc.hover_thrust])
+        params = np.array([xr[0], xr[1], xr[2], mc.battery_v, mc.hover_thrust])
 
         print('running Chebyshev pseudospectral nmpc solver')
         for k in range(num_iterations):
