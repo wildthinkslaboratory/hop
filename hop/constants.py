@@ -141,14 +141,17 @@ class Constants:
 
         # constants for specific NLP formulations
         # --------------------------------------------------------------- 
+
+        self.horizon_time = 1.0
+
         # multiple shooter constants
-        self.mpc_horizon = 100 # number of timesteps for nmpc to consider
+        self.ms_time_step = 0.1 # number of timesteps for nmpc to consider
 
         # chebyshev pseudospectral constants
         self.spectral_order = 6
 
         # do-mpc constants
-        self.finite_interval_size = 0.4
+        self.finite_interval_size = 0.2
         self.number_intervals = 5
         self.collocation_degree = 2
 

@@ -14,7 +14,7 @@ class DroneNMPCdompc:
         self.mpc.settings.nlpsol_opts = mc.ipopt_settings
         self.mpc.settings.collocation_ni = mc.collocation_degree
         self.mpc.settings.t_step = mc.finite_interval_size    
-        self.mpc.settings.n_horizon = mc.number_intervals
+        self.mpc.settings.n_horizon = int(mc.horizon_time / mc.finite_interval_size)
         self.mpc.settings.collocation_deg = mc.collocation_degree  
 
         # only do this if we need the stats

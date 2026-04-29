@@ -46,7 +46,7 @@ for test in test_list_for_paper:
 
     # run fine grained solver for a reference trajectory
     # the accuracy of other runs are assessed relative to this trajectory
-    horizon_time = 2.0
+    horizon_time = 1.0
     ms_nmpc = DroneNMPCMultiShoot(mc)
     ms_nmpc.dt = 0.02
     ms_nmpc.N = int(horizon_time / ms_nmpc.dt)

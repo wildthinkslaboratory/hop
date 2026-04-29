@@ -8,8 +8,8 @@ from hop.constants import Constants
 class DroneNMPCMultiShoot:
     def __init__(self, mc):
         self.mc = mc
-        self.N = 10
-        self.dt = 0.2
+        self.N = int(mc.horizon_time / mc.ms_time_step)
+        self.dt = mc.ms_time_step
 
 
         # First create our state variables and control variables

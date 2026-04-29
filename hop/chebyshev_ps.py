@@ -8,7 +8,7 @@ from hop.chebyshev import chebyshev_D, weights, cheb_nodes_weights, barycentric_
 class DroneNMPCwithCPS:
     def __init__(self, mc):
         self.mc = mc
-        self.T = mc.mpc_horizon * mc.dt
+        self.T = mc.horizon_time
         self.N = mc.spectral_order
 
         # First create our state variables and control variables

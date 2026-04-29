@@ -25,7 +25,8 @@ from tools.animation import RocketAnimation
 mc = Constants()
 
 
-# test_list = import_data('./nmpc_test_cases.json')  
+test_list = import_data('./nmpc_test_cases.json')  
+print(len(test_list))
 
 # test_list =[
 #     {
@@ -81,19 +82,19 @@ mc = Constants()
 #   }
 # ]
 
-test_list =[
-    {
-    "x0": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [0, -0.2, 1],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.4,
-    "num_iterations": 500,
-    "waypoint": [0.0, 0.0, 0.0],
-    "title": "x1"
-  }
+# test_list =[
+#     {
+#     "x0": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+#     "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+#     "animation_forward": [0, -0.2, 1],
+#     "animation_up": [0, 1, 0],
+#     "animation_frame_rate": 0.4,
+#     "num_iterations": 500,
+#     "waypoint": [0.0, 0.0, 0.0],
+#     "title": "x1"
+#   }
 
-]
+# ]
 
 for test in test_list:
 
