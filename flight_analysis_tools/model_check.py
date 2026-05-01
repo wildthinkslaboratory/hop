@@ -2,17 +2,15 @@
 #
 
 from hop.drone_model import DroneModel
-from hop.play_model import DronePlayModel
 from hop.dompc import DroneNMPCdompc
+from hop.multiShooting import DroneNMPCMultiShoot
 from hop.constants import Constants
-from hop.utilities import quaternion_to_angle, import_data
+from hop.utilities import  import_data
 import casadi as ca
 import numpy as np
-import statistics as stats
-from time import perf_counter
+
 import matplotlib.pyplot as plt
-from matplotlib import colors
-from plots import plot_state, plot_control, plot_pwm, plot_attitude, plot_parameters, plot_weighted_error_state, plot_weighted_error_control
+from plotting.plots import plot_state, plot_control
 import sys
 
 
@@ -80,26 +78,7 @@ mpc = DroneNMPCdompc(mc.dt, model.model)
 mpc.setup_cost()
 
 
-# mc.moment_arm = np.array([
-#     0.0015,
-#     0.007,
-#     -0.209799
-# ])
-
-# mc.Ixx =  0.0595     # moments of inertia
-# mc.Iyy =  0.0598
-# mc.Izz =  0.0128
-# mc.Ixz =  0.0003
-# mc.Iyz =  0.0010
-
-# mc.I = np.array([
-#     [mc.Ixx, 0.0,      mc.Ixz],
-#     [0.0,      mc.Iyy, mc.Iyz],
-#     [mc.Ixz, mc.Iyz, mc.Izz]
-# ])
-
-ms_mpc = DronePlayModel(mc)
-
+ms_mpc = DroneNMPCMultiShoot(mc)
 
 # data structures for the things we want to plot
 tspan = np.arange(0, len_used_data * dt , dt)
@@ -126,47 +105,17 @@ mpc.set_start_state(x_init)
 x0 = x_init
 
 # these should be read in from logged constants
-xrnp = np.array([0.0, 0.0, 0.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
+xrnp = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
 urnp = np.array([0.0, 0.0, mc.hover_thrust, 0.0])
 delay_steps = 0
-thrust_delay = 0
-servo_delay = 0
+thrust_delay = 5
+servo_delay = 7
 
 # run the simulation
 for i in range(delay_steps,len(state_data)-2):
 
     # update parameters with current voltage
     parameters[i][3] = voltage[i]
-
-    # # first run the nmpc on the state
-    # mpc.set_waypoint(np.array(parameters[i]))
-    # u0 = mpc.mpc.make_step(state_data[i])
-
-    
-
-    # # we want to check the nmpc results for the flight
-    # control_data_computed[i] = np.reshape(u0, (4,))
-    # control_computed_diff[i] = control_data[i] - control_data_computed[i]
-    # cost_data.append(mpc.mpc.data['_aux'][-1][2])
-    # if not mpc.mpc.solver_stats['return_status'] == 'Solve_Succeeded':
-    #     print(mpc.mpc.solver_stats['return_status'])
-
-
-    # turn quaternions into attitude
-    # it's easier to read
-    # q = state_data[6:10].copy()
-    # q = np.reshape(state_data[i][6:10].copy(), (4,))
-    # attitude[i] = quaternion_to_angle(q)
-    
-
-    # # compute the weighted squared error
-    # state_error = state_data[i] - xrnp
-    # control_error = control_data[i] - urnp
-    # for j in range(len(state_error)):
-    #     residual_state[i][j] = state_error[j] * mc.Q[j,j] * state_error[j]
-    # residual_control[i] = np.absolute(control_error)
-    # for j in range(len(control_error)):
-    #     residual_control[i][j] = control_error[j] * mc.R[j,j] * control_error[j]
 
    # predict the next state and compare with actual next state
     u_delayed = np.array([control_data[i-servo_delay][0], 
@@ -187,13 +136,6 @@ for i in range(delay_steps,len(state_data)-2):
 
     predicted_state[i] = np.reshape(x0, (13,))
 
-
-
-# # compute statistics for the timing of the nmpc calls
-# mean_time = round(stats.mean(time_data),3)
-# max_time = round(max(time_data),3) 
-# print('mean time: ', mean_time)
-# print('max time: ', max_time)
 
 def plot_temp(tspan, data1, data2, title='unknown data'):
     plt.rcParams['ytick.labelsize'] = 8 
@@ -260,13 +202,7 @@ def plot_v_dx(tspan, data1, data2, title='velocity dx*dt'):
 
 
 plot_state(tspan[:-1], flight_model_error, 'flight state vs model predicted state error')
-# plot_state(tspan[:-1], dx_model_error, 'change in state vs model dx error')
-# plot_state(tspan[:-1], predicted_state, 'predicted state')
-# plot_weighted_error_state(tspan, residual_state, 'state weighted squared errors')
-# plot_weighted_error_control(tspan, residual_control, 'control weighted squared errors')
-# plot_attitude(tspan, attitude, 'attitude')
 plot_control(tspan, control_data, 'flight control data')
-# plot_state(tspan, state_data, 'state')
 
 plot_w_dx(tspan[:-1], model_change_state, state_change)
 plot_v_dx(tspan[:-1], model_change_state, state_change)
