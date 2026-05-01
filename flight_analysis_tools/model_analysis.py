@@ -17,7 +17,6 @@ from plotting.plots import plot_state, plot_control, plot_pwm, plot_attitude, pl
 from hop.multiShooting import DroneNMPCMultiShoot
 import sys
 
-
 # read in logfile and time point to begin analyzing
 log_file_name = './plotter_logs/current.json'
 start_time = 0.0
@@ -25,6 +24,7 @@ if len(sys.argv) > 1:
     log_file_name = sys.argv[1]
     start_time = float(sys.argv[2])
     print(log_file_name, start_time)
+
 
 # Import the flight data
 log = import_data(log_file_name)   
@@ -88,17 +88,17 @@ mpc.setup_cost()
 # control. Then we can see if the model prediction of state
 # matches the actual change in state
 
-theta = [ 0.06629151,  0.06187037,  0.005, -0.00229176,  0.00172769,  0.000987, 0.00679447,  0.00957006, -0.3 ]
-mc.moment_arm = theta[6:]
-mc.I[0][0] = theta[0]
-mc.I[1][1] = theta[1]
-mc.I[2][2] = theta[2]
-mc.I[0][1] = theta[3]
-mc.I[1][0] = theta[3]
-mc.I[0][2] = theta[4]
-mc.I[2][0] = theta[4]
-mc.I[1][2] = theta[5]
-mc.I[2][1] = theta[5]
+# theta = [ 0.06629151,  0.06187037,  0.005, -0.00229176,  0.00172769,  0.000987, 0.00679447,  0.00957006, -0.3 ]
+# mc.moment_arm = theta[6:]
+# mc.I[0][0] = theta[0]
+# mc.I[1][1] = theta[1]
+# mc.I[2][2] = theta[2]
+# mc.I[0][1] = theta[3]
+# mc.I[1][0] = theta[3]
+# mc.I[0][2] = theta[4]
+# mc.I[2][0] = theta[4]
+# mc.I[1][2] = theta[5]
+# mc.I[2][1] = theta[5]
 
 
 ms_mpc = DroneNMPCMultiShoot(mc)
