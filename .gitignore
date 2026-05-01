@@ -1,0 +1,7 @@
+*/__pycach__/
+*.aux
+*.bbl
+*.blg
+*.log
+*.synctex.gz
+
