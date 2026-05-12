@@ -22,30 +22,30 @@ mc = Constants()
 
 
 # If you just want to run a single test you can loop over this list
-# test_list = [
-#   {
-#     "x0": [1.0, 1.0, 0.5, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
-#     "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-#     "animation_forward": [-1, -0.1, -0.2],
-#     "animation_up": [0, 1, 0],
-#     "animation_frame_rate": 0.4,
-#     "num_iterations": 200,
-#     "title": "x1y1z05_15deg"
-#   }
-# ]
-
 test_list = [
   {
-    "x0": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "xr": [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [1, -0.5, -1],
+    "x0": [1.0, 1.0, 0.5, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [-1, -0.1, -0.2],
     "animation_up": [0, 1, 0],
     "animation_frame_rate": 0.4,
-    "num_iterations": 250,
-    "waypoint": [0.0, 0.0, 0.0],
-    "title": "x1z1"
-  },
+    "num_iterations": 200,
+    "title": "x1y1z05_15deg"
+  }
 ]
+
+# test_list = [
+#   {
+#     "x0": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+#     "xr": [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+#     "animation_forward": [1, -0.5, -1],
+#     "animation_up": [0, 1, 0],
+#     "animation_frame_rate": 0.4,
+#     "num_iterations": 250,
+#     "waypoint": [0.0, 0.0, 0.0],
+#     "title": "x1z1"
+#   },
+# ]
 
 
 collocations = [1, 2, 3]                        # number of collocation points
@@ -67,7 +67,7 @@ for test in test_list:
     model = DroneModel(mc)
     mpc = DroneNMPCdompc(mc.dt, model.model)
 
-    horizon_time = 1.0
+    horizon_time = 1.2
     mpc.mpc.settings.t_step = 0.02
     mpc.mpc.settings.n_horizon = int(horizon_time / 0.02)
     mpc.mpc.settings.collocation_deg = 3 

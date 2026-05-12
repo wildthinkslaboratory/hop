@@ -7,7 +7,7 @@
 
 
 from hop.drone_model import DroneModel
-from hop.drone_model_randomized import DroneModelRandom
+from hop.multiShooting import DroneNMPCMultiShoot
 from hop.dompc import DroneNMPCdompc
 from hop.constants import Constants
 from do_mpc.simulator import Simulator
@@ -22,6 +22,7 @@ from matplotlib import colors
 from plotting.plots import plot_comparison, plot_state_for_paper, plot_control_for_paper, plot_state
 from hop.utilities import sig_figs
 from tools.animation import RocketAnimation
+from simulation_tools.integrators import RKSimulator
 mc = Constants()
 
 
@@ -82,19 +83,19 @@ print(len(test_list))
 #   }
 # ]
 
-# test_list =[
-#     {
-#     "x0": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-#     "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-#     "animation_forward": [0, -0.2, 1],
-#     "animation_up": [0, 1, 0],
-#     "animation_frame_rate": 0.4,
-#     "num_iterations": 500,
-#     "waypoint": [0.0, 0.0, 0.0],
-#     "title": "x1"
-#   }
+test_list =[
+    {
+    "x0": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [0, -0.2, 1],
+    "animation_up": [0, 1, 0],
+    "animation_frame_rate": 0.4,
+    "num_iterations": 500,
+    "waypoint": [0.0, 0.0, 0.0],
+    "title": "x1"
+  }
 
-# ]
+]
 
 for test in test_list:
 
@@ -109,22 +110,33 @@ for test in test_list:
     model = DroneModel(mc)
     mpc = DroneNMPCdompc(mc.dt, model.model)
 
-    estimator = StateFeedback(model.model)
-    sim = Simulator(model.model)
-    sim.set_param(t_step = mc.dt)
+    # dompc simulator
+    # estimator = StateFeedback(model.model)
+    # sim = Simulator(model.model)
+    # sim_N = 4
+    # sim.set_param(t_step = mc.dt / sim_N)
+
 
     parameters = np.array([0.0, 0.0, 0.0, mc.battery_v, mc.hover_thrust])
-    p_template = sim.get_p_template()
-    def dummy(t_now):
-        p_template['parameters'] = parameters
-        return p_template
-    sim.set_p_fun(dummy)
 
-    sim.setup()
+    # this is needed for dompc simulator
+    # p_template = sim.get_p_template()
+    # def dummy(t_now):
+    #     p_template['parameters'] = parameters
+    #     return p_template
+    # sim.set_p_fun(dummy)
+    # sim.setup()
+    # sim.x0 = x_init
+    # estimator.x0 = x_init
+
+    # set up the Runge-Kutta simulator
+    ms_model = DroneNMPCMultiShoot(mc)
+    rk_sim = RKSimulator(0.005, 4)
+
     mpc.setup_cost()
     mpc.set_start_state(x_init)
-    sim.x0 = x_init
-    estimator.x0 = x_init
+
+
     state_data = np.empty([num_iterations,13])
     control_data = np.empty([num_iterations, 4])
     x0 = x_init
@@ -139,8 +151,14 @@ for test in test_list:
         u0 = mpc.mpc.make_step(x0)
         step_time = perf_counter() - start_time
 
-        y_next = sim.make_step(u0)
-        x0 = estimator.make_step(y_next)
+        # use dompc simulator
+        # for i in range(sim_N):
+        #     y_next = sim.make_step(u0)
+        #     x0 = estimator.make_step(y_next)
+
+        # runge kutta 4 simulator
+        x0 = rk_sim.make_step(ms_model.f, x0, u0, parameters)
+  
         state_data[k] = np.reshape(x0, (13,))
         control_data[k] = np.reshape(u0, (4,))
 
