@@ -8,9 +8,7 @@
 from hop.drone_model import DroneModel
 from hop.dompc import DroneNMPCdompc
 from hop.constants import Constants
-from do_mpc.simulator import Simulator
 import casadi as ca
-from do_mpc.estimator import StateFeedback
 import numpy as np
 import statistics as stats
 from time import perf_counter
@@ -18,41 +16,44 @@ import matplotlib.pyplot as plt
 from matplotlib import colors
 from plotting.plots import plot_comparison, plot_state_for_paper, plot_control_for_paper
 from hop.utilities import sig_figs
+from hop.multiShooting import DroneNMPCMultiShoot
+from simulation_tools.integrators import RKSimulator
 mc = Constants()
 
 
-# If you just want to run a single test you can loop over this list
-test_list = [
-  {
-    "x0": [1.0, 1.0, 0.5, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
-    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [-1, -0.1, -0.2],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.4,
-    "num_iterations": 200,
-    "title": "x1y1z05_15deg"
-  }
-]
-
+# # If you just want to run a single test you can loop over this list
 # test_list = [
 #   {
-#     "x0": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-#     "xr": [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-#     "animation_forward": [1, -0.5, -1],
+#     "x0": [1.0, 1.0, 0.5, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
+#     "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+#     "animation_forward": [-1, -0.1, -0.2],
 #     "animation_up": [0, 1, 0],
 #     "animation_frame_rate": 0.4,
-#     "num_iterations": 250,
-#     "waypoint": [0.0, 0.0, 0.0],
-#     "title": "x1z1"
-#   },
+#     "num_iterations": 200,
+#     "title": "x1y1z05_15deg"
+#   }
 # ]
 
+test_list = [
+  {
+    "x0": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [1, -0.5, -1],
+    "animation_up": [0, 1, 0],
+    "animation_frame_rate": 0.4,
+    "num_iterations": 250,
+    "waypoint": [0.0, 0.0, 0.0],
+    "title": "x1z1"
+  },
+]
 
-collocations = [1, 2, 3]                        # number of collocation points
-timesteps = [0.1, 0.2, 0.3, 0.4, 0.5]   # size of the time intervals (within a 2 second horizon)
+
+collocations = [1, 2]                        # number of collocation points
+timesteps = [0.2, 0.25, 0.3]   # size of the time intervals (within a 2 second horizon)
 
 times = np.zeros((len(collocations),len(timesteps)))     # we measure the average solution time
 accuracy = np.zeros((len(collocations),len(timesteps)))  # we measure the accuracy
+
 
 for test in test_list:
     
@@ -60,7 +61,15 @@ for test in test_list:
     num_iterations = test['num_iterations']
     x_init = ca.DM(test['x0'])
     xr = np.array(test['xr'])
+    allowed_error = np.array([0.05,0.05,0.05, 0.02,0.02,0.02, 0.02,0.02,0.02,0.02, 0.01,0.01,0.01])
+    goal_ul = xr + allowed_error
+    goal_ll = xr - allowed_error
     tspan = np.arange(0,num_iterations* mc.dt,mc.dt)
+
+    # set up the Runge-Kutta simulator
+    ms_model = DroneNMPCMultiShoot(mc)
+    rk_sim = RKSimulator(0.005, 4)
+    params = np.array([xr[0], xr[1], xr[2], mc.battery_v, mc.hover_thrust])
 
     # run fine grained solver for a reference trajectory
     # the accuracy of other runs are assessed relative to this trajectory
@@ -72,41 +81,30 @@ for test in test_list:
     mpc.mpc.settings.n_horizon = int(horizon_time / 0.02)
     mpc.mpc.settings.collocation_deg = 3 
 
-    estimator = StateFeedback(model.model)
-    sim = Simulator(model.model)
-    sim.set_param(t_step = mc.dt)
 
-    # this is annoying but necessary
-    # the model has a parameter for waypoints
-    # it's used in the mpc cost function only
-    # the simulator get's confused if it has undefined parameters
-    # so we give it a dummy function
-
-    p_template = sim.get_p_template()
-    def dummy(t_now):
-        p_template['parameters'] = np.array([0.0, 0.0, 0.0, mc.battery_v, mc.hover_thrust])
-        return p_template
-    sim.set_p_fun(dummy)
-
-    sim.setup()
     mpc.setup_cost()
     mpc.set_start_state(x_init)
-    sim.x0 = x_init
-    estimator.x0 = x_init
     reference_data = np.empty([num_iterations,13])
     x0 = x_init
 
     print('running reference do-mpc solver')
     for k in range(num_iterations):
         start_time = perf_counter()
-        mpc.set_waypoint(np.array([xr[0], xr[1], xr[2], mc.battery_v, mc.hover_thrust]))
+        mpc.set_waypoint(params)
         u0 = mpc.mpc.make_step(x0)
         step_time = perf_counter() - start_time
 
-        y_next = sim.make_step(u0)
-        x0 = estimator.make_step(y_next)
+        # runge kutta 4 simulator
+        x0 = rk_sim.make_step(ms_model.f, x0, u0, params)
         reference_data[k] = np.reshape(x0, (13,))
+
                 
+    # print timing results
+    print(test['title'])
+    s = ["{: >20} ".format(p) for p in ['step', 'deg', 'time', 'score', 'settle']]
+    print('          ' + ''.join(s))
+    print("-----------------------------------------------------------------------------------------")
+
     # These are our experimental runs 
     # loop over the number of collocation and 
     # size of the time intervals
@@ -123,15 +121,8 @@ for test in test_list:
             mpc.mpc.settings.n_horizon = n_horizon
             mpc.mpc.settings.collocation_deg = c  
 
-            estimator = StateFeedback(model.model)
-            sim = Simulator(model.model)
-            sim.set_param(t_step = mc.dt)
-            sim.set_p_fun(dummy)
-            sim.setup()
             mpc.setup_cost()
             mpc.set_start_state(x_init)
-            sim.x0 = x_init
-            estimator.x0 = x_init
             dompc_state_data = np.empty([num_iterations,13])
             dompc_control_data = np.empty([num_iterations,4])
             dompc_time_data = []
@@ -145,8 +136,8 @@ for test in test_list:
                 u0 = mpc.mpc.make_step(x0)
                 step_time = perf_counter() - start_time
 
-                y_next = sim.make_step(u0)
-                x0 = estimator.make_step(y_next)
+                # runge kutta 4 simulator
+                x0 = rk_sim.make_step(ms_model.f, x0, u0, params)
 
                 dompc_state_data[k] = np.reshape(x0, (13,))
                 dompc_control_data[k] = np.reshape(u0, (4,))
@@ -165,16 +156,16 @@ for test in test_list:
             mean_time = sig_figs(stats.mean(dompc_time_data),2)
             max_time = round(max(dompc_time_data),3)
             times[c-1][n] = mean_time
-            print(c, tstep, state_error, mean_time)
+            from experiments.trajectory_metrics import settling_metric
+            settle = round(settling_metric(dompc_state_data, goal_ll, goal_ul) * mc.dt, 3) 
+            s = ["{: >20} ".format(v) for v in [tstep, c, mean_time, state_error, settle]]
+            print(''.join(s))
 
-            
-            # print timing results
-            # print(test['title'])
-            # print('mean: ', mean_time, ' max: ', max_time)
+
 
             # uncomment if you want to see plots of the trajectories
-            plot_state_for_paper(tspan, dompc_state_data, test["title"] + "_oc", 1)
-            plot_control_for_paper(tspan, dompc_control_data, test["title"] + "_oc", 2)
+            plot_state_for_paper(tspan, dompc_state_data, test["title"], 1)
+            plot_control_for_paper(tspan, dompc_control_data, test["title"], 2)
             plt.show()
 
 
