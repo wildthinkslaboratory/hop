@@ -14,6 +14,7 @@ from hop.utilities import import_data
 from time import perf_counter
 from hop.chebyshev_ps import DroneNMPCwithCPS
 import matplotlib.pyplot as plt
+from simulation_tools.integrators import RKSimulator
 from plotting.plots import plot_comparison, plot_state_for_paper, plot_control_for_paper
 
 mc = Constants()
@@ -37,14 +38,23 @@ single_test = [
 # test_list_for_paper = import_data('nmpc_test_cases.json')
 test_list_for_paper = single_test
 
-spectral_order = [6, 8, 10, 12, 14]
-for order in spectral_order:
-    for test in test_list_for_paper:
+spectral_order = [2, 4, 6, 8, 10]
+
+for test in test_list_for_paper:
+    # print timing results
+    print(test['title'])
+    s = ["{: >20} ".format(p) for p in ['N', 'time', 'settle']]
+    print(''.join(s))
+    print("-----------------------------------------------------------------------------------------")    
+    for order in spectral_order:
 
         # set up the test case
         num_iterations = test['num_iterations']
         x_init = ca.DM(test['x0'])
         xr = np.array(test['xr'])
+        allowed_error = np.array([0.05,0.05,0.05, 0.02,0.02,0.02, 0.02,0.02,0.02,0.02, 0.01,0.01,0.01])
+        goal_ul = xr + allowed_error
+        goal_ll = xr - allowed_error
         tspan = np.arange(0,num_iterations* mc.dt,mc.dt)
         horizon_time = 1.0
 
@@ -64,9 +74,10 @@ for order in spectral_order:
         cheb_nmpc.set_start_state(x_init)
         x0 = x_init
         u0 = np.zeros(4)
+        rk_sim = RKSimulator(0.005, 4)
         params = np.array([xr[0], xr[1], xr[2], mc.battery_v, mc.hover_thrust])
 
-        print('running Chebyshev pseudospectral nmpc solver')
+
         for k in range(num_iterations):
 
             start_time = perf_counter()
@@ -74,8 +85,9 @@ for order in spectral_order:
             u0 = cheb_nmpc.make_step(x0, u0, params)
             step_time = perf_counter() - start_time
 
-            # Propagate the system using the discrete dynamics f (Euler forward integration)
-            x0 = x0 + mc.dt* cheb_nmpc.f(x0,u0,params)
+            # Propagate the system using the discrete dynamics f
+            # runge kutta 4 simulator
+            x0 = rk_sim.make_step(cheb_nmpc.f, x0, u0, params)  
 
             
             state_data[k] = np.reshape(x0, (13,))
@@ -88,11 +100,12 @@ for order in spectral_order:
 
 
 
-        print(test['title'])
-        print("Spectral Order: ", cheb_nmpc.N)
-        print('mean time: ', round(stats.mean(time_data),3))
-        print('max time:  ', round(max(time_data),3))
-        print('fails:     ', stats_data)
+        from experiments.trajectory_metrics import settling_metric
+        settle = round(settling_metric(state_data, goal_ll, goal_ul) * mc.dt, 3) 
+        mean_time = round(stats.mean(time_data),3)
+        s = ["{: >20} ".format(v) for v in [cheb_nmpc.N, mean_time, settle]]
+        print(''.join(s))
+
 
         plot_state_for_paper(tspan, state_data, test["title"], 1)
         # plt.savefig("cpsState.pdf", format="pdf", bbox_inches="tight")
