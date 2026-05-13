@@ -145,7 +145,7 @@ class Constants:
         self.horizon_time = 1.0
 
         # multiple shooter constants
-        self.ms_time_step = 0.1 # number of timesteps for nmpc to consider
+        self.ms_time_step = 0.25 # number of timesteps for nmpc to consider
 
         # chebyshev pseudospectral constants
         self.spectral_order = 6

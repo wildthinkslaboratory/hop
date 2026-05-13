@@ -102,7 +102,7 @@ for test in test_list:
     # print timing results
     print(test['title'])
     s = ["{: >20} ".format(p) for p in ['step', 'deg', 'time', 'score', 'settle']]
-    print('          ' + ''.join(s))
+    print(''.join(s))
     print("-----------------------------------------------------------------------------------------")
 
     # These are our experimental runs 

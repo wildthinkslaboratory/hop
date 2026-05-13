@@ -12,6 +12,7 @@ from time import perf_counter
 from hop.multiShooting import DroneNMPCMultiShoot
 import matplotlib.pyplot as plt
 from plotting.plots import plot_comparison, plot_state_for_paper, plot_control_for_paper
+from simulation_tools.integrators import RKSimulator
 
 mc = Constants()
 
@@ -34,7 +35,7 @@ single_test = [
 # test_list_for_paper = import_data('nmpc_test_cases.json')
 test_list_for_paper = single_test
 
-time_steps = [0.02, 0.025, 0.04, 0.05, 0.1, 0.2, 0.4, 0.5, 1]
+time_steps = [0.02, 0.025, 0.04, 0.05, 0.1, 0.2, 0.25,  0.4, 0.5, 1]
 # time_steps = [0.4, 0.5, 1]
 
 for test in test_list_for_paper:
@@ -42,6 +43,9 @@ for test in test_list_for_paper:
     num_iterations = test['num_iterations']
     x_init = ca.DM(test['x0'])
     xr = np.array(test['xr'])
+    allowed_error = np.array([0.05,0.05,0.05, 0.02,0.02,0.02, 0.02,0.02,0.02,0.02, 0.01,0.01,0.01])
+    goal_ul = xr + allowed_error
+    goal_ll = xr - allowed_error
     tspan = np.arange(0,num_iterations* mc.dt,mc.dt)
 
     # run fine grained solver for a reference trajectory
@@ -51,20 +55,28 @@ for test in test_list_for_paper:
     ms_nmpc.dt = 0.02
     ms_nmpc.N = int(horizon_time / ms_nmpc.dt)
     ms_nmpc.record_nlp_stats = True
-
     ms_nmpc.build_nmpc_instance()
-
     ms_nmpc.set_start_state(x_init)
     x0 = x_init
     u0 = np.zeros(4)
     reference_data = np.empty([num_iterations,13])
+
+    rk_sim = RKSimulator(0.005, 4)
     params = np.array([xr[0], xr[1], xr[2], mc.battery_v, mc.hover_thrust])
     print('running multiple shooter nmpc solver with N:', ms_nmpc.N)
     for k in range(num_iterations):
 
         u0 = ms_nmpc.make_step(x0, u0, params)
-        x0 = x0 + mc.dt* ms_nmpc.f(x0,u0,params)
+
+        # runge kutta 4 simulator
+        x0 = rk_sim.make_step(ms_nmpc.f, x0, u0, params)
         reference_data[k] = np.reshape(x0, (13,))
+
+    # print timing results
+    print(test['title'])
+    s = ["{: >20} ".format(p) for p in ['tstep', 'N', 'time', 'score', 'settle']]
+    print(''.join(s))
+    print("-----------------------------------------------------------------------------------------")
 
 
     for ts in time_steps:
@@ -86,7 +98,7 @@ for test in test_list_for_paper:
         x0 = x_init
         u0 = np.zeros(4)
 
-        print('running multiple shooter nmpc solver with N:', ms_nmpc.N)
+        # print('running multiple shooter nmpc solver with N:', ms_nmpc.N)
         for k in range(num_iterations):
 
             start_time = perf_counter()
@@ -96,8 +108,10 @@ for test in test_list_for_paper:
 
             step_time = perf_counter() - start_time
 
-            # Propagate the system using the discrete dynamics f (Euler forward integration)
-            x0 = x0 + mc.dt* ms_nmpc.f(x0,u0,params)            
+            # Propagate the system using the discrete dynamics f 
+            # runge kutta 4 simulator
+            x0 = rk_sim.make_step(ms_nmpc.f, x0, u0, params)  
+
             state_data[k] = np.reshape(x0, (13,))
             control_data[k] = np.reshape(u0, (4,))
             time_data.append(step_time)
@@ -111,17 +125,23 @@ for test in test_list_for_paper:
             error = reference_data[i] - state_data[i]
             state_error += error.T @ error
 
-        accuracy = sig_figs(state_error, 2)
-
         print(test['title'])
-        print("Horizon: ", ms_nmpc.N)
-        print('mean time: ', round(stats.mean(time_data),3))
-        print('max time:  ', round(max(time_data),3))
-        print('fails:     ', stats_data)
-        print('accuracey: ', accuracy)
+        accuracy = sig_figs(state_error, 2)
+        from experiments.trajectory_metrics import settling_metric
+        settle = round(settling_metric(state_data, goal_ll, goal_ul) * mc.dt, 3) 
+        mean_time = round(stats.mean(time_data),3)
+        s = ["{: >20} ".format(v) for v in [ms_nmpc.dt, ms_nmpc.N, mean_time, accuracy, settle]]
+        print(''.join(s))
 
-        plot_state_for_paper(tspan, state_data, test["title"], 1)
-        plot_control_for_paper(tspan, control_data, test["title"], 2)
+
+        # print("Horizon: ", ms_nmpc.N)
+        # print('mean time: ', round(stats.mean(time_data),3))
+        # print('max time:  ', round(max(time_data),3))
+        # print('fails:     ', stats_data)
+        # print('accuracey: ', accuracy)
+
+        # plot_state_for_paper(tspan, state_data, test["title"], 1)
+        # plot_control_for_paper(tspan, control_data, test["title"], 2)
 
         times = {'ms': time_data}
         costs = {'ms': cost_data}
