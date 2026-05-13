@@ -4,33 +4,31 @@
 from hop.drone_model import DroneModel
 from hop.dompc import DroneNMPCdompc
 from hop.constants import Constants
-from do_mpc.simulator import Simulator
 import casadi as ca
-from do_mpc.estimator import StateFeedback
 import numpy as np
 import statistics as stats
 from hop.utilities import import_data
 from time import perf_counter
 from hop.multiShooting import DroneNMPCMultiShoot
 from hop.chebyshev_ps import DroneNMPCwithCPS
-from tools.animation import RocketAnimation
 import matplotlib.pyplot as plt
 from plotting.plots import plot_comparison, plot_state_for_paper, plot_control_for_paper
+from simulation_tools.integrators import RKSimulator
 
 mc = Constants()
 
-# If you just want to run a single test you can loop over this list
-single_test = [
-  {
-    "x0": [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
-    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-    "animation_forward": [-1, -0.1, -0.2],
-    "animation_up": [0, 1, 0],
-    "animation_frame_rate": 0.4,
-    "num_iterations": 250,
-    "title": "y115dx"
-  },
-]
+# # If you just want to run a single test you can loop over this list
+# single_test = [
+#   {
+#     "x0": [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
+#     "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+#     "animation_forward": [-1, -0.1, -0.2],
+#     "animation_up": [0, 1, 0],
+#     "animation_frame_rate": 0.4,
+#     "num_iterations": 250,
+#     "title": "y115dx"
+#   },
+# ]
 
 
 # Here is the full set of tests if you want to run all the simulations
@@ -48,8 +46,13 @@ for test in test_list_for_paper:
     # set up the test case
     num_iterations = test['num_iterations']
     x_init = ca.DM(test['x0'])
-    xr = ca.DM(test['xr'])
+    xr = np.array(test['xr'])
+    allowed_error = np.array([0.05,0.05,0.05, 0.02,0.02,0.02, 0.02,0.02,0.02,0.02, 0.01,0.01,0.01])
+    goal_ul = xr + allowed_error
+    goal_ll = xr - allowed_error
+
     tspan = np.arange(0,num_iterations* mc.dt,mc.dt)
+    params = np.array([xr[0], xr[1], xr[2], mc.battery_v, mc.hover_thrust])
 
     # data structures to collect experimental data in
     state_data = {}
@@ -59,6 +62,9 @@ for test in test_list_for_paper:
     cost_data = {}
     
    
+    # set up the Runge-Kutta simulator
+    ms_model = DroneNMPCMultiShoot(mc)
+    rk_sim = RKSimulator(0.005, 4)
 
     for nlp in nlps_to_run:
       state_data[nlp] = np.empty([num_iterations,13])
@@ -67,31 +73,18 @@ for test in test_list_for_paper:
       cost_data[nlp] = []
       stats_data[nlp] = 0
 
+
+
+
+
     if 'oc' in nlps_to_run:
       # first we set up the do-mpc solver
       # it uses orthagonal collocation
       model = DroneModel(mc)
       mpc = DroneNMPCdompc(mc.dt, model.model)
-      estimator = StateFeedback(model.model)
-      sim = Simulator(model.model)
-      sim.set_param(t_step = mc.dt)
 
-      # this is annoying but necessary
-      # the model has a parameter for waypoints
-      # it's used in the mpc cost function only
-      # the simulator get's confused if it has undefined parameters
-      # so we give it a dummy function
-      p_template = sim.get_p_template()
-      def dummy(t_now):
-          p_template['parameters'] = np.array([0.0, 0.0, 0.0, mc.battery_v, mc.hover_thrust])
-          return p_template
-      sim.set_p_fun(dummy)
-
-      sim.setup()
       mpc.setup_cost()
       mpc.set_start_state(x_init)
-      sim.x0 = x_init
-      estimator.x0 = x_init
       x0 = x_init
 
       # run do-mpc solver
@@ -102,23 +95,24 @@ for test in test_list_for_paper:
           u0 = mpc.mpc.make_step(x0)
           step_time = perf_counter() - start_time
 
-          y_next = sim.make_step(u0)
-          x0 = estimator.make_step(y_next)
+          x0 = rk_sim.make_step(ms_model.f, x0, u0, params)
 
           state_data['oc'][k] = np.reshape(x0, (13,))
           control_data['oc'][k] = np.reshape(u0, (4,))
           time_data['oc'].append(step_time)
           cost_data['oc'].append(mpc.mpc.data['_aux'][-1][2])
           if not mpc.mpc.solver_stats['return_status'] == 'Solve_Succeeded':
-            state_data['oc'][0] += 1
+            state_data['oc'] += 1
           
 
     if 'cps' in nlps_to_run:
       # set up the Chebyshev pseudospectral nmpc solver
-      cheb_nmpc = DroneNMPCwithCPS()
+      cheb_nmpc = DroneNMPCwithCPS(mc)
       cheb_nmpc.record_nlp_stats = True
-      cheb_nmpc.set_goal_state(xr)
+
+      cheb_nmpc.build_nmpc_instance()
       cheb_nmpc.set_start_state(x_init)
+      
       x0 = x_init
       u0 = np.zeros(4)
 
@@ -128,24 +122,24 @@ for test in test_list_for_paper:
 
           start_time = perf_counter()
           # Solve the NMPC for the current state x_current
-          u0 = cheb_nmpc.make_step(x0, u0, np.array([0.0, 0.0, 0.0]))
+          u0 = cheb_nmpc.make_step(x0, u0, params)
           step_time = perf_counter() - start_time
 
-          # Propagate the system using the discrete dynamics f (Euler forward integration)
-          x0 = x0 + mc.dt* cheb_nmpc.f(x0,u0)
-          
+          # Propagate the system using the discrete dynamics f
+          x0 = rk_sim.make_step(ms_model.f, x0, u0, params)
+
           state_data['cps'][k] = np.reshape(x0, (13,))
           control_data['cps'][k] = np.reshape(u0, (4,))
           time_data['cps'].append(step_time)
           cost_data['cps'].append(cheb_nmpc.solver_stats['cost'])
           if not cheb_nmpc.solver_stats['status'] == 'Solve_Succeeded':
-            stats_data['cps'][0] += 1
+            stats_data['cps'] += 1
 
     if 'ms' in nlps_to_run:
       # run the multiple shooter nmpc
       ms_nmpc = DroneNMPCMultiShoot(mc)
       ms_nmpc.record_nlp_stats = True
-      ms_nmpc.set_goal_state(xr)
+      ms_nmpc.build_nmpc_instance()
       ms_nmpc.set_start_state(x_init)
       x0 = x_init
       u0 = np.zeros(4)
@@ -155,11 +149,11 @@ for test in test_list_for_paper:
 
           start_time = perf_counter()
           # Solve the NMPC for the current state x_current
-          u0 = ms_nmpc.make_step(x0, u0, np.array([0.0, 0.0, 0.0]))
+          u0 = ms_nmpc.make_step(x0, u0, params)
           step_time = perf_counter() - start_time
 
-          # Propagate the system using the discrete dynamics f (Euler forward integration)
-          x0 = x0 + mc.dt* ms_nmpc.f(x0,u0)
+          # Propagate the system using the discrete dynamics f 
+          x0 = rk_sim.make_step(ms_model.f, x0, u0, params)
           
           state_data['ms'][k] = np.reshape(x0, (13,))
           control_data['ms'][k] = np.reshape(u0, (4,))
@@ -173,6 +167,15 @@ for test in test_list_for_paper:
     max_time = [round(max(time_data[nlp]),3) for nlp in nlps_to_run]
     bad_its = [stats_data[nlp] for nlp in nlps_to_run]
 
+    # compute smoothness measure
+    from experiments.trajectory_metrics import smooth_metric
+    smoothness = [round(smooth_metric(state_data[nlp]), 3) for nlp in nlps_to_run]
+
+    # compute settling measure
+    from experiments.trajectory_metrics import settling_metric
+    settle = [round(settling_metric(state_data[nlp], goal_ll, goal_ul) * mc.dt, 3) for nlp in nlps_to_run]
+    print(settle)
+
 
     # print timing results
     print(test['title'])
@@ -185,6 +188,10 @@ for test in test_list_for_paper:
     print('max       ' + ''.join(s))
     s = ["{: >20} ".format(b) for b in bad_its]
     print('fails     ' + ''.join(s))
+    s = ["{: >20} ".format(smooth) for smooth in smoothness]
+    print('smooth     ' + ''.join(s))
+    s = ["{: >20} ".format(sett) for sett in settle]
+    print('settle     ' + ''.join(s))
 
     for i, nlp in enumerate(nlps_to_run):
       plot_state_for_paper(tspan, state_data[nlp], test["title"], i+1)

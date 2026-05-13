@@ -17,7 +17,7 @@
     "animation_frame_rate": 0.8,
     "num_iterations": 500,
     "waypoint": [0.0, 0.0, 0.0],
-    "title": "drop_down"
+    "title": "drop"
   },
   {
     "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.383, 0.924, 0.0, 0.0, 0.0],
