@@ -28,15 +28,6 @@ class DroneNMPCwithCPS:
         self.x = ca.vertcat(p,v,q,w)
         self.u = ca.SX.sym('u', 4, 1)
 
-        # Parameters 
-        # -------------------
-        # x position
-        # y position
-        # z position
-        # battery voltage
-        # goal thrust
-        self.parameters = ca.SX.sym('waypoint_voltage', 5)
-
         # Now we build up the equations of motion and create a function
         # for the system dynamics
         I_mat = ca.DM(mc.I)
@@ -131,7 +122,6 @@ class DroneNMPCwithCPS:
         x_r = ca.vertcat(self.parameters[:3], self.mc.xr[3:])
         u_r = ca.vertcat(0.0, 0.0, self.parameters[4] * self.mc.battery_v / self.parameters[3], 0.0)
         
-        widths = chebyshev_segments(self.N, )
         for j in range(self.N + 1):
             x_k = X[:, j]
             u_k = U[:, j]
