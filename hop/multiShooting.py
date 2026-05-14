@@ -6,72 +6,11 @@ from hop.constants import Constants
 
 
 class DroneNMPCMultiShoot:
-    def __init__(self, mc):
-        self.mc = mc
-        self.N = int(mc.horizon_time / mc.ms_time_step)
-        self.dt = mc.ms_time_step
-
-
-        # First create our state variables and control variables
-        p = ca.SX.sym('p', 3, 1)
-        v = ca.SX.sym('v', 3, 1)
-        q = ca.SX.sym('q', 4, 1)
-        w = ca.SX.sym('w', 3, 1)
-        self.x = ca.vertcat(p,v,q,w)
-        self.u = ca.SX.sym('u', 4, 1)
-
-        # Parameters 
-        # -------------------
-        # x position
-        # y position
-        # z position
-        # battery voltage
-        # goal thrust
-        self.parameters = ca.SX.sym('parameters', 5)
-
-        # Now we build up the equations of motion and create a function
-        # for the system dynamics
-        I_mat = ca.DM(mc.I)
-        norm_P_avg = self.u[2] * self.parameters[3] / mc.battery_v
-        F = mc.a * norm_P_avg**2 + mc.b * norm_P_avg + mc.c 
-        M = mc.d * mc.Izz * self.u[3]
-
-        F_vector = F * ca.vertcat(
-            sin((np.pi/180)*self.u[1]),
-            -sin((np.pi/180)*self.u[0])*cos((np.pi/180)*self.u[1]),
-            cos((np.pi/180)*self.u[0])*cos((np.pi/180)*self.u[1])
-        )
-
-        roll_moment = ca.vertcat(0, 0, M)
-        M_vector = ca.cross(mc.moment_arm, F_vector) + roll_moment
-        angular_momentum = I_mat @ w
-
-        r_b2w = ca.vertcat(
-            ca.horzcat(1 - 2*(self.x[7]**2 + self.x[8]**2), 2*(self.x[6]*self.x[7] - self.x[8]*self.x[9]), 2*(self.x[6]*self.x[8] + self.x[7]*self.x[9])),
-            ca.horzcat(2*(self.x[6]*self.x[7] + self.x[8]*self.x[9]), 1 - 2*(self.x[6]**2 + self.x[8]**2), 2*(self.x[7]*self.x[8] - self.x[6]*self.x[9])),
-            ca.horzcat(2*(self.x[6]*self.x[8] - self.x[7]*self.x[9]), 2*(self.x[7]*self.x[8] + self.x[6]*self.x[9]), 1 - 2*(self.x[6]**2 + self.x[7]**2)),
-        )
-
-        Q_omega = ca.vertcat(
-            ca.horzcat(0, self.x[12], -self.x[11], self.x[10]),
-            ca.horzcat(-self.x[12], 0, self.x[10], self.x[11]),
-            ca.horzcat(self.x[11], -self.x[10], 0, self.x[12]),
-            ca.horzcat(-self.x[10], -self.x[11], -self.x[12], 0)
-        )
-
-        q_full = self.x[6:10]
-        q_full = q_full / ca.norm_2(q_full)
-
-        RHS = ca.vertcat(
-            v,
-            (r_b2w @ F_vector) / mc.m + mc.g,
-            0.5 * Q_omega @ q_full,
-            ca.solve(I_mat, M_vector - ca.cross(w, angular_momentum))
-        )
-
-        # f is function that returns the change in state for a given state and control values
-        self.f = ca.Function('f', [self.x, self.u, self.parameters], [RHS])
-        
+    def __init__(self, equations):
+        self.mc = equations.mc
+        self.N = int(self.mc.horizon_time / self.mc.ms_time_step)
+        self.dt = self.mc.ms_time_step
+        self.E = equations
         self.record_nlp_stats = False
 
         
@@ -79,15 +18,13 @@ class DroneNMPCMultiShoot:
      # In this function we build up the NMPC problem instance
     def build_nmpc_instance(self):
 
-        # self.x_goal = x_goal
-
         X0 = ca.SX.sym('X0', self.size_x())            # these are variables representing our initial state
         U0 = ca.SX.sym('U0', self.size_u())
         
-        P0 = ca.vertcat(X0, U0, self.parameters)
+        P0 = ca.vertcat(X0, U0, self.E.p)
 
         # we make a copy of the state variables for each N+1 time steps
-        X = ca.SX.sym('X', self.x.size1(), self.N+1)    
+        X = ca.SX.sym('X', self.size_x(), self.N+1)    
 
         # we make a copy of the control variables for each N time steps
         U = ca.SX.sym('U', self.size_u(), self.N)       
@@ -104,10 +41,8 @@ class DroneNMPCMultiShoot:
 
 
         n_x_vars = self.size_x() * (self.N+1)
-        # n_u_vars = self.size_u() * (self.N+1)
 
         self.lbx[2: n_x_vars: self.size_x()] = 0     # keep z position above 0
-
         self.lbx[n_x_vars:   num_vars: self.size_u()] = self.mc.outer_gimbal_range[0]     # outer gimbal lower bound
         self.lbx[n_x_vars+1: num_vars: self.size_u()] = self.mc.inner_gimbal_range[0]     # inner gimbal lower bound
         self.ubx[n_x_vars:   num_vars: self.size_u()] = self.mc.outer_gimbal_range[1]     # outer gimbal upper bound
@@ -123,8 +58,8 @@ class DroneNMPCMultiShoot:
 
         self.cost = 0.0
 
-        x_r = ca.vertcat(self.parameters[:3], self.mc.xr[3:])
-        u_r = ca.vertcat(0.0, 0.0, self.parameters[4] * self.mc.battery_v / self.parameters[3], 0.0)
+        x_r = ca.vertcat(self.E.p[:3], self.mc.xr[3:])
+        u_r = ca.vertcat(0.0, 0.0, self.E.p[4] * self.mc.battery_v / self.E.p[3], 0.0)
 
         for k in range(self.N):
             x_k = X[:, k]    # state at time step k
@@ -142,10 +77,10 @@ class DroneNMPCMultiShoot:
             # the state at time k+1 to equal the system dynamics applied to the 
             # the state at time k.
             next_state = X[:, k+1]
-            k1 = self.f(x_k, u_k, self.parameters)
-            k2 = self.f(x_k + self.dt/2*k1, u_k, self.parameters)
-            k3 = self.f(x_k + self.dt/2*k2, u_k, self.parameters)
-            k4 = self.f(x_k + self.dt * k3, u_k, self.parameters)
+            k1 = self.E.f(x_k, u_k, self.E.p)
+            k2 = self.E.f(x_k + self.dt/2*k1, u_k, self.E.p)
+            k3 = self.E.f(x_k + self.dt/2*k2, u_k, self.E.p)
+            k4 = self.E.f(x_k + self.dt * k3, u_k, self.E.p)
             next_state_RK4 = x_k + (self.dt / 6) * (k1 + 2 * k2 + 2 * k3 + k4)
             g = ca.vertcat(g, next_state - next_state_RK4)
             self.lbg += [0.0]*int(next_state.numel())
@@ -238,7 +173,7 @@ class DroneNMPCMultiShoot:
 
         # keep track of some accuracy measures from solving the nlp
         if self.record_nlp_stats:
-            f_fun = ca.Function("f_fun", [self.opt_vars, self.parameters], [self.cost])
+            f_fun = ca.Function("f_fun", [self.opt_vars, self.E.p], [self.cost])
             cost = float(f_fun(sol_opt, params))
             self.solver_stats = {
                 'status': self.solver.stats()['return_status'], 
@@ -254,10 +189,10 @@ class DroneNMPCMultiShoot:
 
 
     def size_u(self):
-        return self.u.size1()
+        return self.E.u.size1()
     
     def size_x(self):
-        return self.x.size1()
+        return self.E.x.size1()
 
 
 

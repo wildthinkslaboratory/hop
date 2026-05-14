@@ -9,12 +9,14 @@ import numpy as np
 import statistics as stats
 from hop.utilities import import_data, sig_figs
 from time import perf_counter
+from hop.equations_of_motion import Equations6DOF
 from hop.multiShooting import DroneNMPCMultiShoot
 import matplotlib.pyplot as plt
 from plotting.plots import plot_comparison, plot_state_for_paper, plot_control_for_paper
 from simulation_tools.integrators import RKSimulator
 
 mc = Constants()
+model = Equations6DOF(mc)
 
 # If you just want to run a single test you can loop over this list
 single_test = [
@@ -51,7 +53,7 @@ for test in test_list_for_paper:
     # run fine grained solver for a reference trajectory
     # the accuracy of other runs are assessed relative to this trajectory
     horizon_time = 1.0
-    ms_nmpc = DroneNMPCMultiShoot(mc)
+    ms_nmpc = DroneNMPCMultiShoot(model)
     ms_nmpc.dt = 0.02
     ms_nmpc.N = int(horizon_time / ms_nmpc.dt)
     ms_nmpc.record_nlp_stats = True
@@ -69,7 +71,7 @@ for test in test_list_for_paper:
         u0 = ms_nmpc.make_step(x0, u0, params)
 
         # runge kutta 4 simulator
-        x0 = rk_sim.make_step(ms_nmpc.f, x0, u0, params)
+        x0 = rk_sim.make_step(model.f, x0, u0, params)
         reference_data[k] = np.reshape(x0, (13,))
 
     # print timing results
@@ -89,7 +91,7 @@ for test in test_list_for_paper:
 
 
         # run the multiple shooter nmpc
-        ms_nmpc = DroneNMPCMultiShoot(mc)
+        ms_nmpc = DroneNMPCMultiShoot(model)
         ms_nmpc.dt = ts
         ms_nmpc.N = int(horizon_time / ts)
         ms_nmpc.record_nlp_stats = True
@@ -110,7 +112,7 @@ for test in test_list_for_paper:
 
             # Propagate the system using the discrete dynamics f 
             # runge kutta 4 simulator
-            x0 = rk_sim.make_step(ms_nmpc.f, x0, u0, params)  
+            x0 = rk_sim.make_step(model.f, x0, u0, params)  
 
             state_data[k] = np.reshape(x0, (13,))
             control_data[k] = np.reshape(u0, (4,))
@@ -134,14 +136,8 @@ for test in test_list_for_paper:
         print(''.join(s))
 
 
-        # print("Horizon: ", ms_nmpc.N)
-        # print('mean time: ', round(stats.mean(time_data),3))
-        # print('max time:  ', round(max(time_data),3))
-        # print('fails:     ', stats_data)
-        # print('accuracey: ', accuracy)
-
-        # plot_state_for_paper(tspan, state_data, test["title"], 1)
-        # plot_control_for_paper(tspan, control_data, test["title"], 2)
+        plot_state_for_paper(tspan, state_data, test["title"], 1)
+        plot_control_for_paper(tspan, control_data, test["title"], 2)
 
         times = {'ms': time_data}
         costs = {'ms': cost_data}

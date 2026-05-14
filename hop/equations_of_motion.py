@@ -16,10 +16,8 @@ class Equations6DOF:
         q = ca.SX.sym('q', 4, 1)
         w = ca.SX.sym('w', 3, 1)
 
-
         self.x = ca.vertcat(p,v,q,w)
         self.u = ca.SX.sym('u', 4, 1)
-
 
         # Parameters 
         # -------------------
@@ -28,13 +26,12 @@ class Equations6DOF:
         # z position
         # battery voltage
         # goal thrust
-        self.parameters = ca.SX.sym('parameters', 5)
-
+        self.p = ca.SX.sym('parameters', 5)
 
         # Now we build up the equations of motion and create a function
         # for the system dynamics
         I_mat = ca.DM(mc.I)
-        norm_P_avg = self.u[2] * self.parameters[3] / mc.battery_v
+        norm_P_avg = self.u[2] * self.p[3] / mc.battery_v
         F = mc.a * norm_P_avg**2 + mc.b * norm_P_avg + mc.c 
         M = mc.d * mc.Izz * self.u[3]
 
@@ -75,6 +72,6 @@ class Equations6DOF:
         )
 
         # f is function that returns the change in state for a given state and control values
-        self.f = ca.Function('f', [self.x, self.u, self.parameters], [self.RHS])
+        self.f = ca.Function('f', [self.x, self.u, self.p], [self.RHS])
 
         
