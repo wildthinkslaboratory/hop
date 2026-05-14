@@ -6,88 +6,34 @@ from hop.chebyshev import chebyshev_D, weights, cheb_nodes_weights, barycentric_
 
 
 class DroneNMPCwithCPS:
-    def __init__(self, mc):
-        self.mc = mc
-        self.T = mc.horizon_time
-        self.N = mc.spectral_order
-
-        # First create our state variables and control variables
-        p = ca.SX.sym('p', 3, 1)
-        v = ca.SX.sym('v', 3, 1)
-        q = ca.SX.sym('q', 4, 1)
-        w = ca.SX.sym('w', 3, 1)
-
-        # Parameters 
-        # -------------------
-        # x position
-        # y position
-        # z position
-        # battery voltage
-        # goal thrust
-        self.parameters = ca.SX.sym('parameters', 5)
-        self.x = ca.vertcat(p,v,q,w)
-        self.u = ca.SX.sym('u', 4, 1)
-
-        # Now we build up the equations of motion and create a function
-        # for the system dynamics
-        I_mat = ca.DM(mc.I)
-        norm_P_avg = self.u[2] * self.parameters[3] / mc.battery_v
-        F = mc.a * norm_P_avg**2 + mc.b * norm_P_avg + mc.c 
-        M = mc.d * mc.Izz * self.u[3]
-
-        F_vector = F * ca.vertcat(
-            sin((np.pi/180)*self.u[1]),
-            -sin((np.pi/180)*self.u[0])*cos((np.pi/180)*self.u[1]),
-            cos((np.pi/180)*self.u[0])*cos((np.pi/180)*self.u[1])
-        )
-
-        roll_moment = ca.vertcat(0, 0, M)
-        M_vector = ca.cross(mc.moment_arm, F_vector) + roll_moment
-        angular_momentum = I_mat @ w
-
-        r_b2w = ca.vertcat(
-            ca.horzcat(1 - 2*(self.x[7]**2 + self.x[8]**2), 2*(self.x[6]*self.x[7] - self.x[8]*self.x[9]), 2*(self.x[6]*self.x[8] + self.x[7]*self.x[9])),
-            ca.horzcat(2*(self.x[6]*self.x[7] + self.x[8]*self.x[9]), 1 - 2*(self.x[6]**2 + self.x[8]**2), 2*(self.x[7]*self.x[8] - self.x[6]*self.x[9])),
-            ca.horzcat(2*(self.x[6]*self.x[8] - self.x[7]*self.x[9]), 2*(self.x[7]*self.x[8] + self.x[6]*self.x[9]), 1 - 2*(self.x[6]**2 + self.x[7]**2)),
-        )
-
-        Q_omega = ca.vertcat(
-            ca.horzcat(0, self.x[12], -self.x[11], self.x[10]),
-            ca.horzcat(-self.x[12], 0, self.x[10], self.x[11]),
-            ca.horzcat(self.x[11], -self.x[10], 0, self.x[12]),
-            ca.horzcat(-self.x[10], -self.x[11], -self.x[12], 0)
-        )
-
-        q_full = self.x[6:10]
-        q_full = q_full / ca.norm_2(q_full)
-
-        RHS = ca.vertcat(
-            v,
-            (r_b2w @ F_vector) / mc.m + mc.g,
-            0.5 * Q_omega @ q_full,
-            ca.solve(I_mat, M_vector - ca.cross(w, angular_momentum))
-        )
-
-        # f is function that returns the change in state for a given state and control values
-        self.f = ca.Function('f', [self.x, self.u, self.parameters], [RHS])
-
+    def __init__(self, equations):
+        self.mc = equations.mc
+        self.T = self.mc.horizon_time
+        self.N = self.mc.spectral_order
+        self.E = equations
         self.record_nlp_stats = False
 
-     # In this function we build up the NMPC problem instance
-     # we can't build it until we know the goal state
+    # In this function we build up the NMPC problem instance
+    # we can't build it until we know the goal state
     def build_nmpc_instance(self):
 
-        X0 = ca.SX.sym('X0', self.x.size1())            # initial state
+        X0 = ca.SX.sym('X0', self.size_x())            # initial state
         U0 = ca.SX.sym('U0', self.size_u())
 
-        P0 = ca.vertcat(X0, U0, self.parameters)
+        P0 = ca.vertcat(X0, U0, self.E.p)
 
-        X = ca.SX.sym('X', self.x.size1(), self.N+1)    
+        # we make a copy of the state variables for each N+1 time steps
+        X = ca.SX.sym('X', self.size_x(), self.N+1)   
+        # we make a copy of the control variables for each N time steps 
         U = ca.SX.sym('U', self.size_u(), self.N+1)   
 
+        # We make one long list of all the optimization variables
+        # all the state variables preceed all the control variables.
         self.opt_vars = ca.vertcat(ca.reshape(X, -1, 1), ca.reshape(U, -1, 1))
         num_vars = self.opt_vars.numel()
 
+        # now we add upper and lower bounds on the optimization variables
+        # start with just negative infinity to positive infinity for everything
         self.lbx = -np.inf * np.ones(num_vars)
         self.ubx =  np.inf * np.ones(num_vars)
 
@@ -95,7 +41,6 @@ class DroneNMPCwithCPS:
         n_u_vars = self.size_u() * (self.N+1)
 
         self.lbx[2: n_x_vars: self.size_x()] = 0     # keep z position above 0
-
         self.lbx[n_x_vars:   num_vars: self.size_u()] = self.mc.outer_gimbal_range[0]     # outer gimbal lower bound
         self.lbx[n_x_vars+1: num_vars: self.size_u()] = self.mc.inner_gimbal_range[0]     # inner gimbal lower bound
         self.ubx[n_x_vars:   num_vars: self.size_u()] = self.mc.outer_gimbal_range[1]     # outer gimbal upper bound
@@ -119,8 +64,8 @@ class DroneNMPCwithCPS:
         # cost function
         self.cost = 0.0
 
-        x_r = ca.vertcat(self.parameters[:3], self.mc.xr[3:])
-        u_r = ca.vertcat(0.0, 0.0, self.parameters[4] * self.mc.battery_v / self.parameters[3], 0.0)
+        x_r = ca.vertcat(self.E.p[:3], self.mc.xr[3:])
+        u_r = ca.vertcat(0.0, 0.0, self.E.p[4] * self.mc.battery_v / self.E.p[3], 0.0)
         
         for j in range(self.N + 1):
             x_k = X[:, j]
@@ -133,7 +78,7 @@ class DroneNMPCwithCPS:
             self.cost = self.cost + w[j] * running_cost
 
             # dynamics constraints
-            f_k = self.f(x_k, u_k, self.parameters)
+            f_k = self.E.f(x_k, u_k, self.E.p)
             g = ca.vertcat(g, (D_ca[j,:] @ X.T).T - tau_2_time * f_k)
             self.lbg += [0.0]*int(self.size_x())
             self.ubg += [0.0]*int(self.size_x())
@@ -216,7 +161,7 @@ class DroneNMPCwithCPS:
 
         # keep track of some accuracy measures from solving the nlp
         if self.record_nlp_stats:
-            f_fun = ca.Function("f_fun", [self.opt_vars, self.parameters], [self.cost])
+            f_fun = ca.Function("f_fun", [self.opt_vars, self.E.p], [self.cost])
             cost = float(f_fun(sol_opt, params))
             self.solver_stats = {
                 'status': self.solver.stats()['return_status'], 
@@ -234,8 +179,8 @@ class DroneNMPCwithCPS:
 
 
     def size_u(self):
-        return self.u.size1()
+        return self.E.u.size1()
     
     def size_x(self):
-        return self.x.size1()
+        return self.E.x.size1()
 

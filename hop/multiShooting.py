@@ -2,8 +2,6 @@ import casadi as ca
 from casadi import sin, cos
 import numpy as np
 
-from hop.constants import Constants
-
 
 class DroneNMPCMultiShoot:
     def __init__(self, equations):
@@ -12,13 +10,12 @@ class DroneNMPCMultiShoot:
         self.dt = self.mc.ms_time_step
         self.E = equations
         self.record_nlp_stats = False
+    
 
-        
-
-     # In this function we build up the NMPC problem instance
+    # In this function we build up the NMPC problem instance
     def build_nmpc_instance(self):
 
-        X0 = ca.SX.sym('X0', self.size_x())            # these are variables representing our initial state
+        X0 = ca.SX.sym('X0', self.size_x())   # these are variables representing our initial state
         U0 = ca.SX.sym('U0', self.size_u())
         
         P0 = ca.vertcat(X0, U0, self.E.p)
@@ -38,7 +35,6 @@ class DroneNMPCMultiShoot:
         # start with just negative infinity to positive infinity for everything
         self.lbx = -np.inf * np.ones(num_vars)
         self.ubx =  np.inf * np.ones(num_vars)
-
 
         n_x_vars = self.size_x() * (self.N+1)
 
@@ -183,10 +179,8 @@ class DroneNMPCMultiShoot:
         return self.sol_u[:self.size_u()] # return the first control step
 
 
-
     def set_start_state(self, x0):
         self.x0 = x0
-
 
     def size_u(self):
         return self.E.u.size1()

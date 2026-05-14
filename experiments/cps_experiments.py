@@ -12,12 +12,15 @@ import numpy as np
 import statistics as stats
 from hop.utilities import import_data
 from time import perf_counter
+from hop.equations_of_motion import Equations6DOF
 from hop.chebyshev_ps import DroneNMPCwithCPS
 import matplotlib.pyplot as plt
 from simulation_tools.integrators import RKSimulator
 from plotting.plots import plot_comparison, plot_state_for_paper, plot_control_for_paper
 
+
 mc = Constants()
+model = Equations6DOF(mc)
 
 # If you just want to run a single test you can loop over this list
 single_test = [
@@ -65,7 +68,7 @@ for test in test_list_for_paper:
         stats_data = 0
 
         # set up the Chebyshev pseudospectral nmpc solver
-        cheb_nmpc = DroneNMPCwithCPS(mc)
+        cheb_nmpc = DroneNMPCwithCPS(model)
         cheb_nmpc.N = order
         cheb_nmpc.T = horizon_time
         cheb_nmpc.record_nlp_stats = True
@@ -87,7 +90,7 @@ for test in test_list_for_paper:
 
             # Propagate the system using the discrete dynamics f
             # runge kutta 4 simulator
-            x0 = rk_sim.make_step(cheb_nmpc.f, x0, u0, params)  
+            x0 = rk_sim.make_step(model.f, x0, u0, params)  
 
             
             state_data[k] = np.reshape(x0, (13,))
