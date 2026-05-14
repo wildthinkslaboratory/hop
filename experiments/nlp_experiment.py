@@ -170,7 +170,7 @@ for test in test_list_for_paper:
     # compute smoothness measure
     from experiments.trajectory_metrics import smooth_metric
     smoothness = [round(smooth_metric(state_data[nlp]), 3) for nlp in nlps_to_run]
-
+    control_smoothness = [round(smooth_metric(control_data[nlp]), 3) for nlp in nlps_to_run]
     # compute settling measure
     from experiments.trajectory_metrics import settling_metric
     settle = [round(settling_metric(state_data[nlp], goal_ll, goal_ul) * mc.dt, 3) for nlp in nlps_to_run]
@@ -190,6 +190,8 @@ for test in test_list_for_paper:
     print('fails     ' + ''.join(s))
     s = ["{: >20} ".format(smooth) for smooth in smoothness]
     print('smooth     ' + ''.join(s))
+    s = ["{: >20} ".format(cont) for cont in control_smoothness]
+    print('c smooth     ' + ''.join(s))
     s = ["{: >20} ".format(sett) for sett in settle]
     print('settle     ' + ''.join(s))
 

@@ -125,7 +125,7 @@ for test in test_list_for_paper:
             error = reference_data[i] - state_data[i]
             state_error += error.T @ error
 
-        print(test['title'])
+
         accuracy = sig_figs(state_error, 2)
         from experiments.trajectory_metrics import settling_metric
         settle = round(settling_metric(state_data, goal_ll, goal_ul) * mc.dt, 3) 

@@ -137,7 +137,7 @@ class Constants:
 
         self.land = np.array([0.0, 0.0, self.px4_height, 23.0])
 
-        self.nmpc_rate_constraints = False
+        self.nmpc_rate_constraints = True
 
         # constants for specific NLP formulations
         # --------------------------------------------------------------- 

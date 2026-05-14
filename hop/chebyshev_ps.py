@@ -2,7 +2,7 @@ import casadi as ca
 from casadi import sin, cos
 import numpy as np
 
-from hop.chebyshev import chebyshev_D, weights, cheb_nodes_weights, barycentric_resample_matrix
+from hop.chebyshev import chebyshev_D, weights, cheb_nodes_weights, barycentric_resample_matrix, chebyshev_segments
 
 
 class DroneNMPCwithCPS:
@@ -113,6 +113,7 @@ class DroneNMPCwithCPS:
         tau_2_time = (self.T/2)
         D = chebyshev_D(self.N)
         D_ca = ca.DM(D)
+
         w = weights(self.N)
 
         # g constraints contain an expression that is constrained by an upper and lower bound
@@ -129,7 +130,8 @@ class DroneNMPCwithCPS:
 
         x_r = ca.vertcat(self.parameters[:3], self.mc.xr[3:])
         u_r = ca.vertcat(0.0, 0.0, self.parameters[4] * self.mc.battery_v / self.parameters[3], 0.0)
-
+        
+        widths = chebyshev_segments(self.N, )
         for j in range(self.N + 1):
             x_k = X[:, j]
             u_k = U[:, j]
@@ -153,10 +155,22 @@ class DroneNMPCwithCPS:
             self.lbg += [-ca.inf]*2
             self.ubg += [0.0]*2
 
-            if self.mc.nmpc_rate_constraints:
-                print('need to add rate constraints for Chebyshev PS')
+            # -------------------------------------------------------
 
-        
+            if self.mc.nmpc_rate_constraints:
+                if j < self.N:
+                        next_u = U[:, j+1]  
+                        dt_j = self.T / self.N
+                        g   = ca.vertcat(g, (u_k[0] - next_u[0]) / dt_j - self.mc.theta_dot_constraint)
+                        g   = ca.vertcat(g, (u_k[1] - next_u[1]) / dt_j - self.mc.theta_dot_constraint)
+                        self.lbg += [-ca.inf]*2
+                        self.ubg += [0.0]*2
+
+                        g   = ca.vertcat(g, (u_k[2] - next_u[2]) / dt_j - self.mc.thrust_dot_limit)
+                        self.lbg += [-ca.inf]
+                        self.ubg += [0.0]
+
+
         x_N = X[:, self.N]
         e_N = x_N - x_r
         Qf = self.mc.Q

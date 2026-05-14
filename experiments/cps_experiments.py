@@ -38,7 +38,7 @@ single_test = [
 # test_list_for_paper = import_data('nmpc_test_cases.json')
 test_list_for_paper = single_test
 
-spectral_order = [2, 4, 6, 8, 10]
+spectral_order = [4, 6, 8, 10]
 
 for test in test_list_for_paper:
     # print timing results
