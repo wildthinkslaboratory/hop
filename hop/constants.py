@@ -137,7 +137,7 @@ class Constants:
 
         self.land = np.array([0.0, 0.0, self.px4_height, 23.0])
 
-        self.nmpc_rate_constraints = False
+        self.nmpc_rate_constraints = True
 
         # constants for specific NLP formulations
         # --------------------------------------------------------------- 
@@ -158,7 +158,7 @@ class Constants:
         # IPOPT settings
         # --------------------------------------------------------------- 
         self.ipopt_settings = {
-            "ipopt.max_iter": 30,                   
+            "ipopt.max_iter": 50,                   
             "ipopt.tol": 1e-3,                     
             "ipopt.acceptable_tol": 1e-4,
             'ipopt.print_level': 0,

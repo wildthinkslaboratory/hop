@@ -92,8 +92,10 @@ class DroneNMPCwithCPS:
 
             # -------------------------------------------------------
 
+            # these are piece-wise rate constraints. There seem to be other ways to do rate constraints
+            # in CPS, but I'm not currently sure I understand them and no how to encode them. More study needed.
             if self.mc.nmpc_rate_constraints:
-                if j < self.N:
+                if j > 1 and j < (self.N - 1):
                         next_u = U[:, j+1]  
                         dt_j = self.T / self.N
                         g   = ca.vertcat(g, (u_k[0] - next_u[0]) / dt_j - self.mc.theta_dot_constraint)

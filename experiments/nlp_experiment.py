@@ -3,6 +3,7 @@
 #
 from hop.drone_model import DroneModel
 from hop.dompc import DroneNMPCdompc
+from hop.equations_of_motion import Equations6DOF
 from hop.constants import Constants
 import casadi as ca
 import numpy as np
@@ -16,6 +17,7 @@ from plotting.plots import plot_comparison, plot_state_for_paper, plot_control_f
 from simulation_tools.integrators import RKSimulator
 
 mc = Constants()
+equations = Equations6DOF(mc)
 
 # # If you just want to run a single test you can loop over this list
 # single_test = [
@@ -63,7 +65,7 @@ for test in test_list_for_paper:
     
    
     # set up the Runge-Kutta simulator
-    ms_model = DroneNMPCMultiShoot(mc)
+    ms_model = DroneNMPCMultiShoot(equations)
     rk_sim = RKSimulator(0.005, 4)
 
     for nlp in nlps_to_run:
@@ -95,7 +97,7 @@ for test in test_list_for_paper:
           u0 = mpc.mpc.make_step(x0)
           step_time = perf_counter() - start_time
 
-          x0 = rk_sim.make_step(ms_model.f, x0, u0, params)
+          x0 = rk_sim.make_step(equations.f, x0, u0, params)
 
           state_data['oc'][k] = np.reshape(x0, (13,))
           control_data['oc'][k] = np.reshape(u0, (4,))
@@ -107,7 +109,7 @@ for test in test_list_for_paper:
 
     if 'cps' in nlps_to_run:
       # set up the Chebyshev pseudospectral nmpc solver
-      cheb_nmpc = DroneNMPCwithCPS(mc)
+      cheb_nmpc = DroneNMPCwithCPS(equations)
       cheb_nmpc.record_nlp_stats = True
 
       cheb_nmpc.build_nmpc_instance()
@@ -126,7 +128,7 @@ for test in test_list_for_paper:
           step_time = perf_counter() - start_time
 
           # Propagate the system using the discrete dynamics f
-          x0 = rk_sim.make_step(ms_model.f, x0, u0, params)
+          x0 = rk_sim.make_step(equations.f, x0, u0, params)
 
           state_data['cps'][k] = np.reshape(x0, (13,))
           control_data['cps'][k] = np.reshape(u0, (4,))
@@ -137,7 +139,7 @@ for test in test_list_for_paper:
 
     if 'ms' in nlps_to_run:
       # run the multiple shooter nmpc
-      ms_nmpc = DroneNMPCMultiShoot(mc)
+      ms_nmpc = DroneNMPCMultiShoot(equations)
       ms_nmpc.record_nlp_stats = True
       ms_nmpc.build_nmpc_instance()
       ms_nmpc.set_start_state(x_init)
@@ -153,7 +155,7 @@ for test in test_list_for_paper:
           step_time = perf_counter() - start_time
 
           # Propagate the system using the discrete dynamics f 
-          x0 = rk_sim.make_step(ms_model.f, x0, u0, params)
+          x0 = rk_sim.make_step(equations.f, x0, u0, params)
           
           state_data['ms'][k] = np.reshape(x0, (13,))
           control_data['ms'][k] = np.reshape(u0, (4,))
