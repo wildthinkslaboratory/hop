@@ -19,6 +19,8 @@ class Equations6DOF:
         self.x = ca.vertcat(p,v,q,w)
         self.u = ca.SX.sym('u', 4, 1)
 
+        print(self.x)
+
         # Parameters 
         # -------------------
         # x position

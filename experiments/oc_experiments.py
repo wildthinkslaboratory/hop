@@ -16,10 +16,11 @@ import matplotlib.pyplot as plt
 from matplotlib import colors
 from plotting.plots import plot_comparison, plot_state_for_paper, plot_control_for_paper
 from hop.utilities import sig_figs
-from hop.multiShooting import DroneNMPCMultiShoot
+from hop.equations_of_motion import Equations6DOF
 from simulation_tools.integrators import RKSimulator
 mc = Constants()
 
+equations = Equations6DOF(mc)
 
 # # If you just want to run a single test you can loop over this list
 # test_list = [
@@ -67,7 +68,6 @@ for test in test_list:
     tspan = np.arange(0,num_iterations* mc.dt,mc.dt)
 
     # set up the Runge-Kutta simulator
-    ms_model = DroneNMPCMultiShoot(mc)
     rk_sim = RKSimulator(0.005, 4)
     params = np.array([xr[0], xr[1], xr[2], mc.battery_v, mc.hover_thrust])
 
@@ -95,7 +95,7 @@ for test in test_list:
         step_time = perf_counter() - start_time
 
         # runge kutta 4 simulator
-        x0 = rk_sim.make_step(ms_model.f, x0, u0, params)
+        x0 = rk_sim.make_step(equations.f, x0, u0, params)
         reference_data[k] = np.reshape(x0, (13,))
 
                 
@@ -137,7 +137,7 @@ for test in test_list:
                 step_time = perf_counter() - start_time
 
                 # runge kutta 4 simulator
-                x0 = rk_sim.make_step(ms_model.f, x0, u0, params)
+                x0 = rk_sim.make_step(equations.f, x0, u0, params)
 
                 dompc_state_data[k] = np.reshape(x0, (13,))
                 dompc_control_data[k] = np.reshape(u0, (4,))
