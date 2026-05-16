@@ -43,6 +43,7 @@ class DroneNMPCMultiShoot:
         self.lbx[n_x_vars+1: num_vars: self.size_u()] = self.mc.inner_gimbal_range[0]     # inner gimbal lower bound
         self.ubx[n_x_vars:   num_vars: self.size_u()] = self.mc.outer_gimbal_range[1]     # outer gimbal upper bound
         self.ubx[n_x_vars+1: num_vars: self.size_u()] = self.mc.inner_gimbal_range[1]     # inner gimbal upper bound
+        self.lbx[n_x_vars+2: num_vars: self.size_u()] = 0     # thrust lower bound
 
         # g constraints contain an expression that is constrained by an upper and lower bound
         self.lbg = []   # will hold lower bounds for g constraints

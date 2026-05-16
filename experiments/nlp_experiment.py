@@ -207,6 +207,7 @@ for test in test_list_for_paper:
     plot_comparison(tspan, time_data, test["title"], 2 * len(nlps_to_run)+1, 'CPU Time (sec)')
     # plot_comparison(tspan, cost_data, test["title"], 2 * len(nlps_to_run)+2, 'Cost')
 
-    plt.show()
+    plt.close()
+    # plt.show()
 
 
