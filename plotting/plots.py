@@ -295,7 +295,7 @@ state_lims = {
     'big_perturb':  [[-1.5, 1.5], [-2.0, 1.5], [-0.2, 1.2], [-2.0, 2.0]],
 
 }
-def plot_state_for_paper(tspan, data, title, plot_no):
+def plot_state_for_paper(tspan, data, title, nlp, plot_no):
 
     plt.figure(figsize=(6,8))
     # plt.rcParams['ytick.labelsize'] = 10 
@@ -333,7 +333,7 @@ def plot_state_for_paper(tspan, data, title, plot_no):
     plt.ylabel('$w$')
 
     plt.xlabel('Time (sec)')
-    plt.savefig(plotdir + "state" + title + str(plot_no) + ".pdf", format="pdf", bbox_inches="tight")
+    plt.savefig(plotdir + "state" + title + '-' + nlp + str(plot_no) + ".pdf", format="pdf", bbox_inches="tight")
 
 
 control_lims = {
@@ -346,7 +346,7 @@ control_lims = {
     'big_perturb': [[-22.0, 22.0], [-0.1, 1.0], [-5.0, 5.0]],
 }
 
-def plot_control_for_paper(tspan, control, title, plot_no):
+def plot_control_for_paper(tspan, control, title, nlp, plot_no):
 
     plt.figure(figsize=(6,6))
     # plt.rcParams['ytick.labelsize'] = 4 
@@ -379,7 +379,7 @@ def plot_control_for_paper(tspan, control, title, plot_no):
 
 
     plt.xlabel('Time (sec)')
-    plt.savefig(plotdir + "control" + title + str(plot_no) + ".pdf", format="pdf", bbox_inches="tight")
+    plt.savefig(plotdir + "control" + title + '-' + nlp + str(plot_no) + ".pdf", format="pdf", bbox_inches="tight")
 
 markers = { 'oc': '+', 'cps': '.', 'ms':'^'}
 def plot_comparison(tspan, data, title, plot_no, ylab):
@@ -391,7 +391,7 @@ def plot_comparison(tspan, data, title, plot_no, ylab):
             plt.plot(tspan, data[key], label=key, marker=markers[key], linestyle='None', markersize=4)
     plt.ylabel(ylab)
     plt.legend(loc='lower right')
-    plt.savefig("time" + title  + ".pdf", format="pdf", bbox_inches="tight")
+    plt.savefig("time" + title + ".pdf", format="pdf", bbox_inches="tight")
 
 def plot_state_for_sensitivity(tspan, data, title, plot_no):
 
