@@ -14,7 +14,7 @@ class DroneNMPCdompc:
         self.mpc.settings.nlpsol_opts = mc.ipopt_settings
         self.mpc.settings.collocation_ni = mc.collocation_degree
         self.mpc.settings.t_step = mc.finite_interval_size    
-        self.mpc.settings.n_horizon = mc.number_intervals
+        self.mpc.settings.n_horizon = int(mc.horizon_time / mc.finite_interval_size)
         self.mpc.settings.collocation_deg = mc.collocation_degree  
 
         # only do this if we need the stats
@@ -64,18 +64,19 @@ class DroneNMPCdompc:
 
     def setup_cost(self):
 
-        # set up the (x,y,z, voltage) as parameters
+        # set up the (x,y,z, voltage, goal_thrust) as parameters
         # so we can adjust the goal state with different waypoints
         # and adjust the voltage
         self.parameters = self.mpc.get_p_template(1)
-        self.parameters['_p'] = np.array([0.0, 0.0, 0.0, 25.0])
+        self.parameters['_p'] = np.array([0.0, 0.0, 0.0, mc.battery_v, mc.hover_thrust])
         def p_fun(t_now):
             return self.parameters
         self.mpc.set_p_fun(p_fun)
 
         self.mpc.set_objective(mterm=self.model.aux['terminal_cost'], lterm=self.model.aux['cost'])
 
-        # self.mpc.set_rterm(u=mc.actuator_rate_costs, dtype=float)
+        if mc.nmpc_rate_constraints:
+            self.mpc.set_rterm(u=mc.actuator_rate_costs)
 
         self.mpc.setup()
 

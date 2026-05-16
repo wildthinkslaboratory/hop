@@ -65,3 +65,6 @@ def quaternion_to_angle(q):
     return np.array([x_tilt, y_tilt, tilt])
 
 
+def q_component_to_angle(x):
+    w = np.sqrt(1-x**2)
+    return abs(np.arctan(-2*x*w / (1-2*x**2)) * 180 / np.pi)

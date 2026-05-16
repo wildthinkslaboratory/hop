@@ -1,5 +1,7 @@
 import numpy as np
 import casadi as ca
+from hop.utilities import q_component_to_angle
+
 
 class Constants:
     def __init__(self):
@@ -139,21 +141,24 @@ class Constants:
 
         # constants for specific NLP formulations
         # --------------------------------------------------------------- 
+
+        self.horizon_time = 1.0
+
         # multiple shooter constants
-        self.mpc_horizon = 100 # number of timesteps for nmpc to consider
+        self.ms_time_step = 0.25 # number of timesteps for nmpc to consider
 
         # chebyshev pseudospectral constants
         self.spectral_order = 6
 
         # do-mpc constants
-        self.finite_interval_size = 0.3
-        self.number_intervals = 6
+        self.finite_interval_size = 0.25
+        self.number_intervals = 4
         self.collocation_degree = 2
 
         # IPOPT settings
         # --------------------------------------------------------------- 
         self.ipopt_settings = {
-            "ipopt.max_iter": 100,                   
+            "ipopt.max_iter": 30,                   
             "ipopt.tol": 1e-3,                     
             "ipopt.acceptable_tol": 1e-4,
             'ipopt.print_level': 0,
@@ -166,6 +171,34 @@ class Constants:
             # 'ipopt.mu_init': 1e-3,  
         }
 
+
+    def tuning_info(self):
+        s = 'Q Tuning Information\n'
+        s += '-----------------------\n'
+        s += 'position deviation\n'
+        s += 'x: ' +  str(np.sqrt(1 / self.Q[0, 0])) + ' m\n'
+        s += 'y: ' +  str(np.sqrt(1 / self.Q[1, 1])) + ' m\n'
+        s += 'z: ' +  str(np.sqrt(1 / self.Q[2, 2])) + ' m\n'
+        s += 'velocity deviation\n'
+        s += 'vx: ' +  str(np.sqrt(1 / self.Q[3, 3])) + ' m / s\n'
+        s += 'vy: ' +  str(np.sqrt(1 / self.Q[4, 4])) + ' m / s\n'
+        s += 'vz: ' +  str(np.sqrt(1 / self.Q[5, 5])) + ' m / s\n'
+        s += 'angle deviation\n'
+        s += 'qx: ' +  str(round(q_component_to_angle(np.sqrt(1 / self.Q[6, 6])))) + ' degrees\n'
+        s += 'qy: ' +  str(round(q_component_to_angle(np.sqrt(1 / self.Q[7, 7])))) + ' degrees\n'
+        s += 'qz: ' +  str(round(q_component_to_angle(np.sqrt(1 / self.Q[8, 8])))) + ' degrees\n'
+        s += 'angular velocity deviation\n'
+        s += 'vx: ' +  str(np.sqrt(1 / self.Q[10, 10])) + ' rad / s\n'
+        s += 'vy: ' +  str(np.sqrt(1 / self.Q[11, 11])) + ' rad / s\n'
+        s += 'vz: ' +  str(np.sqrt(1 / self.Q[12, 12])) + ' rad / s\n'
+        s += '\nR Tuning Information\n'
+        s += '-----------------------\n'
+        s += 'gimbal deviation\n'
+        s += 'theta 1: ' +  str(np.sqrt(1 / self.R[0, 0])) + ' degrees / sed\n'
+        s += 'theta 2: ' +  str(np.sqrt(1 / self.R[1, 1])) + ' degrees / sed\n'
+        s += 'P avg: ' +  str(np.sqrt(1 / self.Q[2, 2])) + ' [0-1]\n'
+        s += 'P diff: ' +  str(np.sqrt(1 / self.Q[3, 3])) + ' [0-1]\n'
+        return s
 
 
     def __dict__(self):
