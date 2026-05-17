@@ -55,8 +55,6 @@ class Constants:
         # thrust is modeled as a degree 2 polynomial with coefficients a, b, c
         # that is scaled by a thrust curve constant
         self.tcc = 9.81 # thrust curve constant 
-        # these values are based on the 21V data from 
-        # https://drive.google.com/file/d/1KMV0z-SipDZAr_uxRndRSnhmOHLBXNA5/view
         self.a = 1.647 * self.tcc
         self.b = 0.9797 * self.tcc
         self.c = 0.03 * self.tcc

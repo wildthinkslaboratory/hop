@@ -96,17 +96,18 @@ class DroneNMPCwithCPS:
             # these are piece-wise rate constraints. There seem to be other ways to do rate constraints
             # in CPS, but I'm not currently sure I understand them and no how to encode them. More study needed.
             if self.mc.nmpc_rate_constraints:
-                if j > 1 and j < (self.N - 1):
-                        next_u = U[:, j+1]  
-                        dt_j = self.T / self.N
-                        g   = ca.vertcat(g, (u_k[0] - next_u[0]) / dt_j - self.mc.theta_dot_constraint)
-                        g   = ca.vertcat(g, (u_k[1] - next_u[1]) / dt_j - self.mc.theta_dot_constraint)
-                        self.lbg += [-ca.inf]*2
-                        self.ubg += [0.0]*2
+                pass
+                # if j > 1 and j < (self.N - 1):
+                #         next_u = U[:, j+1]  
+                #         dt_j = self.T / self.N
+                #         g   = ca.vertcat(g, (u_k[0] - next_u[0]) / dt_j - self.mc.theta_dot_constraint)
+                #         g   = ca.vertcat(g, (u_k[1] - next_u[1]) / dt_j - self.mc.theta_dot_constraint)
+                #         self.lbg += [-ca.inf]*2
+                #         self.ubg += [0.0]*2
 
-                        g   = ca.vertcat(g, (u_k[2] - next_u[2]) / dt_j - self.mc.thrust_dot_limit)
-                        self.lbg += [-ca.inf]
-                        self.ubg += [0.0]
+                #         g   = ca.vertcat(g, (u_k[2] - next_u[2]) / dt_j - self.mc.thrust_dot_limit)
+                #         self.lbg += [-ca.inf]
+                #         self.ubg += [0.0]
 
 
         x_N = X[:, self.N]

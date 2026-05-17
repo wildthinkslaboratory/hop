@@ -283,7 +283,7 @@ def plot_control_for_comparison(tspan, control, title, plot_no):
 #
 ##########################################################################
 
-use_limits = True
+use_limits = False
 
 state_lims = {
     '45dz': [[-1.5, 1.5], [-1.5, 1.5], [-0.2, 1.2], [-1.5, 1.5]],
@@ -334,6 +334,7 @@ def plot_state_for_paper(tspan, data, title, nlp, plot_no):
 
     plt.xlabel('Time (sec)')
     plt.savefig(plotdir + "state" + title + '-' + nlp + str(plot_no) + ".pdf", format="pdf", bbox_inches="tight")
+    # plt.close()
 
 
 control_lims = {
@@ -380,6 +381,7 @@ def plot_control_for_paper(tspan, control, title, nlp, plot_no):
 
     plt.xlabel('Time (sec)')
     plt.savefig(plotdir + "control" + title + '-' + nlp + str(plot_no) + ".pdf", format="pdf", bbox_inches="tight")
+    # plt.close()
 
 markers = { 'oc': '+', 'cps': '.', 'ms':'^'}
 def plot_comparison(tspan, data, title, plot_no, ylab):
@@ -392,6 +394,7 @@ def plot_comparison(tspan, data, title, plot_no, ylab):
     plt.ylabel(ylab)
     plt.legend(loc='lower right')
     plt.savefig("time" + title + ".pdf", format="pdf", bbox_inches="tight")
+    plt.close()
 
 def plot_state_for_sensitivity(tspan, data, title, plot_no):
 
