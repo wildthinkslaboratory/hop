@@ -49,8 +49,8 @@ test_list = [
 ]
 
 
-collocations = [1, 2]                        # number of collocation points
-timesteps = [0.2, 0.25, 0.3]   # size of the time intervals (within a 2 second horizon)
+collocations = [1, 2, 3]                        # number of collocation points
+timesteps = [0.2, 0.25, 0.5]   # size of the time intervals (within a 2 second horizon)
 
 times = np.zeros((len(collocations),len(timesteps)))     # we measure the average solution time
 accuracy = np.zeros((len(collocations),len(timesteps)))  # we measure the accuracy
@@ -164,8 +164,8 @@ for test in test_list:
 
 
             # uncomment if you want to see plots of the trajectories
-            plot_state_for_paper(tspan, dompc_state_data, test["title"], 1)
-            plot_control_for_paper(tspan, dompc_control_data, test["title"], 2)
+            plot_state_for_paper(tspan, dompc_state_data, test["title"], 'oc', 1)
+            plot_control_for_paper(tspan, dompc_control_data, test["title"], 'oc', 2)
             plt.show()
 
 

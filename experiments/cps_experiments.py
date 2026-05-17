@@ -41,7 +41,39 @@ single_test = [
 # test_list_for_paper = import_data('nmpc_test_cases.json')
 test_list_for_paper = single_test
 
-spectral_order = [4, 6, 8, 10]
+test_list_for_paper = [
+  {
+    "x0": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [0.0, -0.2, -1],
+    "animation_up": [0, 1, 0],
+    "animation_frame_rate": 0.8,
+    "num_iterations": 350,
+    "waypoint": [0.0, 0.0, 0.0],
+    "title": "hover"
+  },
+  {
+    "x0": [1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [0.0, -0.2, -1],
+    "animation_up": [0, 1, 0],
+    "animation_frame_rate": 0.8,
+    "num_iterations": 350,
+    "waypoint": [0.0, 0.0, 0.0],
+    "title": "med_perturb"
+  },
+  {
+    "x0": [1.0, 0.5, 1.0, 0.5, 0.0, 0.0, 0.259, 0.0, 0.0, 0.966, 0.0, 0.0, 0.0],
+    "xr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "animation_forward": [1, -0.5, -1],
+    "animation_up": [0, 1, 0],
+    "animation_frame_rate": 0.4,
+    "num_iterations": 350,
+    "waypoint": [0.0, 0.0, 0.0],
+    "title": "big_perturb"
+  }
+]
+spectral_order = [4, 6, 8]
 
 for test in test_list_for_paper:
     # print timing results
@@ -110,9 +142,9 @@ for test in test_list_for_paper:
         print(''.join(s))
 
 
-        plot_state_for_paper(tspan, state_data, test["title"], 1)
+        plot_state_for_paper(tspan, state_data, test["title"],'cps', 1)
         # plt.savefig("cpsState.pdf", format="pdf", bbox_inches="tight")
-        plot_control_for_paper(tspan, control_data, test["title"], 2)
+        plot_control_for_paper(tspan, control_data, test["title"], 'cps',2)
         # plt.savefig("cpsControl.pdf", format="pdf", bbox_inches="tight")
         times = {'ms': time_data}
         costs = {'ms': cost_data}
