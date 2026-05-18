@@ -157,12 +157,20 @@ for test in test_list_for_paper:
           # Propagate the system using the discrete dynamics f 
           x0 = rk_sim.make_step(equations.f, x0, u0, params)
           
+  
           state_data['ms'][k] = np.reshape(x0, (13,))
           control_data['ms'][k] = np.reshape(u0, (4,))
           time_data['ms'].append(step_time)
           cost_data['ms'].append(ms_nmpc.solver_stats['cost'])
           if not ms_nmpc.solver_stats['status'] == 'Solve_Succeeded':
             stats_data['ms'] += 1
+      
+      tspan = tspan[1:]
+      for nlp in nlps_to_run:
+        state_data[nlp] = state_data[nlp][1:]
+        control_data[nlp] = control_data[nlp][1:]
+        time_data[nlp] = time_data[nlp][1:]
+   
 
     # compute statistics for the timing of the nmpc calls
     mean_time = [round(stats.mean(time_data[nlp]),3) for nlp in nlps_to_run]
@@ -176,7 +184,6 @@ for test in test_list_for_paper:
     # compute settling measure
     from experiments.trajectory_metrics import settling_metric
     settle = [round(settling_metric(state_data[nlp], goal_ll, goal_ul) * mc.dt, 3) for nlp in nlps_to_run]
-    print(settle)
 
 
     # print timing results
