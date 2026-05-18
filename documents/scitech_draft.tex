@@ -531,6 +531,14 @@ Nevertheless, the successful stabilization of the physical platform demonstrates
 
 
 
+This paper presents the design of a thrust vector control (TVC) drone platform for investigating nonlinear model predictive control (NMPC) of vertical takeoff and landing (VTOL) systems on low-cost embedded hardware. We experimented with three nonlinear programming (NLP) formulations for the NMPC problem: Runge-Kutta multiple shooting, orthogonal collocation with Gauss-Radau nodes, and Chebyshev pseudospectral collocation.
+
+Our results showed that all three NLP formulations were capable of stabilizing the drone’s nonlinear system with average run times that met our requirement of running at 50Hz on the Raspberry Pi 5. However, orthogonal collocation provided the most reliable overall performance, keeping all NLP solution times within the allotted $0.02s$ time interval, producing smooth converging trajectories and avoiding NLP solver failures. In addition, orthogonal collocation was the easiest to implement due to the availability of the {\dompc} library. The Chebyshev pseudospectral collocation had less consistent timing behavior and slightly irregular control trajectories. 
+Multiple shooting demonstrated good trajectory quality and computational performance but had occasional NLP solver failures and timing spikes.
+
+
+We deployed the NMPC with orthogonal collocation controller on the physical drone. Initial experiments showed successful stabilization when hovering, but flight data analysis exhibited significant actuator-response latency possibly caused by communication protocols in the messaging pipeline. This timing lag must be fixed or accommodated before precise position control can be attained.
+
 
 \bibliography{references.bib}
 \end{document}
