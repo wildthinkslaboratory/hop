@@ -1,43 +1,39 @@
-
 (venv) izzy@izzy-pi:~/drone_experiments/hop$ python run_experiments.py 
 [p_0, p_1, p_2, v_0, v_1, v_2, q_0, q_1, q_2, q_3, w_0, w_1, w_2]
 running do-mpc solver
 running Chebyshev pseudospectral nmpc solver
 running multiple shooter nmpc solver
-[2.64, 2.16, 2.48]
 hover
                             oc                  cps                   ms 
 -----------------------------------------------------------------------------------------
 mean                     0.012                0.013                 0.01 
-max                      0.021                0.025                0.061 
+max                      0.014                0.025                0.061 
 fails                        0                    0                    1 
 smooth                    0.004                0.003                0.002 
-c smooth                    0.082                0.447                0.037 
-settle                     2.64                 2.16                 2.48 
+c smooth                     0.08                0.314                0.028 
+settle                     2.62                 2.14                 2.46 
 running do-mpc solver
 running Chebyshev pseudospectral nmpc solver
 running multiple shooter nmpc solver
-[3.9, 3.14, 3.44]
 med_perturb
                             oc                  cps                   ms 
 -----------------------------------------------------------------------------------------
 mean                      0.01                0.009                0.009 
-max                      0.018                0.022                0.014 
-fails                        0                    0                    0 
-smooth                    0.221                0.227                0.115 
-c smooth                   10.003               73.615                1.779 
-settle                      3.9                 3.14                 3.44 
+max                      0.013                0.015                0.045 
+fails                        0                    0                    1 
+smooth                    0.211                0.269                0.076 
+c smooth                    4.697               35.606                0.878 
+settle                     3.64                 3.06                 3.44 
 running do-mpc solver
 running Chebyshev pseudospectral nmpc solver
 running multiple shooter nmpc solver
-[4.64, 3.3, 5.04]
 big_perturb
                             oc                  cps                   ms 
 -----------------------------------------------------------------------------------------
 mean                      0.01                0.009                0.009 
-max                      0.023                0.021                0.014 
+max                      0.014                 0.02                0.014 
 fails                        0                    0                    0 
-smooth                    0.944                 0.85                0.756 
-c smooth                   38.116              199.505                5.381 
-settle                     4.64                  3.3                 5.04 
+smooth                    0.795                0.626                0.626 
+c smooth                   28.791              137.731                4.795 
+settle                     4.46                 3.26                 4.82 
 (venv) izzy@izzy-pi:~/drone_experiments/hop$ 
