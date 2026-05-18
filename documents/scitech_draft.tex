@@ -93,16 +93,21 @@
 
 \end{abstract}
 \section{Introduction}	
-	This paper is inspired by the small-scale rocket prototype presented by \cite{TVCDrone} which aims to study thrust vector control (TVC) and vertical takeoff and landing (VTOL) using a gimballed-thrust rocket prototype. 
-	VTOL milestones like NASA's Lunar Landing Research Vehicle (LLRV) which allowed Apollo astronauts to practice lunar landings, McDonnell Douglas’s DC-X (Delta Clipper), and SpaceX's Falcon 9 and Starship landings, the latter to be used in the planned Artemis III mission that aims to land and return astronauts from the moon illustrate the value of propulsive VTOL with TVC. 	
-	About the upright hover equilibrium, vertically flying rockets are open-loop unstable in attitude. They have highly nonlinear, coupled dynamics, and require fast control algorithms that respond quickly to disturbances and sensor noise. Unfortunately, validating control techniques on full-scale rockets is prohibitively costly and high-risk. There is a need for inexpensive test vehicles that allow experimentation with rocket guidance, navigation, and control. 
-	A gimballed-thrust drone with electric motors and propellers is a good choice for replicating rocket dynamics on a much smaller budget. A couple of low-cost designs have been proposed and implemented  \cite{cheapTVC}, \cite{TVCDrone}. The drone design by \cite{TVCDrone} allows experimentation with control algorithms for VTOL and TVC. We have designed a similar drone based on their images and design descriptions, and there remain many details and design choices to explore.
 	
-	Our drone implements TVC and VTOL using a nonlinear model predictive control (NMPC) algorithm, allowing it to handle nonlinear rocket dynamics and manage constraints like gimbal angle range, servo rates, and thrust limits. NMPC optimizes control inputs across a finite time horizon at each time step. In this sense it optimizes a control sequence, allowing it to anticipate future control requirements. Revising the sequence at each time step allows it to respond to disturbances. The main downside of NMPC is its high computational load. NMPC solves a constrained Optimal Control Problem (OCP) that is transcribed into a finite dimensional nonlinear optimization problem (NLP) at every control step, and as a result it is much slower than simple control algorithms like proportional integral derivative (PID) controllers or linear quadratic regulators (LQR).
-	There are a variety of ways to formulate an NMPC problem instance as a nonlinear programming problem. Different formulations may vary in their computation times and solution accuracy. The focus of this paper is experimenting with different choices of NLP formulations and evaluating their speed and accuracy.  Our control algorithm needs to run on a Raspberry Pi 5 at $50$ Hz so solution speed of the NMPC problem is very important.
-	We  compare three approaches: a Runge-Kutta multiple-shooter method, an orthogonal collocation with Gauss-Radau nodes implemented in the {\bf do-mpc}  library \cite{do-mpc},  and a Chebyshev pseudospectral collocation approach. We compare the relative accuracy of these techniques and their relative efficiency.
+	This paper is inspired by the small-scale rocket prototype presented by \cite{TVCDrone}, which was developed to study thrust vector control (TVC) and vertical takeoff and landing (VTOL) using a gimballed-thrust rocket platform. Milestones in propulsive VTOL systems, including NASA’s Lunar Landing Research Vehicle (LLRV), McDonnell Douglas’s DC-X (Delta Clipper), and the landing systems of SpaceX’s Falcon 9 and Starship vehicles, demonstrate the importance of accurate guidance and control for vertically landing rockets. These systems highlight both the practical value and technical difficulty of TVC-based stabilization and landing.
 	
-	Code for this project is available at https://github.com/izzymones/hop
+	About the upright hover equilibrium, vertically flying rockets are open-loop unstable in attitude and exhibit highly nonlinear, coupled dynamics. Stable flight therefore requires fast and reliable feedback control capable of responding rapidly to disturbances and sensor noise. However, experimentation with full-scale rocket systems is prohibitively expensive and carries substantial risk. As a result, there is significant value in low-cost experimental platforms that enable the study of rocket guidance, navigation, and control algorithms.
+	
+	Electrically powered gimballed-thrust drones provide an inexpensive method for approximating rocket dynamics while avoiding the cost and safety constraints of full-scale systems. Several such platforms have been proposed in the literature \cite{cheapTVC}, \cite{TVCDrone}. In this work, we developed a similar gimballed-thrust drone platform based on the design presented in \cite{TVCDrone} and used it as a testbed for nonlinear control algorithms.
+	
+	Our platform implements TVC and VTOL using nonlinear model predictive control (NMPC). NMPC is well suited to this problem because it can directly handle nonlinear system dynamics and actuator constraints such as gimbal angle limits, servo rate limits, and thrust bounds. At each control step, NMPC solves a constrained optimal control problem over a finite prediction horizon, allowing the controller to anticipate future system behavior while continuously replanning in response to disturbances.
+	
+	The primary disadvantage of NMPC is its computational cost. At every control step, the optimal control problem must be transcribed into and solved as a nonlinear programming problem (NLP). Different NLP formulations can vary substantially in computational efficiency, numerical robustness, and solution quality, particularly on embedded hardware platforms with limited computational resources.
+	
+	The focus of this paper is the evaluation of several NLP formulations for real-time NMPC implementation on a TVC drone platform running on a Raspberry Pi 5 at 50 Hz. We compare three approaches: a Runge--Kutta multiple shooting formulation, an orthogonal collocation formulation with Gauss--Radau nodes implemented using the {\bf do-mpc} library \cite{do-mpc}, and a Chebyshev pseudospectral collocation formulation. These methods are evaluated with respect to computational performance, numerical reliability, and trajectory quality in a set of simulated flight scenarios.
+	
+	Code for this project is available at GitHub repository https://github.com/izzymones/hop
+	
 	
 	
 	
@@ -518,11 +523,14 @@ t_k :
 
 
 \section{Hardware Validation}
-Hardware validation is already functioning with ongoing refinement of timing/performance characterization.
-We have preliminary hardware validation
-initial flight experiments
-ongoing timing refinement
-additional flight characterization in progress
+
+The proposed NMPC controller was deployed on the physical TVC drone platform using a Raspberry Pi 5 flight computer. Initial hardware experiments demonstrated successful closed-loop stabilization and sustained hover operation. The vehicle was capable of balancing indefinitely subject to battery limitations, demonstrating that the controller could stabilize the open-loop unstable hover equilibrium on the physical platform.
+
+Although attitude stabilization was successful, the vehicle exhibited slow oscillatory drift about the vertical axis and did not yet achieve precise position stabilization. Analysis of flight logs indicated the presence of a significant delay, estimated at approximately 100-200 ms, between actuator commands generated by the Raspberry Pi and the observed actuator response. This latency was not present in the simulation environment and substantially degrades closed-loop control performance for the fast dynamics of the TVC system.
+The source of this delay is currently under investigation. The control architecture uses ROS 2 and Micro XRCE-DDS communication between the Raspberry Pi 5 and Pixhawk flight controller, and the observed latency may arise from message transport, buffering, scheduling, or actuator update timing within this pipeline.
+Because the delay has not yet been fully characterized or compensated for, comprehensive trajectory-tracking experiments are left for future work.
+
+Nevertheless, the successful stabilization of the physical platform demonstrates the practical feasibility of implementing real-time NMPC for TVC control on low-cost embedded hardware.
 
 \section{Conclusions}
 
