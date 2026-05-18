@@ -1,0 +1,525 @@
+\documentclass[conf]{new-aiaa}
+%\documentclass[journal]{new-aiaa} for journal papers
+\usepackage[utf8]{inputenc}
+
+\usepackage{amsmath}
+%\usepackage{amsthm}
+%\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{caption}
+\usepackage{subcaption}
+\bibliographystyle{new-aiaa}
+
+\usepackage{multicol}
+%\usepackage{bm}
+%\usepackage{physics}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  This is all the stuff for Python code snippets
+%
+\DeclareFixedFont{\ttb}{T1}{txtt}{bx}{n}{10} % for bold
+\DeclareFixedFont{\ttm}{T1}{txtt}{m}{n}{10}  % for normal
+% Custom colors
+\usepackage{color}
+\definecolor{deepblue}{rgb}{0,0,0.5}
+\definecolor{deepred}{rgb}{0.6,0,0}
+\definecolor{deepgreen}{rgb}{0,0.5,0}
+
+\setcounter{MaxMatrixCols}{15}
+
+% Python style for highlighting
+\newcommand\pythonstyle{\lstset{
+		language=Python,
+		basicstyle=\ttm,
+		morekeywords={self},              % Add keywords here
+		keywordstyle=\ttb\color{deepblue},
+		emph={MyClass,__init__},          % Custom highlighting
+		emphstyle=\ttb\color{deepred},    % Custom highlighting style
+		stringstyle=\color{deepgreen},
+		frame=tb,                         % Any extra options here
+		showstringspaces=false,
+		tabsize=4
+}}
+
+% Python environment
+\lstnewenvironment{python}[1][]
+{
+	\pythonstyle
+	\lstset{#1}
+}
+{}
+
+% Python for inline
+\newcommand\pythoninline[1]{{\pythonstyle\lstinline!#1!}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\newcommand{\mpc}{MPC}
+\newcommand{\nmpc}{NMPC}
+\newcommand{\pdiff}{P_{\Delta}}
+\newcommand{\pavg}{\overline{P}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\casadi}{CasADi}
+\newcommand{\dompc}{{\bf do-mpc}}
+
+\title{Comparison of Direct Methods for NMPC Applied to a Thrust-Vector-Controlled Drone}
+\author{Isidore Mones and Heidi Dixon}
+%\date{}
+
+\begin{document}
+\maketitle
+	
+\begin{abstract}
+	We developed a nonlinear model predictive control (NMPC) framework for a thrust-vectoring drone equipped with a 
+	two-axis gimbal and dual counter-rotating brushless motors. The controller was designed to operate in real time at 
+	50 Hz on a Raspberry Pi 5, imposing strict computational constraints on the embedded nonlinear programming problem (NLP).
+
+	To satisfy these real-time requirements, we investigated three NLP formulations for the NMPC solver: multiple shooting, 
+	Chebyshev pseudospectral collocation, and {\dompc}'s orthogonal collocation. The methods were evaluated in closed-loop simulation 
+	in terms of computational efficiency, convergence reliability, and control smoothness.
+
+	With appropriate tuning, all three formulations achieved stable real-time operation and generated trajectories that 
+	converged rapidly to the target state. However, no single formulation consistently outperformed the others across all 
+	evaluation metrics. Instead, each method exhibited distinct tradeoffs between computational efficiency, convergence 
+	reliability, and control behavior. Flight experiments using the orthogonal collocation formulation demonstrated stable 
+	real-time control on a physical thrust-vectoring drone platform. These results highlight practical considerations in 
+	selecting NMPC formulations for resource-constrained embedded flight systems.
+
+\end{abstract}
+\section{Introduction}	
+	This paper is inspired by the small-scale rocket prototype presented by \cite{TVCDrone} which aims to study thrust vector control (TVC) and vertical takeoff and landing (VTOL) using a gimballed-thrust rocket prototype. 
+	VTOL milestones like NASA's Lunar Landing Research Vehicle (LLRV) which allowed Apollo astronauts to practice lunar landings, McDonnell Douglas’s DC-X (Delta Clipper), and SpaceX's Falcon 9 and Starship landings, the latter to be used in the planned Artemis III mission that aims to land and return astronauts from the moon illustrate the value of propulsive VTOL with TVC. 	
+	About the upright hover equilibrium, vertically flying rockets are open-loop unstable in attitude. They have highly nonlinear, coupled dynamics, and require fast control algorithms that respond quickly to disturbances and sensor noise. Unfortunately, validating control techniques on full-scale rockets is prohibitively costly and high-risk. There is a need for inexpensive test vehicles that allow experimentation with rocket guidance, navigation, and control. 
+	A gimballed-thrust drone with electric motors and propellers is a good choice for replicating rocket dynamics on a much smaller budget. A couple of low-cost designs have been proposed and implemented  \cite{cheapTVC}, \cite{TVCDrone}. The drone design by \cite{TVCDrone} allows experimentation with control algorithms for VTOL and TVC. We have designed a similar drone based on their images and design descriptions, and there remain many details and design choices to explore.
+	
+	Our drone implements TVC and VTOL using a nonlinear model predictive control (NMPC) algorithm, allowing it to handle nonlinear rocket dynamics and manage constraints like gimbal angle range, servo rates, and thrust limits. NMPC optimizes control inputs across a finite time horizon at each time step. In this sense it optimizes a control sequence, allowing it to anticipate future control requirements. Revising the sequence at each time step allows it to respond to disturbances. The main downside of NMPC is its high computational load. NMPC solves a constrained Optimal Control Problem (OCP) that is transcribed into a finite dimensional nonlinear optimization problem (NLP) at every control step, and as a result it is much slower than simple control algorithms like proportional integral derivative (PID) controllers or linear quadratic regulators (LQR).
+	There are a variety of ways to formulate an NMPC problem instance as a nonlinear programming problem. Different formulations may vary in their computation times and solution accuracy. The focus of this paper is experimenting with different choices of NLP formulations and evaluating their speed and accuracy.  Our control algorithm needs to run on a Raspberry Pi 5 at $50$ Hz so solution speed of the NMPC problem is very important.
+	We  compare three approaches: a Runge-Kutta multiple-shooter method, an orthogonal collocation with Gauss-Radau nodes implemented in the {\bf do-mpc}  library \cite{do-mpc},  and a Chebyshev pseudospectral collocation approach. We compare the relative accuracy of these techniques and their relative efficiency.
+	
+	Code for this project is available at https://github.com/izzymones/hop
+	
+	
+	
+	
+\section{Hardware Design}
+height, width and weight
+center of mas relative to propellers.
+
+Our design is inspired by the EPFL TVC research drone \cite{TVCDrone}.
+2-axis gimbal 3D modeled and printed in PLA
+
+1.5 kg total mass
+
+Cheap and modular for easy repairs and testing
+
+Raspberry Pi 5 for NMPC computation
+
+Pixhawk 4 for sensor fusion and actuator command passthrough
+Extended Kalman Filter on the Pixhawk
+
+PM-07 power and PWM distribution board
+Pololu 5V buck converter for RasPi and servo power
+6S battery and Tekko32 ESCs driving BLDCs
+
+Optical Flow Sensor/M9N GPS for indoor/outdoor flight
+Pixhawk onboard IMU, barometer, and magnetometer for navigation
+
+Communication between the controller on the Raspberry Pi and the Pixhawk is through ROS 2 running on Ubuntu
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.3 \textwidth]{figures/dronePic.jpeg}
+	\caption{TVC Drone Prototype}
+	\label{fig:dronePic}
+\end{figure}
+
+
+	\section{Equations of Motion}
+
+The system state $\vec{x}$ includes translational position $\vec{p} = [x, y,  z]$ and velocity $\vec{v} = [v_x, v_y, v_z ]$  in the world frame, the attitude represented as a unit quaternion $\vec{q} = [q_x, q_y,  q_z, q_w]$ and the angular velocity in the body frame $ \vec{\omega} = [\omega_x, \omega_y, \omega_z]$ yeilding the full state vector $\vec{x} = [\vec{p}, \vec{v}, \vec{q},  \vec{\omega} ]$. The control vector  $\vec{u} =[ \theta_1, \theta_2, \pavg, \pdiff ]$ includes the two gimbal angles $\theta_1, \theta_2 $, the average thrust between the two propellers $\pavg$ and the differential thrust between the propellers $\pdiff$ to control the rotation about the body $z$ axis. 
+
+The equations of motion are represented as the standard 6DOF series of first-order vector differential equations:
+\begin{gather}
+	\dot{\vec{p}}  = \vec{v}         \label{eqMotion1}	\\
+	\dot{\vec{v}}  = \frac{1}{m}R(\vec{q})\vec{F_b}+\vec{g}  \label{eqMotion2} \\
+	\dot{\vec{q}} = \frac{1}{2}Q(\vec{\omega})\vec{q}  \label{eqMotion3} \\
+	\dot{\vec{\omega}} = I^{-1}\!\left(\vec{M_b} - \vec{\omega} \times (I\,\vec{\omega})\right) \label{eqMotion4}
+\end{gather}
+where $m$ is the mass of the drone and $\vec{g} = [0, 0, -9.81]^T$ is the acceleration due to gravity. The body to world matrix $R(\vec{q})$  is used to compute the force in world coordinates due to the body-centric thrust vector given the quaternion orientation. Using vector decomposition we can find the thrust vector in body coordinates $\vec{F_b}$ in terms of the gimbal angles $\theta_1$ and $\theta_2$ and magnitude of the thrust $T$ acting on the drone.
+\[
+\vec{F_b} = T
+\begin{bmatrix}
+	\sin{\theta_2}  \\
+	-\sin{\theta_1}\cos{\theta_2}  \\
+	\cos{\theta_1}\cos{\theta_2}
+\end{bmatrix}
+\]
+The quaternion propagation matrix $Q(\vec{\omega})$ computes the change in quaternions given a set of angular velocities.
+The inertia tensor $I$ is computed from a CAD model of the drone.
+The body frame moment vector $\vec{M_b}$ is the sum of the torque due to thrust vector $\vec{F_b}$ acting through the moment arm $ \vec{l} = [0, 0, -l]^T$ and the torque generated about the body $z$ axis by the differential thrust $ \vec{M_z} = [0,0, M_z]^T$. 
+\[
+\vec{M_b} = \vec{l} \times \vec{F_b} + \vec{M_z}=       
+\begin{bmatrix}
+	-lT\sin{\theta_1}\cos{\theta_2}  \\
+	-lT\sin{\theta_2}  \\
+	M_z
+\end{bmatrix}
+\]
+The value $l$ is the length of the moment arm acting from the center of mass to the point $\vec{F_b}$ acts on the drone in body coordinates. 
+
+Note that these equations use the variable $T$ representing the magnitude of the thrust vector acting on the drone. 
+The actual control variables are defined as the average $\pavg=\frac{T_1+T_2}{2}$ and difference $\pdiff - T_1-T_2$ between the two stacked propeller thrust values $T_1$ and $T_2$.
+To map the average thrust command signal value to the actual thrust force value in Newtons, a second-order polynomial fit is experimentally determined
+\[
+T = a\Big(\pavg  \frac{v}{25}\Big)^2+b\Big(\pavg \frac{v}{25}\Big)+c
+\]
+where $v$ is the current voltage of the 25V battery. Similarly, a linear relationship is used to map the differential thrust to the moment about the body frame $z$ axis.
+\[
+M_z = d I_{zz} \pdiff
+\]
+
+
+
+
+
+	\section{Nonlinear Model Predictive Control (NMPC)}
+Model predictive control (\mpc)  \cite{mpc} is a control algorithm that solves an optimization problem at each time step. It returns a series of control inputs over a finite time horizon, creating a {\em plan} of actions that can anticipate and adjust to future issues. The control values for the first step of the plan is applied to the system and then the plan is revised at the next time step, allowing the system to respond to disturbances and noise. The {\mpc} framework also allows us to enforce the mechanical limitations of our thrust motors and gimbal servos. Nonlinear model predictive control (\nmpc) is a variant of {\mpc} that can handle nonlinear dynamics.   Working directly with the nonlinear equations allows more accurate predictions of the drone behavior.  Libraries like {\casadi} \cite{casadi} and {\dompc} \cite{do-mpc} make {\nmpc} easy to implement in practice.
+
+An {\nmpc} instance for the thrust vector drone is a minimization problem of the form
+\begin{align}
+	\min_{u(t)} \; &  \int_{0}^{t_f} \ell(x(t),u(t))\,dt  \;+\; \phi(x_f) \nonumber \\
+	\text{s.t.} \;\; 	&  \dot{x} =  f(x(t),u(t))  \nonumber \\ 
+	& x(0) = x_0 \nonumber \\
+	&	-\theta_{max} \leq \theta_1 \leq \theta_{max} \nonumber \\
+	& 	-\theta_{max} \leq \theta_2 \leq \theta_{max} \nonumber \\
+	& 	T_{min}  \leq \pavg + \pdiff/2 \leq T_{max} \nonumber  \\
+	&    T_{min} \leq  \pavg - \pdiff/2 \leq T_{max} \nonumber \\
+	%	&       T_{diff_{min}} \leq \pdiff \leq T_{diff_{max}} \label{nmpc:thrust3} \\
+	& 	-\dot{\theta}_{max} \leq \dot{\theta}_1 \leq \dot{\theta}_{max} \nonumber \\
+	&  	-\dot{\theta}_{max} \leq \dot{\theta}_2 \leq \dot{\theta}_{max} \nonumber \\ 
+	&        0 \leq z.\nonumber
+\end{align}
+The problem instance enforces minimum and maximum gimbal angles of $\pm 20^{\circ}$ for the outer gimbal and $\pm 13.5^{\circ}$ for the inner gimbal, minimum and maximum for thrust ranges, rate constraints for the servos and restrictons on the drone's vertical height.
+
+The cost function  minimizes both the squared error between the current state $x(t)$ and the goal state $x_{r}$ weighted by diagonal matrix $Q$ and the error between the current control $u(t)$ and the goal control $u_{r}$ weighted by diagonal matrix $R$. 
+\begin{equation*}
+	\ell(x(t),u(t))= (x(t)-x_{r})^T Q (x(t)-x_{r}) + (u(t)-u_{r})^T R (u(t)-u_{r}) 
+\end{equation*}
+The terminal cost  
+\begin{equation*}
+	\phi(x_f) = (x(t_f)-x_{r})^T Q_f (x(t_f)-x_{r})
+\end{equation*}
+that prioritizes having the final state in the horizon close  to the goal state.
+
+\section{Trajectory Metrics}
+	When evaluating control trajectories, efficiency must be balanced with trajectory qualities such as smoothness and the time needed to reach the goal state.  When evaluating trajectories we considered the average and worst case CPU time, the number of NLP solver failures, and measures of trajectory smoothness and settling time. 
+	
+	For a trajectory with $N$ time steps, we define the smoothness $S$ as the sum of the squared error between the state $\vec{x}$ at time steps $k$ and $k+1$.
+\[
+S
+=
+\sum_{k=1}^{N-1}
+\left\|
+\vec{x}_{k+1} - \vec{x}_k
+\right\|^2
+\]
+	Settling time is defined as the first time the system state enters and remains within a specified tolerance region around the goal state.
+\[
+t_s
+=
+\min \left\{
+t_k :
+\|\vec{e}_j\| < \epsilon,
+\ \forall j \ge k
+\right\}
+\]
+
+\section{NLP Formulations}
+
+	To solve the continuous time optimal {\nmpc} instance, it is formulated as a discrete time finite dimensional nonlinear problem (NLP) and solved by a standard NLP solver.  
+	Since the system was intended as  a real-world TVC drone prototype, a major design consideration was implementation simplicity. Multiple shooting and orthogonal collocation methods met this criteria, multiple shooting because it easy to understand, and orthogonal collocation because it is available through  the {\dompc} python toolbox \cite{do-mpc}. Chebyshev pseudospectral collocation is more challenging to implement, but it has been used successfully before for a TVC drone \cite{TVCDrone} and we could be confident it would meet the computational requirements. For each method we ran tuning experiments to select the optimal parameters for the method. All tuning experiments were run on the Raspberry Pi 5 with a 2.4 GHz CPU and 8GB RAM running Ubuntu. To solve our non-linear programming (NLP) problems we used the \texttt{ipopt} solver \cite{ipopt} that comes installed with CasADi 3.7.1 \cite{casadi}.   This solver requires an additional subroutine to  solve sparse matrix systems. After some experimentation we chose to use \texttt{ma27}  solver  from HSL (Harwell Subroutine Library) \cite{hsl}. 	We implemented warm starts for all of our methods by seeding the initial guess for the NLP with the state and control values from the previous time step. All methods used a one second prediction horizon.
+	
+	In multiple shooting \cite{multipleShootingCanon, multipleShootingpractical} , we divide our prediction horizon into $N$ evenly spaced nodes $\{ t_0, t_1, \ldots, t_N \}$ of length $\Delta t$ and we make copies of our state $x_k$ and control $u_k$ variables for each time step.  The initial state is initialized to the current state. 	Using the system dynamics $\dot{x} =  f(x(t),u(t))$ and Runge-Kutta within each time step $[t_k, t_{k+1}]$ we forward integrate our differential equations to create constraints that enforce the change of state between time steps. 
+	We built our multiple shooting formulation in Python with CasADi 3.7.1 \cite{casadi}.  Tuning experiments across a range of test cases showed that $N=4$ time intervals across the 1 second prediction horizon provided the best smoothing and settling scores while still meeting timing criteria.
+	
+	orthogonal collocation with Gauss-Radau
+	nodes
+	
+	 Orthogonal collocation on finite elements as implemented in {\dompc}, allows rapid development and testing of embedded NMPC controllers with minimal implementation overhead. 
+	 The prediction horizon is divided into $N$ time intervals of equal duration called finite elements. 
+	 Within each finite element, the differential equations $\dot{x} =  f(x(t),u(t))$ are approximated with a polynomial of order $K+1$ with an interpolation constructed from $K$ points within the interval.
+	 Continuity constraints are imposed at the boundaries of adjacent finite elements to ensure continuity of the state trajectory. Implementation details for {\dompc}'s orthogonal collocation method can be found in the work of Beigler and Lovenz  \cite{dompc-oc}.  Tuning experiments across a range of test cases showed that $N=4$ time intervals across the 1 second prediction horizon with $K=2$ provided the best smoothing and settling scores while still meeting timing criteria.
+
+	
+	 Chebyshev pseudospectral methods approximate the state and control trajectories using global high-order polynomials over the prediction horizon. Dynamics are enforced at Chebyshev collocation points, which are distributed nonuniformly to reduce interpolation error that can occur near interval endpoints. This allows it to accurately enforce the system equations with fewer collocation points. Our implementation is based on the work of Faroo et. al. \cite{chebyshevPS}. We used CasADi 3.7.1 \cite{casadi}  Chebyshev pseudospectral collocation \cite{chebyshevPS}  formulation. The solution of the NLP for this method often failed to converge within the alloted number of iterations. Increasing the number of collocation points didn't lead to noticably better performance. The addition of rate constraints made this problem worse so we leave rate constraints out in our comparison with the other methods. After running multiple test cases we found that $6$ collocation points were required to produce adequate smoothness and settling times within the required time limits.
+	
+
+	
+
+	
+\section{Results}
+
+	test cases, metrics, trajectories, CPU graphs, 
+	
+	
+	
+	To compare the performance of our three methods we looked at the following metrics:
+	average CPU time, worst case CPU time, number NLP failures, the time required for convergence to the goal state, and the smoothness of the state and control trajectories.
+	
+	In all test cases, the goal is to return to the position $\vec{p} = [0, 0,  0]$ with a vertical orientation and no translational or angular velocity.
+	Three test cases: hover simulation with initial state equal to goal state, a small perturbation with initial position of $[1, 0, 1]$. 
+	
+	We throw out the initial NLP solution because the initial guess for the warm starts causes poor convergence.
+	Talk about the simulation time step versus the control loop time step.
+
+
+
+NLP failures were minimal for all implementations.
+All state trajectories were smooth and converged promptly to the goal state.
+Although the average CPU time was quite fast, the Chebyshev pseudospectral collocation method regularly exceeded the $0.02$ second time limit needed to run at 50Hz. It seemed to struggle to find solutions quickly when the drone was near the goal state.  While this method did produce smooth state trajectories, the control trajectories scored poorly on smoothness.
+
+The multiple shooting methods was the fastest overall. It's worst case timing was $0.61$ seconds, but that was the only instance it exceeded the $0.02$ second time limit. 
+
+The {\dompc} orthogonal collocation method scored well overall. 
+
+ %-------------------------------------- HOVER EXAMPLE ------------------------------------------
+ 
+ \begin{figure}[H]
+ 	\centering
+ 	 \begin{subfigure}[b]{0.3\textwidth}
+ 		\centering
+ 		\includegraphics[width=\textwidth]{figures/statehover-oc1.pdf}
+ 		\caption{orthogonal collocation}
+ 	\end{subfigure}%
+ 	 \begin{subfigure}[b]{0.3\textwidth}
+ 		\centering
+ 		\includegraphics[width=\textwidth]{figures/statehover-cps2.pdf}
+ 		\caption{Chebyshev pseudospectral}
+ 	\end{subfigure}
+ 	\begin{subfigure}[b]{0.3\textwidth}
+ 		\centering
+ 		\includegraphics[width=\textwidth]{figures/statehover-ms3.pdf}
+ 		\caption{multiple shooter}
+ 	\end{subfigure}
+ 	\caption{State data on a hover simulation with initial state equal to goal state.}
+ 	\label{fig:statehover}
+ \end{figure}
+ 
+ \begin{figure}[H]
+ 	\centering
+ 	\begin{subfigure}[b]{0.3\textwidth}
+ 		\centering
+ 		\includegraphics[width=\textwidth]{figures/controlhover-oc4.pdf}
+ 		\caption{orthogonal collocation}
+ 	\end{subfigure}%
+ 	\begin{subfigure}[b]{0.3\textwidth}
+ 		\centering
+ 		\includegraphics[width=\textwidth]{figures/controlhover-cps5.pdf}
+ 		\caption{Chebyshev pseudospectral}
+ 	\end{subfigure}
+ 	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{figures/controlhover-ms6.pdf}
+		\caption{multiple shooter}
+	\end{subfigure}
+ 	\caption{Control data on a hover simulation with initial state equal to goal state.}
+ 	\label{fig:controlhover}
+ \end{figure}
+ 
+
+ 
+ \begin{table}[h!]	
+ 	\begin{center}
+ 		\begin{tabular}{ | l | c | c | c | } 
+ 			\hline
+ 			          & OC & CPS & MS  \\
+ 			\hline
+ 			average CPU (sec) &            0.012        &        0.013        &         0.01  \\ 
+ 			worst case CPU (sec)  &   0.021     &           0.025       &         0.061   \\  
+ 			NLP failures &      0          &          0        &            1  \\
+ 			settle time   (sec) &       2.64       &          2.16      &           2.48  \\ 
+ 			state smoothness &       0.004     &           0.003        &        0.002  \\
+ 			control smoothness &      0.082      &          0.447       &         0.037  \\
+ 			\hline
+ 		\end{tabular}
+ 		\caption{Comparison of NLP encodings for a hover simulation. Methods include  multiple shooter (MS), orthogonal collocation (OC), and Chebyshev pseudospectral method (CPS). }
+ 		\label{table:CPU}
+ 	\end{center}
+ \end{table}
+
+ 
+ %-------------------------------------- SMALL PERTURBATION  ------------------------------------------
+
+ \begin{figure}[H]
+	\centering
+
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{figures/statemed_perturb-oc1.pdf}
+		\caption{orthogonal collocation}
+	\end{subfigure}%
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{figures/statemed_perturb-cps2.pdf}
+		\caption{Chebyshev pseudospectral}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{figures/statemed_perturb-ms3.pdf}
+		\caption{multiple shooter}
+	\end{subfigure}
+	\caption{State data on a simulation with initial position of $[1, 0, 1]$.}
+	\label{fig:statehover}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{figures/controlmed_perturb-oc4.pdf}
+		\caption{orthogonal collocation}
+	\end{subfigure}%
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{figures/controlmed_perturb-cps5.pdf}
+		\caption{Chebyshev pseudospectral}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{figures/controlmed_perturb-ms6.pdf}
+		\caption{multiple shooter}
+	\end{subfigure}
+	\caption{Control data on a hover simulation with initial position of $[1, 0, 1]$.}
+	\label{fig:controlhover}
+\end{figure}
+
+
+
+\begin{table}[h!]	
+	\begin{center}
+		\begin{tabular}{ | l | c | c | c | } 
+			\hline
+			          & OC & CPS & MS  \\
+			\hline
+			average CPU (sec) &            0.01       &         0.009        &        0.009  \\ 
+			worst case CPU (sec)  &  0.018        &        0.022        &        0.014   \\  
+			NLP failures &     0          &          0          &          0  \\
+			settle time   (sec) &      3.9       &          3.14      &           3.44  \\ 
+			state smoothness &      0.221       &         0.227           &     0.115 \\
+			control smoothness &    10.003      &         73.615      &          1.779   \\
+			\hline
+		\end{tabular}
+		\caption{Comparison of NLP encodings for a simulation  with initial position of $[1, 0, 1]$. Methods include  multiple shooter (MS), orthogonal collocation (OC), and Chebyshev pseudospectral method (CPS). }
+		\label{table:CPU}
+	\end{center}
+\end{table}
+
+ %-------------------------------------- LARGE PERTURBATION  ------------------------------------------
+
+
+ \begin{figure}[H]
+	\centering
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{figures/statebig_perturb-oc1.pdf}
+		\caption{orthogonal collocation}
+	\end{subfigure}%
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{figures/statebig_perturb-cps2.pdf}
+		\caption{Chebyshev pseudospectral}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{figures/statebig_perturb-ms3.pdf}
+		\caption{multiple shooter}
+	\end{subfigure}
+	\caption{State data on a simulation with a large starting perturbation.}
+	\label{fig:statehover}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{figures/controlbig_perturb-oc4.pdf}
+		\caption{orthogonal collocation}
+	\end{subfigure}%
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{figures/controlbig_perturb-cps5.pdf}
+		\caption{Chebyshev pseudospectral}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{figures/controlbig_perturb-ms6.pdf}
+		\caption{multiple shooter}
+	\end{subfigure}
+
+	\caption{Control data on a simulation with a large starting perturbation.}
+	\label{fig:controlhover}
+\end{figure}
+
+
+
+
+\begin{table}[h!]	
+	\begin{center}
+		\begin{tabular}{ | l | c | c | c | } 
+			\hline
+			          & OC & CPS & MS  \\
+			\hline
+			average CPU (sec) &            0.01        &        0.009       &         0.009   \\ 
+			worst case CPU (sec)  &   0.023      &          0.021        &        0.014 \\  
+			NLP failures &     0        &            0       &             0 \\
+			settle time   (sec) &       4.64         &         3.3        &         5.04  \\ 
+			state smoothness &      0.944        &         0.85       &         0.756  \\
+			control smoothness &     38.116      &        199.505       &         5.381   \\
+			\hline
+		\end{tabular}
+		\caption{Comparison of NLP encodings for a simulation with a large starting perturbation. Methods include  multiple shooter (MS), orthogonal collocation (OC), and Chebyshev pseudospectral method (CPS). }
+		\label{table:CPU}
+	\end{center}
+\end{table}
+
+ \begin{figure}[H]
+	\centering
+	\begin{subfigure}[b]{0.5\textwidth}
+		\centering
+	 	\includegraphics[width=\textwidth]{figures/timehover.pdf}
+	\caption{Hover simulation.}
+	\end{subfigure}%
+	\begin{subfigure}[b]{0.5\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{figures/timemed_perturb.pdf}
+	\caption{Initial position of $[1, 0, 1]$.}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.5\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{figures/timebig_perturb.pdf}
+		\caption{Large initial perturbation.}
+	\end{subfigure}
+	\caption{Timing for test cases.}
+	\label{fig:timingplots}
+\end{figure}
+
+
+\section{Hardware Validation}
+Hardware validation is already functioning with ongoing refinement of timing/performance characterization.
+We have preliminary hardware validation
+initial flight experiments
+ongoing timing refinement
+additional flight characterization in progress
+
+\section{Conclusions}
+
+
+\bibliography{references.bib}
+\end{document}
+
