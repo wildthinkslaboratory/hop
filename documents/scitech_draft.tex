@@ -76,36 +76,40 @@
 \maketitle
 	
 \begin{abstract}
-	We developed a nonlinear model predictive control (NMPC) framework for a thrust-vectoring drone equipped with a 
-	two-axis gimbal and dual counter-rotating brushless motors. The controller was designed to operate in real time at 
-	50 Hz on a Raspberry Pi 5, imposing strict computational constraints on the embedded nonlinear programming problem (NLP).
+ 
+We developed a nonlinear model predictive control (NMPC) framework for a thrust vector control (TVC) drone. The drone has a two-axis gimbal and two stacked counter-rotating brushless motors for thrust.
+It’s control loop runs at 50Hz on the Raspberry Pi 5 so computational efficiency is important.
+The primary computation task of an NMPC solver is the solution of the embedded nonlinear programming problem (NLP). 
+To meet our time requirement, we experimented with three formulations for the NLP,  a standard multiple shooting version, a Chebyshev pseudospectral collocation method and an orthogonal collocation method.  
+The methods are compared on three simulation test cases with varying initial conditions and difficulty. Performance metrics included average CPU time, maximum CPU time, the number of NLP solver failures, settling time, and trajectory smoothness.
+All methods had average solution times that were below the required $0.02s$ time threshold and would likely provide viable solutions for NMPC on the drone. 
+Orthogonal collocation demonstrated the most reliable performance, meeting the timing constraints for all NLP solver calls while producing smooth convergent trajectories without NLP solver failures. Initial hardware experiments using orthogonal collocation showed successful closed-loop hover stabilization on the physical drone.
 
-	To satisfy these real-time requirements, we investigated three NLP formulations for the NMPC solver: multiple shooting, 
-	Chebyshev pseudospectral collocation, and {\dompc}'s orthogonal collocation. The methods were evaluated in closed-loop simulation 
-	in terms of computational efficiency, convergence reliability, and control smoothness.
-
-	With appropriate tuning, all three formulations achieved stable real-time operation and generated trajectories that 
-	converged rapidly to the target state. However, no single formulation consistently outperformed the others across all 
-	evaluation metrics. Instead, each method exhibited distinct tradeoffs between computational efficiency, convergence 
-	reliability, and control behavior. Flight experiments using the orthogonal collocation formulation demonstrated stable 
-	real-time control on a physical thrust-vectoring drone platform. These results highlight practical considerations in 
-	selecting NMPC formulations for resource-constrained embedded flight systems.
 
 \end{abstract}
 \section{Introduction}	
-	This paper is inspired by the small-scale rocket prototype presented by \cite{TVCDrone} which aims to study thrust vector control (TVC) and vertical takeoff and landing (VTOL) using a gimballed-thrust rocket prototype. 
+	
+	This paper is inspired by Linsen et. al. \cite{TVCDrone} gimballed-thrust drone prototype which aims to study thrust vector control (TVC) and vertical takeoff and landing (VTOL). 
 	VTOL milestones like NASA's Lunar Landing Research Vehicle (LLRV) which allowed Apollo astronauts to practice lunar landings, McDonnell Douglas’s DC-X (Delta Clipper), and SpaceX's Falcon 9 and Starship landings, the latter to be used in the planned Artemis III mission that aims to land and return astronauts from the moon illustrate the value of propulsive VTOL with TVC. 	
+
 	About the upright hover equilibrium, vertically flying rockets are open-loop unstable in attitude. They have highly nonlinear, coupled dynamics, and require fast control algorithms that respond quickly to disturbances and sensor noise. Unfortunately, validating control techniques on full-scale rockets is prohibitively costly and high-risk. There is a need for inexpensive test vehicles that allow experimentation with rocket guidance, navigation, and control. 
-	A gimballed-thrust drone with electric motors and propellers is a good choice for replicating rocket dynamics on a much smaller budget. A couple of low-cost designs have been proposed and implemented  \cite{cheapTVC}, \cite{TVCDrone}. The drone design by \cite{TVCDrone} allows experimentation with control algorithms for VTOL and TVC. We have designed a similar drone based on their images and design descriptions, and there remain many details and design choices to explore.
-	
+
+	A gimballed-thrust drone with electric motors and propellers is a good choice for replicating rocket dynamics on a much smaller budget. A couple of low-cost designs have been proposed and implemented  \citep{cheapTVC}, \citep{TVCDrone}. The drone design by \cite{TVCDrone} allows experimentation with control algorithms for VTOL and TVC. We have designed a similar drone based on their images and design descriptions, and there remain many details and design choices to explore.
+
+
+
 	Our drone implements TVC and VTOL using a nonlinear model predictive control (NMPC) algorithm, allowing it to handle nonlinear rocket dynamics and manage constraints like gimbal angle range, servo rates, and thrust limits. NMPC optimizes control inputs across a finite time horizon at each time step. In this sense it optimizes a control sequence, allowing it to anticipate future control requirements. Revising the sequence at each time step allows it to respond to disturbances. The main downside of NMPC is its high computational load. NMPC solves a constrained Optimal Control Problem (OCP) that is transcribed into a finite dimensional nonlinear optimization problem (NLP) at every control step, and as a result it is much slower than simple control algorithms like proportional integral derivative (PID) controllers or linear quadratic regulators (LQR).
-	There are a variety of ways to formulate an NMPC problem instance as a nonlinear programming problem. Different formulations may vary in their computation times and solution accuracy. The focus of this paper is experimenting with different choices of NLP formulations and evaluating their speed and accuracy.  Our control algorithm needs to run on a Raspberry Pi 5 at $50$ Hz so solution speed of the NMPC problem is very important.
-	We  compare three approaches: a Runge-Kutta multiple-shooter method, an orthogonal collocation with Gauss-Radau nodes implemented in the {\bf do-mpc}  library \cite{do-mpc},  and a Chebyshev pseudospectral collocation approach. We compare the relative accuracy of these techniques and their relative efficiency.
-	
-	Code for this project is available at https://github.com/izzymones/hop
-	
-	
-	
+
+
+
+	There are a variety of ways to formulate an NMPC problem instance as an NLP. Different formulations  vary in their computation times and solution accuracy, particularly on embedded hardware platforms with limited computational resources.
+	In this paper we focus on evaluating different NLP formulations. We  compare three approaches: a Runge-Kutta multiple-shooter method, an orthogonal collocation  implemented in the {\bf do-mpc}  library \citep{do-mpc},  and a Chebyshev pseudospectral collocation approach. 
+	Simulations are run on a the drone's Raspberry Pi 5 at $50$ Hz so solution speed will be very important.
+	Methods are compared on the basis of computational performance, numerical reliability, and trajectory quality in a set of simulated flight scenarios.  
+
+
+
+	Code for this project is available at GitHub repository https://github.com/izzymones/hop
 	
 \section{Hardware Design}
 height, width and weight
@@ -130,7 +134,8 @@ Pololu 5V buck converter for RasPi and servo power
 Optical Flow Sensor/M9N GPS for indoor/outdoor flight
 Pixhawk onboard IMU, barometer, and magnetometer for navigation
 
-Communication between the controller on the Raspberry Pi and the Pixhawk is through ROS 2 running on Ubuntu
+Communication between the controller on the Raspberry Pi and the Pixhawk is through ROS 2 running on Ubuntu 24.04 LTS.
+
 
 \begin{figure}
 	\centering
@@ -217,10 +222,41 @@ The terminal cost
 \end{equation*}
 that prioritizes having the final state in the horizon close  to the goal state.
 
-\section{Trajectory Metrics}
-	When evaluating control trajectories, efficiency must be balanced with trajectory qualities such as smoothness and the time needed to reach the goal state.  When evaluating trajectories we considered the average and worst case CPU time, the number of NLP solver failures, and measures of trajectory smoothness and settling time. 
+
+
+\section{NLP Formulations}
+
+	To solve the continuous time optimal {\nmpc} instance, it is formulated as a discrete time finite dimensional nonlinear problem (NLP) and solved by a standard NLP solver.  
+	Since the system was intended as  a real-world TVC drone prototype, a major design consideration was implementation simplicity. Multiple shooting and orthogonal collocation methods met this criteria, multiple shooting because it easy to understand, and orthogonal collocation because it is available through  the {\dompc} python toolbox \cite{do-mpc}. Chebyshev pseudospectral collocation is more challenging to implement, but it has been used successfully before for a TVC drone \cite{TVCDrone} and we could be confident it would meet the computational requirements. For each method we ran tuning experiments to select the optimal parameters for the method. All tuning experiments were run on the Raspberry Pi 5 with a 2.4 GHz CPU and 8GB RAM running Ubuntu 24.04 LTS. To solve our non-linear programming (NLP) problems we used the \texttt{ipopt} solver \cite{ipopt} that comes installed with CasADi 3.7.1 \cite{casadi}.   This solver requires an additional subroutine to  solve sparse matrix systems. After some experimentation we chose to use \texttt{ma27}  solver  from HSL (Harwell Subroutine Library) \cite{hsl}. 	We implemented warm starts for all of our methods by seeding the initial guess for the NLP with the state and control values from the previous time step. All methods used a one second prediction horizon.
 	
-	For a trajectory with $N$ time steps, we define the smoothness $S$ as the sum of the squared error between the state $\vec{x}$ at time steps $k$ and $k+1$.
+	In multiple shooting \cite{multipleShootingCanon, multipleShootingpractical} , we divide our prediction horizon into $N$ evenly spaced nodes $\{ t_0, t_1, \ldots, t_N \}$ of length $\Delta t$ and we make copies of our state $x_k$ and control $u_k$ variables for each time step.  The initial state is initialized to the current state. 	Using the system dynamics $\dot{x} =  f(x(t),u(t))$ and Runge-Kutta within each time step $[t_k, t_{k+1}]$ we forward integrate our differential equations to create constraints that enforce the change of state between time steps. 
+	We built our multiple shooting formulation in Python with CasADi 3.7.1 \cite{casadi}.  Tuning experiments across a range of test cases showed that $N=4$ time intervals across the 1 second prediction horizon provided the best smoothing and settling scores while still meeting timing criteria.
+	
+	orthogonal collocation with Gauss-Radau
+	nodes
+	
+	 Orthogonal collocation on finite elements as implemented in {\dompc}, allows rapid development and testing of embedded NMPC controllers with minimal implementation overhead. 
+	The prediction horizon is divided into $N$ time intervals of equal duration called finite elements. 
+	Within each finite element, the differential equations $\dot{x} =  f(x(t),u(t))$ are approximated with a polynomial of order $K+1$ and interpolated over $K$ points within the interval.
+	Continuity constraints are added at the boundaries of adjacent finite elements to ensure continuity of the state trajectory. Implementation details for {\dompc}'s orthogonal collocation method can be found in the work of Beigler and Lovenz  \cite{dompc-oc}.  Tuning experiments across a range of test cases showed that $N=4$ time intervals across the 1 second prediction horizon with $K=2$ provided the best smoothing and settling scores while still meeting timing criteria.
+
+	Chebyshev pseudospectral methods approximate the state and control trajectories using global high-order polynomials over the prediction horizon. Dynamics are enforced at Chebyshev collocation points, which are distributed non-uniformly to reduce interpolation error that can occur near interval endpoints. This allows it to accurately enforce the system equations with fewer collocation points. Our implementation is based on the work of Faroo et. al. \cite{chebyshevPS}. We used CasADi 3.7.1 \cite{casadi}  Chebyshev pseudospectral collocation \cite{chebyshevPS}  formulation. The solution of the NLP for this method often failed to converge within the alloted number of iterations. Increasing the number of collocation points didn't lead to noticably better performance. The addition of rate constraints made this problem worse so we leave rate constraints out in our comparison with the other methods. After running multiple test cases we found that $6$ collocation points were required to produce adequate smoothness and settling times within the required time limits.
+	
+
+	
+
+	
+\section{Results}
+
+
+	To compare the performance of the three NLP formulations, we ran simulations on three test cases with different levels of perturbation from the goal state.
+	All test cases used a goal state with the position $\vec{p} = [0, 0,  0]$, a vertical orientation and no translational or angular velocity.
+	The first case begins in the goal state and must simply hover to maintain the goal state. The second test state begins at  position of $\vec{p} = [1, 1, 0]$ and must move to the goal state. The third begins at position $\vec{p} = [1, 0.5, 1]$, has a $15^{\circ}$ tilt and some velocity in both the $x$ and $y$ directions.
+
+	For each simulation, the following metrics were evaluated: average CPU time, worst-case CPU time, number of NLP solver failures, settling time, and smoothness of the resulting state and control trajectories.
+	NLP failures are defined as any solver termination that did not return the \texttt{ipopt} status \texttt{SolverSucceeded}. This happens when the solver exceeds the maximum iteration count, fails to converge, or is given an infeasible problem.
+	When evaluating NMPC performance, computational efficiency needs to be balanced against trajectory quality. In particular, trajectories should converge promptly to the goal state while maintaining smooth state and control trajectories. Accordingly, the evaluation considered both timing metrics and trajectory quality metrics. 
+	For a trajectory with $N$ time steps, the smoothness metric $S$ was defined as
 \[
 S
 =
@@ -229,7 +265,8 @@ S
 \vec{x}_{k+1} - \vec{x}_k
 \right\|^2
 \]
-	Settling time is defined as the first time the system state enters and remains within a specified tolerance region around the goal state.
+	with lower values of $S$ corresponding to smoother trajectories.
+	Settling time was defined as the first time the system state enters and remains within a specified tolerance region around the goal state:
 \[
 t_s
 =
@@ -239,54 +276,77 @@ t_k :
 \ \forall j \ge k
 \right\}
 \]
+	All simulations were executed on a Raspberry Pi 5 with a 2.4 GHz CPU and 8 GB RAM running Ubuntu 24.04 LTS. The control loop operated at 50 Hz, corresponding to a real-time control interval of $0.02$s. The equations of motion were forward propagated using a fourth-order Runge--Kutta integrator at 200 Hz.
 
-\section{NLP Formulations}
-
-	To solve the continuous time optimal {\nmpc} instance, it is formulated as a discrete time finite dimensional nonlinear problem (NLP) and solved by a standard NLP solver.  
-	Since the system was intended as  a real-world TVC drone prototype, a major design consideration was implementation simplicity. Multiple shooting and orthogonal collocation methods met this criteria, multiple shooting because it easy to understand, and orthogonal collocation because it is available through  the {\dompc} python toolbox \cite{do-mpc}. Chebyshev pseudospectral collocation is more challenging to implement, but it has been used successfully before for a TVC drone \cite{TVCDrone} and we could be confident it would meet the computational requirements. For each method we ran tuning experiments to select the optimal parameters for the method. All tuning experiments were run on the Raspberry Pi 5 with a 2.4 GHz CPU and 8GB RAM running Ubuntu. To solve our non-linear programming (NLP) problems we used the \texttt{ipopt} solver \cite{ipopt} that comes installed with CasADi 3.7.1 \cite{casadi}.   This solver requires an additional subroutine to  solve sparse matrix systems. After some experimentation we chose to use \texttt{ma27}  solver  from HSL (Harwell Subroutine Library) \cite{hsl}. 	We implemented warm starts for all of our methods by seeding the initial guess for the NLP with the state and control values from the previous time step. All methods used a one second prediction horizon.
-	
-	In multiple shooting \cite{multipleShootingCanon, multipleShootingpractical} , we divide our prediction horizon into $N$ evenly spaced nodes $\{ t_0, t_1, \ldots, t_N \}$ of length $\Delta t$ and we make copies of our state $x_k$ and control $u_k$ variables for each time step.  The initial state is initialized to the current state. 	Using the system dynamics $\dot{x} =  f(x(t),u(t))$ and Runge-Kutta within each time step $[t_k, t_{k+1}]$ we forward integrate our differential equations to create constraints that enforce the change of state between time steps. 
-	We built our multiple shooting formulation in Python with CasADi 3.7.1 \cite{casadi}.  Tuning experiments across a range of test cases showed that $N=4$ time intervals across the 1 second prediction horizon provided the best smoothing and settling scores while still meeting timing criteria.
-	
-	orthogonal collocation with Gauss-Radau
-	nodes
-	
-	 Orthogonal collocation on finite elements as implemented in {\dompc}, allows rapid development and testing of embedded NMPC controllers with minimal implementation overhead. 
-	 The prediction horizon is divided into $N$ time intervals of equal duration called finite elements. 
-	 Within each finite element, the differential equations $\dot{x} =  f(x(t),u(t))$ are approximated with a polynomial of order $K+1$ with an interpolation constructed from $K$ points within the interval.
-	 Continuity constraints are imposed at the boundaries of adjacent finite elements to ensure continuity of the state trajectory. Implementation details for {\dompc}'s orthogonal collocation method can be found in the work of Beigler and Lovenz  \cite{dompc-oc}.  Tuning experiments across a range of test cases showed that $N=4$ time intervals across the 1 second prediction horizon with $K=2$ provided the best smoothing and settling scores while still meeting timing criteria.
-
-	
-	 Chebyshev pseudospectral methods approximate the state and control trajectories using global high-order polynomials over the prediction horizon. Dynamics are enforced at Chebyshev collocation points, which are distributed nonuniformly to reduce interpolation error that can occur near interval endpoints. This allows it to accurately enforce the system equations with fewer collocation points. Our implementation is based on the work of Faroo et. al. \cite{chebyshevPS}. We used CasADi 3.7.1 \cite{casadi}  Chebyshev pseudospectral collocation \cite{chebyshevPS}  formulation. The solution of the NLP for this method often failed to converge within the alloted number of iterations. Increasing the number of collocation points didn't lead to noticably better performance. The addition of rate constraints made this problem worse so we leave rate constraints out in our comparison with the other methods. After running multiple test cases we found that $6$ collocation points were required to produce adequate smoothness and settling times within the required time limits.
-	
-
-	
-
-	
-\section{Results}
-
-	test cases, metrics, trajectories, CPU graphs, 
-	
-	
-	
-	To compare the performance of our three methods we looked at the following metrics:
-	average CPU time, worst case CPU time, number NLP failures, the time required for convergence to the goal state, and the smoothness of the state and control trajectories.
-	
-	In all test cases, the goal is to return to the position $\vec{p} = [0, 0,  0]$ with a vertical orientation and no translational or angular velocity.
-	Three test cases: hover simulation with initial state equal to goal state, a small perturbation with initial position of $[1, 0, 1]$. 
-	
-	We throw out the initial NLP solution because the initial guess for the warm starts causes poor convergence.
-	Talk about the simulation time step versus the control loop time step.
+	Tables (\ref{table1}), (\ref{table2}), and (\ref{table3}) summarize the performance metrics for all three test cases. NLP solver failures occurred only in the multiple shooting formulation and were infrequent.
+	All three methods achieved similar average CPU times, and the average solve time remained below the $0.02$s real-time threshold in all test cases. However, the worst-case solve times for both multiple shooting and Chebyshev pseudospectral collocation exceeded the real-time limit in some cases. The timing plots in Figure (\ref{fig:timingplots}) show that Chebyshev pseudospectral collocation exceeded the threshold frequently, whereas multiple shooting exceeded the threshold only twice. Orthogonal collocation was the only formulation that remained within the time constraint for every NMPC solve.
+	Settling times were similar across all methods and test cases, as shown in Tables (\ref{table1}), (\ref{table2}), and (\ref{table3}) and in the state trajectories of Figures (\ref{fig:state1}), (\ref{fig:state2}), and (\ref{fig:state3}). State trajectory smoothness metrics were also low across all methods, indicating smooth convergence behavior.
+	The Chebyshev pseudospectral collocation method produced higher control trajectory smoothness scores overall, particularly in test cases two and three, indicating less smooth control inputs than the other formulations.
 
 
+	While all three NLP formulations appear feasible for implementation on the proposed drone platform, orthogonal collocation was selected for the final controller implementation. Compared with the other formulations, orthogonal collocation provided the most consistent real-time performance, with worst-case solve times remaining below the $0.02$s control interval for all test cases. In addition, it exhibited no NLP solver failures and produced smooth state and control trajectories with rapid convergence to the goal state. These characteristics make orthogonal collocation the most reliable formulation for real-time deployment on the Raspberry Pi 5 based flight controller.
+		
 
-NLP failures were minimal for all implementations.
-All state trajectories were smooth and converged promptly to the goal state.
-Although the average CPU time was quite fast, the Chebyshev pseudospectral collocation method regularly exceeded the $0.02$ second time limit needed to run at 50Hz. It seemed to struggle to find solutions quickly when the drone was near the goal state.  While this method did produce smooth state trajectories, the control trajectories scored poorly on smoothness.
+	
+	\begin{table}[ht]
+		\centering
+		\begin{subtable}[b]{0.5\textwidth}
+			\centering
+			\begin{tabular}{ | l | c | c | c | } 
+				\hline
+				& OC & CPS & MS  \\
+				\hline
+				average CPU (sec) &            0.012        &        0.013         &        0.01  \\ 
+				worst case CPU (sec)  &    0.014           &     0.025             &   0.061    \\  
+				NLP failures &     0        &            0               &     1  \\
+				settle time   (sec) &       2.62          &       2.14       &          2.46  \\ 
+				state smoothness &        0.004        &        0.003   &             0.002   \\
+				control smoothness &       0.08          &      0.314      &          0.028   \\
+				\hline
+			\end{tabular}
+			\caption{Hover}
+			\label{table1}
+		\end{subtable}
+		\hfill
+		\begin{subtable}[b]{0.5\textwidth}
+			\centering
+			\begin{tabular}{ | l | c | c | c | } 
+				\hline
+				& OC & CPS & MS  \\
+				\hline
+				average CPU (sec) &           0.01         &       0.009      &          0.009  \\ 
+				worst case CPU (sec)  &  0.013           &     0.015         &       0.045    \\  
+				NLP failures &     0         &           0           &         1   \\
+				settle time   (sec) &      3.64       &          3.06        &         3.44   \\ 
+				state smoothness &      0.211       &         0.269       &         0.076 \\
+				control smoothness &   4.697       &        35.606     &           0.878   \\
+				\hline
+			\end{tabular}
+			\caption{Initial position of $[1, 0, 1]$}
+			\label{table2}
+		\end{subtable}
+		\hfill
+		\begin{subtable}[b]{0.5\textwidth}
+			\centering
+			\begin{tabular}{ | l | c | c | c | } 
+				\hline
+				& OC & CPS & MS  \\
+				\hline
+				average CPU (sec) &           0.01       &         0.009        &        0.009   \\ 
+				worst case CPU (sec)  &    0.014      &           0.02        &        0.014  \\  
+				NLP failures &   0        &            0           &         0 \\
+				settle time   (sec) &       4.46       &          3.26        &         4.82   \\ 
+				state smoothness &      0.795       &         0.626       &         0.626  \\
+				control smoothness &     28.791     &         137.731    &            4.795   \\
+				\hline
+			\end{tabular}
+			\caption{Initial position $\vec{p} = [1, 0.5, 1]$, $15^{\circ}$ tilt,  $+v_x$ and $+v_y$ }
+			\label{table3}
+		\end{subtable}
+		\caption{Performance metrics for three test cases}
+		\label{tables}
+	\end{table}
 
-The multiple shooting methods was the fastest overall. It's worst case timing was $0.61$ seconds, but that was the only instance it exceeded the $0.02$ second time limit. 
-
-The {\dompc} orthogonal collocation method scored well overall. 
 
  %-------------------------------------- HOVER EXAMPLE ------------------------------------------
  
@@ -308,7 +368,7 @@ The {\dompc} orthogonal collocation method scored well overall.
  		\caption{multiple shooter}
  	\end{subfigure}
  	\caption{State data on a hover simulation with initial state equal to goal state.}
- 	\label{fig:statehover}
+ 	\label{fig:state1}
  \end{figure}
  
  \begin{figure}[H]
@@ -329,31 +389,14 @@ The {\dompc} orthogonal collocation method scored well overall.
 		\caption{multiple shooter}
 	\end{subfigure}
  	\caption{Control data on a hover simulation with initial state equal to goal state.}
- 	\label{fig:controlhover}
+ 	\label{fig:control1}
  \end{figure}
  
 
  
- \begin{table}[h!]	
- 	\begin{center}
- 		\begin{tabular}{ | l | c | c | c | } 
- 			\hline
- 			          & OC & CPS & MS  \\
- 			\hline
- 			average CPU (sec) &            0.012        &        0.013        &         0.01  \\ 
- 			worst case CPU (sec)  &   0.021     &           0.025       &         0.061   \\  
- 			NLP failures &      0          &          0        &            1  \\
- 			settle time   (sec) &       2.64       &          2.16      &           2.48  \\ 
- 			state smoothness &       0.004     &           0.003        &        0.002  \\
- 			control smoothness &      0.082      &          0.447       &         0.037  \\
- 			\hline
- 		\end{tabular}
- 		\caption{Comparison of NLP encodings for a hover simulation. Methods include  multiple shooter (MS), orthogonal collocation (OC), and Chebyshev pseudospectral method (CPS). }
- 		\label{table:CPU}
- 	\end{center}
- \end{table}
 
- 
+
+
  %-------------------------------------- SMALL PERTURBATION  ------------------------------------------
 
  \begin{figure}[H]
@@ -375,7 +418,7 @@ The {\dompc} orthogonal collocation method scored well overall.
 		\caption{multiple shooter}
 	\end{subfigure}
 	\caption{State data on a simulation with initial position of $[1, 0, 1]$.}
-	\label{fig:statehover}
+	\label{fig:state2}
 \end{figure}
 
 \begin{figure}[H]
@@ -396,29 +439,14 @@ The {\dompc} orthogonal collocation method scored well overall.
 		\caption{multiple shooter}
 	\end{subfigure}
 	\caption{Control data on a hover simulation with initial position of $[1, 0, 1]$.}
-	\label{fig:controlhover}
+	\label{fig:control2}
 \end{figure}
 
 
 
-\begin{table}[h!]	
-	\begin{center}
-		\begin{tabular}{ | l | c | c | c | } 
-			\hline
-			          & OC & CPS & MS  \\
-			\hline
-			average CPU (sec) &            0.01       &         0.009        &        0.009  \\ 
-			worst case CPU (sec)  &  0.018        &        0.022        &        0.014   \\  
-			NLP failures &     0          &          0          &          0  \\
-			settle time   (sec) &      3.9       &          3.14      &           3.44  \\ 
-			state smoothness &      0.221       &         0.227           &     0.115 \\
-			control smoothness &    10.003      &         73.615      &          1.779   \\
-			\hline
-		\end{tabular}
-		\caption{Comparison of NLP encodings for a simulation  with initial position of $[1, 0, 1]$. Methods include  multiple shooter (MS), orthogonal collocation (OC), and Chebyshev pseudospectral method (CPS). }
-		\label{table:CPU}
-	\end{center}
-\end{table}
+
+
+
 
  %-------------------------------------- LARGE PERTURBATION  ------------------------------------------
 
@@ -441,7 +469,7 @@ The {\dompc} orthogonal collocation method scored well overall.
 		\caption{multiple shooter}
 	\end{subfigure}
 	\caption{State data on a simulation with a large starting perturbation.}
-	\label{fig:statehover}
+	\label{fig:state3}
 \end{figure}
 
 \begin{figure}[H]
@@ -463,30 +491,11 @@ The {\dompc} orthogonal collocation method scored well overall.
 	\end{subfigure}
 
 	\caption{Control data on a simulation with a large starting perturbation.}
-	\label{fig:controlhover}
+	\label{fig:control3}
 \end{figure}
 
 
 
-
-\begin{table}[h!]	
-	\begin{center}
-		\begin{tabular}{ | l | c | c | c | } 
-			\hline
-			          & OC & CPS & MS  \\
-			\hline
-			average CPU (sec) &            0.01        &        0.009       &         0.009   \\ 
-			worst case CPU (sec)  &   0.023      &          0.021        &        0.014 \\  
-			NLP failures &     0        &            0       &             0 \\
-			settle time   (sec) &       4.64         &         3.3        &         5.04  \\ 
-			state smoothness &      0.944        &         0.85       &         0.756  \\
-			control smoothness &     38.116      &        199.505       &         5.381   \\
-			\hline
-		\end{tabular}
-		\caption{Comparison of NLP encodings for a simulation with a large starting perturbation. Methods include  multiple shooter (MS), orthogonal collocation (OC), and Chebyshev pseudospectral method (CPS). }
-		\label{table:CPU}
-	\end{center}
-\end{table}
 
  \begin{figure}[H]
 	\centering
@@ -511,13 +520,24 @@ The {\dompc} orthogonal collocation method scored well overall.
 
 
 \section{Hardware Validation}
-Hardware validation is already functioning with ongoing refinement of timing/performance characterization.
-We have preliminary hardware validation
-initial flight experiments
-ongoing timing refinement
-additional flight characterization in progress
+
+We ran test flight using the NMPC with orthogonal collocation on the drone and achieved successful vertical stabilization and sustained hovering limited only by battery charge. 
+Although attitude stabilization was successful, the vehicle exhibited slow oscillatory drift about the vertical axis and did not exhibit the precise position control that we need. 
+Analysis of the flight logs showed the presence of a significant constant time delay, which we estimate at approximately 100-200 ms. The cause of the delay is somewhere between actuator commands generated on the Raspberry Pi and the observed actuator response. This delay was not present in our simulation environment and substantially degrades closed-loop control performance of the system.
+The source of the delay is currently under investigation. We use ROS 2 and Micro XRCE-DDS to communicate between the Raspberry Pi 5 and Pixhawk flight controller. The observed latency might arise from message transport protocols, buffering, scheduling, or mismatched timestamps logic between the Raspberry Pi and Pixhawk. Once the delay has been fixed or compensated for, live flight data can be produced.
+Nevertheless, the successful stabilization of the physical platform demonstrates the practical feasibility of implementing real-time NMPC for TVC control on low-cost embedded hardware.
 
 \section{Conclusions}
+
+
+
+This paper presents the design of a thrust vector control (TVC) drone platform for investigating nonlinear model predictive control (NMPC) of vertical takeoff and landing (VTOL) systems on low-cost embedded hardware. We experimented with three nonlinear programming (NLP) formulations for the NMPC problem: Runge-Kutta multiple shooting, orthogonal collocation with Gauss-Radau nodes, and Chebyshev pseudospectral collocation.
+
+Our results showed that all three NLP formulations were capable of stabilizing the drone’s nonlinear system with average run times that met our requirement of running at 50Hz on the Raspberry Pi 5. However, orthogonal collocation provided the most reliable overall performance, keeping all NLP solution times within the allotted $0.02s$ time interval, producing smooth converging trajectories and avoiding NLP solver failures. In addition, orthogonal collocation was the easiest to implement due to the availability of the {\dompc} library. The Chebyshev pseudospectral collocation had less consistent timing behavior and slightly irregular control trajectories. 
+Multiple shooting demonstrated good trajectory quality and computational performance but had occasional NLP solver failures and timing spikes.
+
+
+We deployed the NMPC with orthogonal collocation controller on the physical drone. Initial experiments showed successful stabilization when hovering, but flight data analysis exhibited significant actuator-response latency possibly caused by communication protocols in the messaging pipeline. This timing lag must be fixed or accommodated before precise position control can be attained.
 
 
 \bibliography{references.bib}
