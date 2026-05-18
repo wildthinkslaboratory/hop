@@ -76,33 +76,40 @@
 \maketitle
 	
 \begin{abstract}
+ 
+We developed a nonlinear model predictive control (NMPC) framework for a thrust vector control (TVC) drone. The drone has a two-axis gimbal and two stacked counter-rotating brushless motors for thrust.
+It’s control loop runs at 50Hz on the Raspberry Pi 5 so computational efficiency is important.
+The primary computation task of an NMPC solver is the solution of the embedded nonlinear programming problem (NLP). 
+To meet our time requirement, we experimented with three formulations for the NLP,  a standard multiple shooting version, a Chebyshev pseudospectral collocation method and an orthogonal collocation method.  
+The methods are compared on three simulation test cases with varying initial conditions and difficulty. Performance metrics included average CPU time, maximum CPU time, the number of NLP solver failures, settling time, and trajectory smoothness.
+All methods had average solution times that were below the required $0.02s$ time threshold and would likely provide viable solutions for NMPC on the drone. 
+Orthogonal collocation demonstrated the most reliable performance, meeting the timing constraints for all NLP solver calls while producing smooth convergent trajectories without NLP solver failures. Initial hardware experiments using orthogonal collocation showed successful closed-loop hover stabilization on the physical drone.
 
-This paper presents a thrust vector control (TVC) drone platform for studying nonlinear model predictive control (NMPC) of vertical takeoff and landing (VTOL) systems. The controller is implemented on a Raspberry Pi 5 at 50 Hz using NMPC to stabilize the nonlinear, open-loop unstable dynamics of a gimballed-thrust vehicle. Because NMPC requires the repeated solution of nonlinear programming problems (NLPs), computational efficiency is critical for real-time embedded implementation.
-
-Three NLP formulations are evaluated: Runge-Kutta multiple shooting, orthogonal collocation with Gauss-Radau nodes implemented using the {\bf do-mpc} framework, and Chebyshev pseudospectral collocation. The methods are compared using simulation test cases with varying initial perturbations. Performance metrics include solve time, NLP solver failures, settling time, and trajectory smoothness.
-
-All methods achieved average solve times below the 50 Hz control interval. Orthogonal collocation demonstrated the most reliable real-time performance, remaining within timing constraints for all test cases while producing smooth convergent trajectories without NLP solver failures. Initial hardware experiments demonstrated successful closed-loop hover stabilization on the physical TVC platform.
 
 \end{abstract}
 \section{Introduction}	
 	
-	This paper is inspired by the small-scale rocket prototype presented by \cite{TVCDrone}, which was developed to study thrust vector control (TVC) and vertical takeoff and landing (VTOL) using a gimballed-thrust rocket platform. Milestones in propulsive VTOL systems, including NASA’s Lunar Landing Research Vehicle (LLRV), McDonnell Douglas’s DC-X (Delta Clipper), and the landing systems of SpaceX’s Falcon 9 and Starship vehicles, demonstrate the importance of accurate guidance and control for vertically landing rockets. These systems highlight both the practical value and technical difficulty of TVC-based stabilization and landing.
-	
-	About the upright hover equilibrium, vertically flying rockets are open-loop unstable in attitude and exhibit highly nonlinear, coupled dynamics. Stable flight therefore requires fast and reliable feedback control capable of responding rapidly to disturbances and sensor noise. However, experimentation with full-scale rocket systems is prohibitively expensive and carries substantial risk. As a result, there is significant value in low-cost experimental platforms that enable the study of rocket guidance, navigation, and control algorithms.
-	
-	Electrically powered gimballed-thrust drones provide an inexpensive method for approximating rocket dynamics while avoiding the cost and safety constraints of full-scale systems. Several such platforms have been proposed in the literature \cite{cheapTVC}, \cite{TVCDrone}. In this work, we developed a similar gimballed-thrust drone platform based on the design presented in \cite{TVCDrone} and used it as a testbed for nonlinear control algorithms.
-	
-	Our platform implements TVC and VTOL using nonlinear model predictive control (NMPC). NMPC is well suited to this problem because it can directly handle nonlinear system dynamics and actuator constraints such as gimbal angle limits, servo rate limits, and thrust bounds. At each control step, NMPC solves a constrained optimal control problem over a finite prediction horizon, allowing the controller to anticipate future system behavior while continuously replanning in response to disturbances.
-	
-	The primary disadvantage of NMPC is its computational cost. At every control step, the optimal control problem must be transcribed into and solved as a nonlinear programming problem (NLP). Different NLP formulations can vary substantially in computational efficiency, numerical robustness, and solution quality, particularly on embedded hardware platforms with limited computational resources.
-	
-	The focus of this paper is the evaluation of several NLP formulations for real-time NMPC implementation on a TVC drone platform running on a Raspberry Pi 5 at 50 Hz. We compare three approaches: a Runge--Kutta multiple shooting formulation, an orthogonal collocation formulation with Gauss--Radau nodes implemented using the {\bf do-mpc} library \cite{do-mpc}, and a Chebyshev pseudospectral collocation formulation. These methods are evaluated with respect to computational performance, numerical reliability, and trajectory quality in a set of simulated flight scenarios.
-	
+	This paper is inspired by Linsen et. al. \cite{TVCDrone} gimballed-thrust drone prototype which aims to study thrust vector control (TVC) and vertical takeoff and landing (VTOL). 
+	VTOL milestones like NASA's Lunar Landing Research Vehicle (LLRV) which allowed Apollo astronauts to practice lunar landings, McDonnell Douglas’s DC-X (Delta Clipper), and SpaceX's Falcon 9 and Starship landings, the latter to be used in the planned Artemis III mission that aims to land and return astronauts from the moon illustrate the value of propulsive VTOL with TVC. 	
+
+	About the upright hover equilibrium, vertically flying rockets are open-loop unstable in attitude. They have highly nonlinear, coupled dynamics, and require fast control algorithms that respond quickly to disturbances and sensor noise. Unfortunately, validating control techniques on full-scale rockets is prohibitively costly and high-risk. There is a need for inexpensive test vehicles that allow experimentation with rocket guidance, navigation, and control. 
+
+	A gimballed-thrust drone with electric motors and propellers is a good choice for replicating rocket dynamics on a much smaller budget. A couple of low-cost designs have been proposed and implemented  \citep{cheapTVC}, \citep{TVCDrone}. The drone design by \cite{TVCDrone} allows experimentation with control algorithms for VTOL and TVC. We have designed a similar drone based on their images and design descriptions, and there remain many details and design choices to explore.
+
+
+
+	Our drone implements TVC and VTOL using a nonlinear model predictive control (NMPC) algorithm, allowing it to handle nonlinear rocket dynamics and manage constraints like gimbal angle range, servo rates, and thrust limits. NMPC optimizes control inputs across a finite time horizon at each time step. In this sense it optimizes a control sequence, allowing it to anticipate future control requirements. Revising the sequence at each time step allows it to respond to disturbances. The main downside of NMPC is its high computational load. NMPC solves a constrained Optimal Control Problem (OCP) that is transcribed into a finite dimensional nonlinear optimization problem (NLP) at every control step, and as a result it is much slower than simple control algorithms like proportional integral derivative (PID) controllers or linear quadratic regulators (LQR).
+
+
+
+	There are a variety of ways to formulate an NMPC problem instance as an NLP. Different formulations  vary in their computation times and solution accuracy, particularly on embedded hardware platforms with limited computational resources.
+	In this paper we focus on evaluating different NLP formulations. We  compare three approaches: a Runge-Kutta multiple-shooter method, an orthogonal collocation  implemented in the {\bf do-mpc}  library \citep{do-mpc},  and a Chebyshev pseudospectral collocation approach. 
+	Simulations are run on a the drone's Raspberry Pi 5 at $50$ Hz so solution speed will be very important.
+	Methods are compared on the basis of computational performance, numerical reliability, and trajectory quality in a set of simulated flight scenarios.  
+
+
+
 	Code for this project is available at GitHub repository https://github.com/izzymones/hop
-	
-	
-	
-	
 	
 \section{Hardware Design}
 height, width and weight
@@ -229,12 +236,11 @@ that prioritizes having the final state in the horizon close  to the goal state.
 	nodes
 	
 	 Orthogonal collocation on finite elements as implemented in {\dompc}, allows rapid development and testing of embedded NMPC controllers with minimal implementation overhead. 
-	 The prediction horizon is divided into $N$ time intervals of equal duration called finite elements. 
-	 Within each finite element, the differential equations $\dot{x} =  f(x(t),u(t))$ are approximated with a polynomial of order $K+1$ with an interpolation constructed from $K$ points within the interval.
-	 Continuity constraints are imposed at the boundaries of adjacent finite elements to ensure continuity of the state trajectory. Implementation details for {\dompc}'s orthogonal collocation method can be found in the work of Beigler and Lovenz  \cite{dompc-oc}.  Tuning experiments across a range of test cases showed that $N=4$ time intervals across the 1 second prediction horizon with $K=2$ provided the best smoothing and settling scores while still meeting timing criteria.
+	The prediction horizon is divided into $N$ time intervals of equal duration called finite elements. 
+	Within each finite element, the differential equations $\dot{x} =  f(x(t),u(t))$ are approximated with a polynomial of order $K+1$ and interpolated over $K$ points within the interval.
+	Continuity constraints are added at the boundaries of adjacent finite elements to ensure continuity of the state trajectory. Implementation details for {\dompc}'s orthogonal collocation method can be found in the work of Beigler and Lovenz  \cite{dompc-oc}.  Tuning experiments across a range of test cases showed that $N=4$ time intervals across the 1 second prediction horizon with $K=2$ provided the best smoothing and settling scores while still meeting timing criteria.
 
-	
-	 Chebyshev pseudospectral methods approximate the state and control trajectories using global high-order polynomials over the prediction horizon. Dynamics are enforced at Chebyshev collocation points, which are distributed nonuniformly to reduce interpolation error that can occur near interval endpoints. This allows it to accurately enforce the system equations with fewer collocation points. Our implementation is based on the work of Faroo et. al. \cite{chebyshevPS}. We used CasADi 3.7.1 \cite{casadi}  Chebyshev pseudospectral collocation \cite{chebyshevPS}  formulation. The solution of the NLP for this method often failed to converge within the alloted number of iterations. Increasing the number of collocation points didn't lead to noticably better performance. The addition of rate constraints made this problem worse so we leave rate constraints out in our comparison with the other methods. After running multiple test cases we found that $6$ collocation points were required to produce adequate smoothness and settling times within the required time limits.
+	Chebyshev pseudospectral methods approximate the state and control trajectories using global high-order polynomials over the prediction horizon. Dynamics are enforced at Chebyshev collocation points, which are distributed non-uniformly to reduce interpolation error that can occur near interval endpoints. This allows it to accurately enforce the system equations with fewer collocation points. Our implementation is based on the work of Faroo et. al. \cite{chebyshevPS}. We used CasADi 3.7.1 \cite{casadi}  Chebyshev pseudospectral collocation \cite{chebyshevPS}  formulation. The solution of the NLP for this method often failed to converge within the alloted number of iterations. Increasing the number of collocation points didn't lead to noticably better performance. The addition of rate constraints made this problem worse so we leave rate constraints out in our comparison with the other methods. After running multiple test cases we found that $6$ collocation points were required to produce adequate smoothness and settling times within the required time limits.
 	
 
 	
@@ -248,9 +254,9 @@ that prioritizes having the final state in the horizon close  to the goal state.
 	The first case begins in the goal state and must simply hover to maintain the goal state. The second test state begins at  position of $\vec{p} = [1, 1, 0]$ and must move to the goal state. The third begins at position $\vec{p} = [1, 0.5, 1]$, has a $15^{\circ}$ tilt and some velocity in both the $x$ and $y$ directions.
 
 	For each simulation, the following metrics were evaluated: average CPU time, worst-case CPU time, number of NLP solver failures, settling time, and smoothness of the resulting state and control trajectories.
-	NLP failures were defined as any solver termination that did not return the \texttt{ipopt} status \texttt{SolverSucceeded}. This includes conditions such as exceeding the maximum iteration count, failure to converge, or infeasible problem formulations.
-
-	When evaluating NMPC performance, computational efficiency must be balanced against trajectory quality and real-time feasibility. In particular, trajectories should converge rapidly to the goal state while maintaining smooth state evolution and control inputs. Accordingly, the evaluation considered both timing metrics and trajectory quality metrics. For a trajectory with $N$ time steps, the smoothness metric $S$ was defined as
+	NLP failures are defined as any solver termination that did not return the \texttt{ipopt} status \texttt{SolverSucceeded}. This happens when the solver exceeds the maximum iteration count, fails to converge, or is given an infeasible problem.
+	When evaluating NMPC performance, computational efficiency needs to be balanced against trajectory quality. In particular, trajectories should converge promptly to the goal state while maintaining smooth state and control trajectories. Accordingly, the evaluation considered both timing metrics and trajectory quality metrics. 
+	For a trajectory with $N$ time steps, the smoothness metric $S$ was defined as
 \[
 S
 =
@@ -277,8 +283,6 @@ t_k :
 	Settling times were similar across all methods and test cases, as shown in Tables (\ref{table1}), (\ref{table2}), and (\ref{table3}) and in the state trajectories of Figures (\ref{fig:state1}), (\ref{fig:state2}), and (\ref{fig:state3}). State trajectory smoothness metrics were also low across all methods, indicating smooth convergence behavior.
 	The Chebyshev pseudospectral collocation method produced higher control trajectory smoothness scores overall, particularly in test cases two and three, indicating less smooth control inputs than the other formulations.
 
-
-	
 
 	While all three NLP formulations appear feasible for implementation on the proposed drone platform, orthogonal collocation was selected for the final controller implementation. Compared with the other formulations, orthogonal collocation provided the most consistent real-time performance, with worst-case solve times remaining below the $0.02$s control interval for all test cases. In addition, it exhibited no NLP solver failures and produced smooth state and control trajectories with rapid convergence to the goal state. These characteristics make orthogonal collocation the most reliable formulation for real-time deployment on the Raspberry Pi 5 based flight controller.
 		
@@ -517,23 +521,15 @@ t_k :
 
 \section{Hardware Validation}
 
-The proposed NMPC controller was deployed on the physical TVC drone platform using a Raspberry Pi 5 flight computer. Initial hardware experiments demonstrated successful closed-loop stabilization and sustained hover operation. The vehicle was capable of balancing indefinitely subject to battery limitations, demonstrating that the controller could stabilize the open-loop unstable hover equilibrium on the physical platform.
-
-Although attitude stabilization was successful, the vehicle exhibited slow oscillatory drift about the vertical axis and did not yet achieve precise position stabilization. Analysis of flight logs indicated the presence of a significant delay, estimated at approximately 100-200 ms, between actuator commands generated by the Raspberry Pi and the observed actuator response. This latency was not present in the simulation environment and substantially degrades closed-loop control performance for the fast dynamics of the TVC system.
-The source of this delay is currently under investigation. The control architecture uses ROS 2 and Micro XRCE-DDS communication between the Raspberry Pi 5 and Pixhawk flight controller, and the observed latency may arise from message transport, buffering, scheduling, or actuator update timing within this pipeline.
-Because the delay has not yet been fully characterized or compensated for, comprehensive trajectory-tracking experiments are left for future work.
-
+We ran test flight using the NMPC with orthogonal collocation on the drone and achieved successful vertical stabilization and sustained hovering limited only by battery charge. 
+Although attitude stabilization was successful, the vehicle exhibited slow oscillatory drift about the vertical axis and did not exhibit the precise position control that we need. 
+Analysis of the flight logs showed the presence of a significant constant time delay, which we estimate at approximately 100-200 ms. The cause of the delay is somewhere between actuator commands generated on the Raspberry Pi and the observed actuator response. This delay was not present in our simulation environment and substantially degrades closed-loop control performance of the system.
+The source of the delay is currently under investigation. We use ROS 2 and Micro XRCE-DDS to communicate between the Raspberry Pi 5 and Pixhawk flight controller. The observed latency might arise from message transport protocols, buffering, scheduling, or mismatched timestamps logic between the Raspberry Pi and Pixhawk. Once the delay has been fixed or compensated for, live flight data can be produced.
 Nevertheless, the successful stabilization of the physical platform demonstrates the practical feasibility of implementing real-time NMPC for TVC control on low-cost embedded hardware.
 
 \section{Conclusions}
 
-This paper presented the design of a thrust vector control (TVC) drone platform for investigating nonlinear model predictive control (NMPC) of vertical takeoff and landing (VTOL) systems on low-cost embedded hardware. Three nonlinear programming (NLP) formulations for real-time NMPC were evaluated: Runge--Kutta multiple shooting, orthogonal collocation with Gauss--Radau nodes, and Chebyshev pseudospectral collocation.
 
-Simulation results showed that all three formulations were capable of stabilizing the nonlinear TVC system while meeting average real-time computational requirements on a Raspberry Pi 5 running at 50 Hz. However, orthogonal collocation provided the most reliable overall performance, maintaining solve times within the real-time control interval for all test cases while producing smooth trajectories and avoiding NLP solver failures. Although Chebyshev pseudospectral collocation produced competitive settling times, it exhibited less consistent timing behavior and less smooth control trajectories. Multiple shooting demonstrated good trajectory quality and computational performance but experienced occasional NLP solver failures and timing spikes.
-
-The selected orthogonal collocation controller was deployed on the physical drone platform, where initial experiments demonstrated successful stabilization of the hover equilibrium. Hardware testing also revealed significant actuator-response latency within the communication and control pipeline, motivating future work on timing characterization, latency compensation, and fully autonomous trajectory tracking experiments.
-
-In addition to computational performance, implementation complexity was an important practical consideration. Multiple shooting was straightforward to implement and debug because the transcription closely follows direct numerical integration of the system dynamics. Orthogonal collocation required less custom implementation effort due to the availability of mature software tooling through the {\bf do-mpc} framework. In contrast, the Chebyshev pseudospectral formulation required substantially more manual implementation effort, including explicit construction of collocation and differentiation constraints. These differences in implementation complexity are significant for rapid prototyping of embedded NMPC systems.
 
 
 \bibliography{references.bib}
