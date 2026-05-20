@@ -78,8 +78,8 @@
 \begin{abstract}
  
 We developed a nonlinear model predictive control (NMPC) framework for a thrust vector control (TVC) drone. The drone has a two-axis gimbal and two stacked counter-rotating brushless motors for thrust.
-It’s control loop runs at 50Hz on the Raspberry Pi 5 so computational efficiency is important.
-The primary computation task of an NMPC solver is the solution of the embedded nonlinear programming problem (NLP). 
+The drone's control loop runs at 50Hz on the Raspberry Pi 5, so computational efficiency is important.
+The primary computation task of an NMPC solver is to solve an embedded nonlinear programming problem (NLP). 
 To meet our time requirement, we experimented with three formulations for the nonlinear programming problem (NLP):  a standard multiple shooting version, a Chebyshev pseudospectral collocation method and an orthogonal collocation method.  
 The methods are compared on three simulation test cases with varying initial conditions and difficulty. Performance metrics included average CPU time, maximum CPU time, the number of NLP solver failures, settling time, and trajectory smoothness.
 All methods had average solution times that were below the required $0.02s$ time threshold and would likely provide viable solutions for NMPC on the drone. 
@@ -90,7 +90,7 @@ Orthogonal collocation demonstrated the most reliable performance, meeting the t
 \section{Introduction}	
 	
 	This paper is inspired by Linsen et. al. \cite{TVCDrone} gimballed-thrust drone prototype which aims to study thrust vector control (TVC) and vertical takeoff and landing (VTOL). 
-	VTOL milestones like NASA's Lunar Landing Research Vehicle (LLRV) which allowed Apollo astronauts to practice lunar landings, McDonnell Douglas’s DC-X (Delta Clipper), and SpaceX's Falcon 9 and Starship landings, the latter to be used in the planned Artemis III mission that aims to land and return astronauts from the moon illustrate the value of propulsive VTOL with TVC. 	
+	The value of propulsive VTOL with TVC is illustrated by VTOL milestones like NASA's Lunar Landing Research Vehicle (LLRV) which allowed Apollo astronauts to practice lunar landings, McDonnell Douglas’s DC-X (Delta Clipper), and SpaceX's Falcon 9 and Starship landings, the latter to be used in the planned Artemis IV mission that aims to land and return astronauts from the moon.	
 
 	About the upright hover equilibrium, vertically flying rockets are open-loop unstable in attitude. They have highly nonlinear, coupled dynamics, and require fast control algorithms that respond quickly to disturbances and sensor noise. Unfortunately, validating control techniques on full-scale rockets is prohibitively costly and high-risk. There is a need for inexpensive test vehicles that allow experimentation with rocket guidance, navigation, and control. 
 
@@ -112,30 +112,20 @@ Orthogonal collocation demonstrated the most reliable performance, meeting the t
 	Code for this project is available at GitHub repository https://github.com/izzymones/hop
 	
 \section{Hardware Design}
-height, width and weight
-center of mas relative to propellers.
 
-Our design is inspired by the EPFL TVC research drone \cite{TVCDrone}.
-2-axis gimbal 3D modeled and printed in PLA
+The thrust-vectoring drone was designed as a low-cost, modular research platform for testing nonlinear model predictive control algorithms on a physical flight system. The vehicle design is inspired by the EPFL thrust-vectoring research drone \cite{TVCDrone}, with an emphasis on repairability, ease of modification, and compatibility with common off-the-shelf flight hardware.
+Our drone has a total mass of 1.5 kg, and a diameter and height of 260mm and 500 mm respectively.
+The propellers are collinear and counter-rotating to allow for yaw controllability. They are driven by BrotherHobby 2207 BLDC motor. The vehicle center of mass is located near the central body axis, with its exact position determined primarily by the placement of the battery, onboard computer, flight controller, and power electronics. The thrust vector angles are are actuated using a two axis gimbal with PDI-6621MG servos.
 
-1.5 kg total mass
+Onboard computation is split between a Raspberry Pi 5 and a Pixhawk 4 flight controller. The Raspberry Pi 5 runs the nonlinear model predictive controller, while the Pixhawk 4 handles sensor fusion and actuator command passthrough. State estimation is performed using the Pixhawk’s onboard Extended Kalman Filter, which fuses measurements from the onboard IMU, barometer, magnetometer, GPS, and optical-flow sensor.
 
-Cheap and modular for easy repairs and testing
+The electrical system uses a 6S battery to power the propulsion system through approximately 45 A Tekko32 ESCs driving the BLDC motors. Power and PWM distribution are handled by a PM-07 power and PWM distribution board. A Pololu 5 V buck converter supplies regulated power to the Raspberry Pi and servo electronics. This power architecture separates high-current motor power from the lower-voltage computation and actuation electronics, improving reliability and simplifying troubleshooting.
 
-Raspberry Pi 5 for NMPC computation
+For navigation, the drone uses the Pixhawk onboard IMU, barometer, and magnetometer, along with an M9N GPS for outdoor positioning and an ARK Flow MR optical-flow sensor for indoor or GPS-denied flight. The ARK Flow MR is a DroneCAN optical-flow, distance-sensor, and IMU module designed for mid-range applications, allowing the Pixhawk EKF to improve state estimation when GPS measurements are unavailable or unreliable.
 
-Pixhawk 4 for sensor fusion and actuator command passthrough
-Extended Kalman Filter on the Pixhawk
+Communication between the controller on the Raspberry Pi and the Pixhawk is handled through ROS 2 running on Ubuntu 24.04 LTS. The Raspberry Pi sends actuator commands to the Pixhawk, allowing the NMPC controller to command the propulsion and thrust-vectoring system through the Pixhawk interface. This architecture allows the computationally expensive control algorithm to run on the Raspberry Pi while preserving the Pixhawk’s robust sensor fusion and hardware interfacing capabilities.
 
-PM-07 power and PWM distribution board
-Pololu 5V buck converter for RasPi and servo power
-6S battery and Tekko32 ESCs driving BLDCs
-
-Optical Flow Sensor/M9N GPS for indoor/outdoor flight
-Pixhawk onboard IMU, barometer, and magnetometer for navigation
-
-Communication between the controller on the Raspberry Pi and the Pixhawk is through ROS 2 running on Ubuntu 24.04 LTS.
-
+Overall, the hardware platform was designed to balance research capability with practical constraints. The use of 3D-printed gimbals, commercially available flight electronics, and a modular power architecture makes the vehicle inexpensive to repair while still providing sufficient onboard computation and sensing for advanced control experiments.
 
 \begin{figure}
 	\centering
