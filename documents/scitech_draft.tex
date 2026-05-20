@@ -238,7 +238,7 @@ prioritizes solutons with the final state in the horizon close  to the goal stat
 
 	To compare the performance of the three NLP formulations, we ran simulations on three test cases with different levels of perturbation from the goal state.
 	All test cases used a goal state with the position $\vec{p} = [0, 0,  0]$, a vertical orientation and no translational or angular velocity.
-	The first case begins in the goal state and must simply hover to maintain the goal state. The second test state begins at  position of $\vec{p} = [1, 1, 0]$ and must move to the goal state. The third begins at position $\vec{p} = [1, 0.5, 1]$, has a $15^{\circ}$ tilt and some velocity in both the $x$ and $y$ directions.
+	The first case begins in the goal state and must simply hover to maintain the goal state. The second test state begins at  position of $\vec{p} = [1, 1, 0]$ and must move to the goal state. The third begins at position $\vec{p} = [1, 0.5, 1]$, has a $15^{\circ}$ vertical tilt, a slight rotation around the $z$ axis and some velocity in both the $x$ and $y$ directions.
 
 	For each simulation, the following metrics were evaluated: average CPU time, worst-case CPU time, number of NLP solver failures, settling time, and smoothness of the resulting state and control trajectories.
 	NLP failures are defined as any solver termination that did not return the \texttt{ipopt} status \texttt{SolverSucceeded}. This happens when the solver exceeds the maximum iteration count, fails to converge, or is given an infeasible problem.
@@ -319,15 +319,15 @@ t_k :
 				\hline
 				& OC & CPS & MS  \\
 				\hline
-				average CPU (sec) &           0.01       &         0.009        &        0.009   \\ 
-				worst case CPU (sec)  &    0.014      &           0.02        &        0.014  \\  
+				average CPU (sec) &           0.01       &         0.008        &        0.009   \\ 
+				worst case CPU (sec)  &    0.015      &           0.013        &        0.012  \\  
 				NLP failures &   0        &            0           &         0 \\
-				settle time   (sec) &       4.46       &          3.26        &         4.82   \\ 
-				state smoothness &      0.795       &         0.626       &         0.626  \\
-				control smoothness &     28.791     &         137.731    &            4.795   \\
+				settle time   (sec) &       5.52     &            6.24       &          6.98  \\ 
+				state smoothness &      0.939      &          0.919       &         0.738  \\
+				control smoothness &     43.011    &          330.531      &          4.534   \\
 				\hline
 			\end{tabular}
-			\caption{Initial position $\vec{p} = [1, 0.5, 1]$, $15^{\circ}$ tilt,  $+v_x$ and $+v_y$ }
+			\caption{Initial position $\vec{p} = [1, 0.5, 1]$, $15^{\circ}$ tilt, $10^{\circ}$ about $z$,  $+v_x$, $+v_y$ }
 			\label{table3}
 		\end{subtable}
 		\caption{Performance metrics for three test cases}
