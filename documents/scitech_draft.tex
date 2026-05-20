@@ -108,11 +108,11 @@ Orthogonal collocation demonstrated the most reliable performance, meeting the t
 	Methods are compared on the basis of computational performance, numerical reliability, and trajectory quality in a set of simulated flight scenarios.  
 
 
-
+	This paper is structured as follows.  Section \ref{hardware} covers drone hardware components and design, the mathematical model is described in section \ref{equations}. Sections \ref{nmpc} and \ref{nlp} cover the NMPC algorithm and NLP formulations. Experimental results are presented in section \ref{results} and section \ref{hardwarevalidation} covers future work. We finish with conclusions in section \ref{conclusion}.
 	Code for this project is available at GitHub repository https://github.com/izzymones/hop
 	
 \section{Hardware Design}
-
+\label{hardware}
 The vehicle design is inspired by the EPFL thrust-vectoring research drone \cite{TVCDrone}, with an emphasis on repairability, ease of modification, and compatibility with common off-the-shelf flight hardware.
 Our drone has a total mass of 1.5 kg, and a diameter and height of 260mm and 500 mm respectively. It is powered by a 6S battery.
 The propellers are collinear and counter-rotating to allow for yaw controllability. They are driven by BrotherHobby 2207 BLDC motors. 
@@ -131,9 +131,10 @@ Communication between the controller on the Raspberry Pi and the Pixhawk is hand
 \end{figure}
 
 
-	\section{Equations of Motion}
+\section{Equations of Motion}
+\label{equations}
 
-The system state $\vec{x}$ includes translational position $\vec{p} = [x, y,  z]$ and velocity $\vec{v} = [v_x, v_y, v_z ]$  in the world frame, the attitude represented as a unit quaternion $\vec{q} = [q_x, q_y,  q_z, q_w]$ and the angular velocity in the body frame $ \vec{\omega} = [\omega_x, \omega_y, \omega_z]$ yeilding the full state vector $\vec{x} = [\vec{p}, \vec{v}, \vec{q},  \vec{\omega} ]$. The control vector  $\vec{u} =[ \theta_1, \theta_2, \pavg, \pdiff ]$ includes the two gimbal angles $\theta_1, \theta_2 $, the average thrust between the two propellers $\pavg$ and the differential thrust between the propellers $\pdiff$ to control the rotation about the body $z$ axis. 
+The system state $\vec{x}$ includes translational position $\vec{p} = [x, y,  z]$ in meters and velocity $\vec{v} = [v_x, v_y, v_z ]$ in meters per second both  in the world frame. The attitude represented as a unit quaternion $\vec{q} = [q_x, q_y,  q_z, q_w]$ and the angular velocity in the body frame $ \vec{\omega} = [\omega_x, \omega_y, \omega_z]$ in radians per second yeilding the full state vector $\vec{x} = [\vec{p}, \vec{v}, \vec{q},  \vec{\omega} ]$. The control vector  $\vec{u} =[ \theta_1, \theta_2, \pavg, \pdiff ]$ includes the two gimbal angles $\theta_1, \theta_2 $ in degrees, the average thrust between the two propellers $\pavg$ which takes values from $[0, 1]$ and  and the differential thrust between the propellers $\pdiff$ which  controls the rotation about the body $z$ axis and allows values from $[-1, 1]$
 
 The equations of motion are represented as the standard 6DOF series of first-order vector differential equations:
 \begin{gather}
@@ -165,7 +166,7 @@ The body frame moment vector $\vec{M_b}$ is the sum of the torque due to thrust 
 The value $l$ is the length of the moment arm acting from the center of mass to the point $\vec{F_b}$ acts on the drone in body coordinates. 
 
 Note that these equations use the variable $T$ representing the magnitude of the thrust vector acting on the drone. 
-The actual control variables are defined as the average $\pavg=\frac{T_1+T_2}{2}$ and difference $\pdiff - T_1-T_2$ between the two stacked propeller thrust values $T_1$ and $T_2$.
+The actual control variables are defined as the average $\pavg=\frac{T_1+T_2}{2}$ and difference $\pdiff - T_1-T_2$ between the two stacked propeller thrust values $T_1$ and $T_2$. The command signal value for motors $T_1$ and $T_2$ is a value from $[0-1]$. 
 To map the average thrust command signal value to the actual thrust force value in Newtons, a second-order polynomial fit is experimentally determined
 \[
 T = a\Big(\pavg  \frac{v}{25}\Big)^2+b\Big(\pavg \frac{v}{25}\Big)+c
@@ -180,6 +181,7 @@ M_z = d I_{zz} \pdiff
 
 
 	\section{Nonlinear Model Predictive Control (NMPC)}
+	\label{nmpc}
 Model predictive control (\mpc)  \cite{mpc} is a control algorithm that solves an optimization problem at each time step. It returns a series of control inputs over a finite time horizon, creating a {\em plan} of actions that can anticipate and adjust to future issues. The control values for the first step of the plan is applied to the system and then the plan is revised at the next time step, allowing the system to respond to disturbances and noise. The {\mpc} framework also allows us to enforce the mechanical limitations of our thrust motors and gimbal servos. Nonlinear model predictive control (\nmpc) is a variant of {\mpc} that can handle nonlinear dynamics.   Working directly with the nonlinear equations allows more accurate predictions of the drone behavior.  Libraries like {\casadi} \cite{casadi} and {\dompc} \cite{do-mpc} make {\nmpc} easy to implement in practice.
 
 An {\nmpc} instance for the thrust vector drone is a minimization problem of the form
@@ -211,7 +213,7 @@ prioritizes solutons with the final state in the horizon close  to the goal stat
 
 
 \section{NLP Formulations}
-
+	\label{nlp}
 	To solve the continuous time optimal {\nmpc} instance, it is formulated as a discrete time finite dimensional nonlinear programming problem (NLP) and solved by a standard NLP solver.  
 	Since the system was intended as  a real-world TVC drone prototype, a major design consideration was implementation simplicity. Multiple shooting and orthogonal collocation methods met this criteria, multiple shooting because it easy to understand, and orthogonal collocation because it is available through  the {\dompc} python toolbox \cite{do-mpc}. Chebyshev pseudospectral collocation is more challenging to implement, but it has been used successfully before for a TVC drone \cite{TVCDrone} and we could be confident it would meet the computational requirements. For each method we ran tuning experiments to select the optimal parameters for the method. All tuning experiments were run on the Raspberry Pi 5 with a 2.4 GHz CPU and 8GB RAM running Ubuntu 24.04 LTS. To solve our non-linear programming (NLP) problems we used the \texttt{ipopt} solver \cite{ipopt} that comes installed with CasADi 3.7.1 \cite{casadi}.   This solver requires an additional subroutine to  solve sparse matrix systems. After some experimentation we chose to use \texttt{ma27}  solver  from HSL (Harwell Subroutine Library) \cite{hsl}. 	We implemented warm starts for all of our methods by seeding the initial guess for the NLP with the state and control values from the previous time step. All methods used a one second prediction horizon.
 	
@@ -221,7 +223,7 @@ prioritizes solutons with the final state in the horizon close  to the goal stat
 	
 	 Orthogonal collocation on finite elements with Gauss-Radau nodes as implemented in {\dompc}, allows rapid development and testing of embedded NMPC controllers with minimal implementation overhead. 
 	The prediction horizon is divided into $N$ time intervals of equal duration called finite elements. 
-	Within each finite element, the differential equations $\dot{x} =  f(x(t),u(t))$ are approximated with a polynomial of order $K+1$ and interpolated over $K$ nodes within the interval.
+	Within each finite element, the differential equations $\dot{x} =  f(x(t),u(t))$ are approximated with a polynomial of order $K+1$ and interpolated over $j = 0, 1, \ldots, K$ interpolation points within the interval.
 	Continuity constraints are added at the boundaries of adjacent finite elements to ensure continuity of the state trajectory. Implementation details for {\dompc}'s orthogonal collocation method can be found in the work of Beigler and Lovenz  \cite{dompc-oc}.  Tuning experiments across a range of test cases showed that $N=4$ time intervals across the 1 second prediction horizon with $K=2$ provided the best smoothing and settling scores while still meeting timing criteria.
 
 	Chebyshev pseudospectral methods approximate the state and control trajectories using global high-order polynomials over the prediction horizon. Dynamics are enforced at Chebyshev collocation points, which are distributed non-uniformly to reduce interpolation error that can occur near interval endpoints. This allows it to accurately enforce the system equations with fewer collocation points. Our implementation is based on the work of Faroo et. al. \cite{chebyshevPS} and was implemented with CasADi 3.7.1 \cite{casadi}.  The solution of the NLP for this method often failed to converge within the alloted number of NLP iterations. Increasing the number of collocation points didn't lead to noticably better performance. 
@@ -232,7 +234,7 @@ prioritizes solutons with the final state in the horizon close  to the goal stat
 
 	
 \section{Results}
-
+\label{results}
 
 	To compare the performance of the three NLP formulations, we ran simulations on three test cases with different levels of perturbation from the goal state.
 	All test cases used a goal state with the position $\vec{p} = [0, 0,  0]$, a vertical orientation and no translational or angular velocity.
@@ -504,8 +506,8 @@ t_k :
 \end{figure}
 
 
-\section{Hardware Validation}
-
+\section{Hardware Validation and Future Work}
+\label{hardwarevalidation}
 We ran test flights using the NMPC with orthogonal collocation on the drone and achieved successful vertical stabilization and sustained hovering limited only by battery charge. 
 Although attitude stabilization was successful, the vehicle exhibited slow oscillatory drift about the vertical axis and did not exhibit the precise position control that we need. 
 Analysis of the flight logs showed the presence of a significant constant time delay, which we estimate at approximately 100-200 ms. The cause of the delay is somewhere between actuator commands generated on the Raspberry Pi and the observed actuator response. This delay was not present in our simulation environment and substantially degrades closed-loop control performance of the system.
@@ -513,7 +515,7 @@ The source of the delay is currently under investigation. We use ROS 2 and Micro
 Nevertheless, the successful stabilization of the physical platform demonstrates the practical feasibility of implementing real-time NMPC for TVC control on low-cost embedded hardware.
 
 \section{Conclusions}
-
+\label{conclusion}
 
 
 This paper presents the design of a thrust vector control (TVC) drone platform for investigating nonlinear model predictive control (NMPC) of vertical takeoff and landing (VTOL) systems on low-cost embedded hardware. We experimented with three nonlinear programming (NLP) formulations for the NMPC problem: Runge-Kutta multiple shooting, orthogonal collocation with Gauss-Radau nodes, and Chebyshev pseudospectral collocation.
