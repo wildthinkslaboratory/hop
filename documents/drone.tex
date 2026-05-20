@@ -83,6 +83,20 @@
 
 \section*{Hardware and Design}
 
+The thrust-vectoring drone was designed as a low-cost, modular research platform for testing nonlinear model predictive control algorithms on a physical flight system. The vehicle design is inspired by the EPFL thrust-vectoring research drone \cite{TVCDrone}, with an emphasis on repairability, ease of modification, and compatibility with common off-the-shelf flight hardware.
+Our drone has a total mass of 1.5 kg, and a diameter and height of 260mm and 500 mm respectively.
+The propellers are collinear and counter-rotating to allow for yaw controllability. They are driven by BrotherHobby 2207 BLDC motor. The vehicle center of mass is located near the central body axis, with its exact position determined primarily by the placement of the battery, onboard computer, flight controller, and power electronics. The thrust vector angles are are actuated using a two axis gimbal with PDI-6621MG servos.
+
+Onboard computation is split between a Raspberry Pi 5 and a Pixhawk 4 flight controller. The Raspberry Pi 5 runs the nonlinear model predictive controller, while the Pixhawk 4 handles sensor fusion and actuator command passthrough. State estimation is performed using the Pixhawk’s onboard Extended Kalman Filter, which fuses measurements from the onboard IMU, barometer, magnetometer, GPS, and optical-flow sensor.
+
+The electrical system uses a 6S battery to power the propulsion system through approximately 45 A Tekko32 ESCs driving the BLDC motors. Power and PWM distribution are handled by a PM-07 power and PWM distribution board. A Pololu 5 V buck converter supplies regulated power to the Raspberry Pi and servo electronics. This power architecture separates high-current motor power from the lower-voltage computation and actuation electronics, improving reliability and simplifying troubleshooting.
+
+For navigation, the drone uses the Pixhawk onboard IMU, barometer, and magnetometer, along with an M9N GPS for outdoor positioning and an ARK Flow MR optical-flow sensor for indoor or GPS-denied flight. The ARK Flow MR is a DroneCAN optical-flow, distance-sensor, and IMU module designed for mid-range applications, allowing the Pixhawk EKF to improve state estimation when GPS measurements are unavailable or unreliable.
+
+Communication between the controller on the Raspberry Pi and the Pixhawk is handled through ROS 2 running on Ubuntu 24.04 LTS. The Raspberry Pi sends actuator commands to the Pixhawk, allowing the NMPC controller to command the propulsion and thrust-vectoring system through the Pixhawk interface. This architecture allows the computationally expensive control algorithm to run on the Raspberry Pi while preserving the Pixhawk’s robust sensor fusion and hardware interfacing capabilities.
+
+Overall, the hardware platform was designed to balance research capability with practical constraints. The use of 3D-printed gimbals, commercially available flight electronics, and a modular power architecture makes the vehicle inexpensive to repair while still providing sufficient onboard computation and sensing for advanced control experiments.
+
 \section*{Model}
 
 
