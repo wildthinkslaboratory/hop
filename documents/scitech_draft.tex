@@ -78,50 +78,50 @@
 \begin{abstract}
  
 We developed a nonlinear model predictive control (NMPC) framework for a thrust vector control (TVC) drone. Designed to study vertical takeoff and landing (VTOL), the drone has a two-axis gimbal and two stacked counter-rotating brushless motors for thrust.
-The drone's control loop runs at 50Hz on the Raspberry Pi 5, so computational efficiency is important.
+The drone's control loop runs at 50 Hz on the Raspberry Pi 5, so computational efficiency is important.
 The primary computational task of an NMPC solver is the solution of the embedded nonlinear programming problem (NLP).
-We experimented with three formulations for the NLP:  a standard multiple shooting version, a Chebyshev pseudospectral collocation method and an orthogonal collocation method.  
+We experimented with three formulations for the NLP:  a standard multiple shooting version, a Chebyshev pseudospectral collocation method, and an orthogonal collocation method.  
 The methods are compared on three simulation test cases with varying initial conditions and difficulty. Performance metrics included average CPU time, maximum CPU time, the number of NLP solver failures, settling time, and trajectory smoothness.
-All methods had average solution times that were below the required $0.02s$ time threshold and would likely provide viable solutions for NMPC on the drone. 
+All methods had average solution times below the required $0.02s$ time threshold and would likely provide viable solutions for NMPC on the drone. 
 Orthogonal collocation demonstrated the most reliable performance, meeting the timing constraints for all NLP solver calls while producing smooth convergent trajectories without NLP solver failures. Initial hardware experiments using orthogonal collocation showed successful closed-loop hover stabilization on the physical drone.
 
 
 \end{abstract}
 \section{Introduction}	
 	
-	This paper is inspired by Linsen et. al. \cite{TVCDrone} gimballed-thrust drone prototype which aims to study thrust vector control (TVC) and vertical takeoff and landing (VTOL). 
+	This paper is inspired by the gimballed-thrust drone prototype developed by Linsen et al. \cite{TVCDrone}.
 	The value of propulsive VTOL with TVC is illustrated by VTOL milestones like NASA's Lunar Landing Research Vehicle (LLRV) which allowed Apollo astronauts to practice lunar landings, McDonnell Douglas’s DC-X (Delta Clipper), and SpaceX's Falcon 9 and Starship landings, the latter to be used in the planned Artemis IV mission that aims to land and return astronauts from the moon.	
 
-	About the upright hover equilibrium, vertically flying rockets are open-loop unstable in attitude. They have highly nonlinear, coupled dynamics, and require fast control algorithms that respond quickly to disturbances and sensor noise. Unfortunately, validating control techniques on full-scale rockets is prohibitively costly and high-risk. There is a need for inexpensive test vehicles that allow experimentation with rocket guidance, navigation, and control. 
+	Near the upright hover equilibrium, vertically flying rockets are open-loop unstable in attitude. They have highly nonlinear, coupled dynamics, and require fast control algorithms that respond quickly to disturbances and sensor noise. Unfortunately, validating control techniques on full-scale rockets is prohibitively costly and high-risk. There is a need for inexpensive test vehicles that allow experimentation with rocket guidance, navigation, and control. 
 
 	A gimballed-thrust drone with electric motors and propellers is a good choice for replicating rocket dynamics on a much smaller budget. A couple of low-cost designs have been proposed and implemented  \citep{cheapTVC}, \citep{TVCDrone}. The drone design by \cite{TVCDrone} allows experimentation with control algorithms for VTOL and TVC. We have designed a similar drone based on their images and design descriptions, and there remain many details and design choices to explore.
 
 
 
-	Our drone implements TVC and VTOL using a nonlinear model predictive control (NMPC) algorithm, allowing it to handle nonlinear rocket dynamics and manage constraints like gimbal angle range, servo rates, and thrust limits. NMPC optimizes control inputs across a finite time horizon at each time step. In this sense it optimizes a control sequence, allowing it to anticipate future control requirements. Revising the sequence at each time step allows it to respond to disturbances. The main downside of NMPC is its high computational load. NMPC solves a constrained Optimal Control Problem (OCP) that is transcribed into a finite dimensional nonlinear programming problem (NLP) at every control step, and as a result it is much slower than simple control algorithms like proportional integral derivative (PID) controllers or linear quadratic regulators (LQR).
+	Our drone implements TVC and VTOL using a nonlinear model predictive control (NMPC) algorithm, allowing it to handle nonlinear rocket dynamics and manage constraints like gimbal angle range, servo rates, and thrust limits. NMPC optimizes control inputs across a finite time horizon at each time step. In this sense, it optimizes a control sequence, allowing it to anticipate future control requirements. Revising the sequence at each time step allows it to respond to disturbances. The main downside of NMPC is its high computational load. NMPC solves a constrained Optimal Control Problem (OCP) that is transcribed into a finite dimensional nonlinear programming problem (NLP) at every control step, and as a result it is much slower than simple control algorithms like proportional-integral-derivative (PID) controllers or linear quadratic regulators (LQR).
 
 
 
-	There are a variety of ways to formulate an NMPC problem instances as NLPs. Different formulations  vary in their computation times and solution accuracy, particularly on embedded hardware platforms with limited computational resources.
-	In this paper we focus on evaluating different NLP formulations. We  compare three approaches: a Runge-Kutta multiple-shooter method, an orthogonal collocation  implemented in the {\bf do-mpc}  library \citep{do-mpc},  and a Chebyshev pseudospectral collocation approach. 
-	Simulations are run on a the drone's Raspberry Pi 5 at $50$ Hz so solution speed will be very important.
+	There are a variety of ways to formulate NMPC problem instances as NLPs. Different formulations  vary in their computation times and solution accuracy, particularly on embedded hardware platforms with limited computational resources.
+	In this paper we focus on evaluating different NLP formulations. We  compare three approaches: a Runge-Kutta multiple shooting method, an orthogonal collocation  implemented in the {\bf do-mpc}  library \citep{do-mpc},  and a Chebyshev pseudospectral collocation approach. 
+	Simulations are run on a Raspberry Pi 5 at $50$ Hz, so solution speed is a very important consideration.
 	Methods are compared on the basis of computational performance, numerical reliability, and trajectory quality in a set of simulated flight scenarios.  
 
 
 	This paper is structured as follows.  Section \ref{hardware} covers drone hardware components and design, the mathematical model is described in section \ref{equations}. Sections \ref{nmpc} and \ref{nlp} cover the NMPC algorithm and NLP formulations. Experimental results are presented in section \ref{results} and section \ref{hardwarevalidation} covers future work. We finish with conclusions in section \ref{conclusion}.
-	Code for this project is available at GitHub repository https://github.com/izzymones/hop
+	Code for this project is available at the GitHub repository https://github.com/izzymones/hop
 	
 \section{Hardware Design}
 \label{hardware}
 The vehicle design is inspired by the EPFL thrust-vectoring research drone \cite{TVCDrone}, with an emphasis on repairability, ease of modification, and compatibility with common off-the-shelf flight hardware.
-Our drone has a total mass of 1.5 kg, and a diameter and height of 260mm and 500 mm respectively. It is powered by a 6S battery.
+Our drone has a total mass of 1.5 kg, with a diameter and height of 260mm and 500 mm respectively. It is powered by a 6S battery.
 The propellers are collinear and counter-rotating to allow for yaw controllability. They are driven by BrotherHobby 2207 BLDC motors. 
-The vehicle center of mass is located near the central body axis, with its exact position determined primarily by the placement of the battery, onboard computer, flight controller, and power electronics. The thrust vector angles are  actuated using a two axis gimbal with PDI-6621MG servos.
+The vehicle center of mass is located near the central body axis, with its exact position determined primarily by the placement of the battery, onboard computer, flight controller, and power electronics. The thrust vector angles are  actuated using a two-axis gimbal with PDI-6621MG servos.
 The drone uses the Pixhawk onboard IMU, barometer, and magnetometer, along with an M9N GPS for outdoor positioning and an ARK Flow optical-flow sensor for indoor or GPS-denied flight. 
 State estimation is performed using the Pixhawk’s onboard Extended Kalman Filter, which fuses measurements from the onboard IMU, barometer, magnetometer, GPS, and optical-flow sensor.
 
 Onboard computation is split between a Raspberry Pi 5 and a Pixhawk 4 flight controller. The Raspberry Pi 5 runs the nonlinear model predictive controller, while the Pixhawk 4 handles sensor fusion and actuator command passthrough. 
-Communication between the controller on the Raspberry Pi and the Pixhawk is handled through ROS 2 running on Ubuntu 24.04 LTS. The Raspberry Pi sends actuator commands to the Pixhawk, and receives state estimation from it. This architecture allows the computationally expensive control algorithm to run on the Raspberry Pi while preserving the Pixhawk’s robust sensor fusion and hardware interfacing capabilities.
+Communication between the controller on the Raspberry Pi and the Pixhawk is handled through ROS 2 running on Ubuntu 24.04 LTS. The Raspberry Pi sends actuator commands to the Pixhawk, and receives state estimates from it. This architecture allows the computationally expensive control algorithm to run on the Raspberry Pi while preserving the Pixhawk’s robust sensor fusion and hardware interfacing capabilities.
 
 \begin{figure}
 	\centering
@@ -134,7 +134,7 @@ Communication between the controller on the Raspberry Pi and the Pixhawk is hand
 \section{Equations of Motion}
 \label{equations}
 
-The system state $\vec{x}$ includes translational position $\vec{p} = [x, y,  z]$ in meters and velocity $\vec{v} = [v_x, v_y, v_z ]$ in meters per second both  in the world frame. The attitude is represented as a unit quaternion $\vec{q} = [q_x, q_y,  q_z, q_w]$ and the angular velocity in the body frame $ \vec{\omega} = [\omega_x, \omega_y, \omega_z]$ is in radians per second yeilding the full state vector $\vec{x} = [\vec{p}, \vec{v}, \vec{q},  \vec{\omega} ]$. The control vector  $\vec{u} =[ \theta_1, \theta_2, \pavg, \pdiff ]$ includes the two gimbal angles $\theta_1, \theta_2 $ in degrees, the average thrust between the two propellers $\pavg$ which takes values from $[0, 1]$ and  and the differential thrust between the propellers $\pdiff$ which  controls the rotation about the body $z$ axis and allows values from $[-1, 1]$
+The system state $\vec{x}$ includes translational position $\vec{p} = [x, y,  z]$ in meters and velocity $\vec{v} = [v_x, v_y, v_z ]$ in meters per second both expressed in the world frame. The attitude is represented as a unit quaternion $\vec{q} = [q_x, q_y,  q_z, q_w]$. The angular velocity in the body frame $ \vec{\omega} = [\omega_x, \omega_y, \omega_z]$ is in radians per second yielding the full state vector $\vec{x} = [\vec{p}, \vec{v}, \vec{q},  \vec{\omega} ]$. The control vector $\vec{u} =[ \theta_1, \theta_2, \pavg, \pdiff ]$ includes the two gimbal angles $\theta_1, \theta_2 $ in degrees, the average thrust between the two propellers, $\pavg$, with values from $[0, 1]$, and the differential thrust between the propellers $\pdiff$ which  controls the rotation about the body $z$ axis and takes values in $[-1, 1]$.
 
 The equations of motion are represented as the standard 6DOF series of first-order vector differential equations:
 \begin{gather}
@@ -143,7 +143,7 @@ The equations of motion are represented as the standard 6DOF series of first-ord
 	\dot{\vec{q}} = \frac{1}{2}Q(\vec{\omega})\vec{q}  \label{eqMotion3} \\
 	\dot{\vec{\omega}} = I^{-1}\!\left(\vec{M_b} - \vec{\omega} \times (I\,\vec{\omega})\right) \label{eqMotion4}
 \end{gather}
-where $m$ is the mass of the drone and $\vec{g} = [0, 0, -9.81]^T$ is the acceleration due to gravity. The body to world matrix $R(\vec{q})$  is used to compute the force in world coordinates due to the body-centric thrust vector given the quaternion orientation. Using vector decomposition we can find the thrust vector in body coordinates $\vec{F_b}$ in terms of the gimbal angles $\theta_1$ and $\theta_2$ and magnitude of the thrust $T$ acting on the drone.
+where $m$ is the mass of the drone and $\vec{g} = [0, 0, -9.81]^T$ is the acceleration due to gravity. The body to world rotation matrix $R(\vec{q})$  is used to compute the force in world coordinates due to the body-centric thrust vector given the quaternion orientation. Using vector decomposition we can find the thrust vector in body coordinates $\vec{F_b}$ in terms of the gimbal angles $\theta_1$ and $\theta_2$ and magnitude of the thrust $T$ acting on the drone.
 \[
 \vec{F_b} = T
 \begin{bmatrix}
@@ -163,10 +163,10 @@ The body frame moment vector $\vec{M_b}$ is the sum of the torque due to thrust 
 	M_z
 \end{bmatrix}
 \]
-The value $l$ is the length of the moment arm acting from the center of mass to the point $\vec{F_b}$ acts on the drone in body coordinates. 
+The value $l$ is the moment-arm length from the center of mass to the point where $\vec{F_b}$ acts on the drone in body coordinates. 
 
 Note that these equations use the variable $T$ representing the magnitude of the thrust vector acting on the drone. 
-The actual control variables are defined as the average $\pavg=\frac{T_1+T_2}{2}$ and difference $\pdiff - T_1-T_2$ between the two stacked propeller thrust values $T_1$ and $T_2$. The command signal value for motors $T_1$ and $T_2$ is a value from $[0-1]$. 
+The actual control variables are defined as the average $\pavg=\frac{T_1+T_2}{2}$ and difference $\pdiff = T_1-T_2$ between the two stacked propeller thrust values $T_1$ and $T_2$. The command signals for motors $T_1$ and $T_2$ take values in $[0,1]$. 
 To map the average thrust command signal value to the actual thrust force value in Newtons, a second-order polynomial fit is experimentally determined
 \[
 T = a\Big(\pavg  \frac{v}{25}\Big)^2+b\Big(\pavg \frac{v}{25}\Big)+c
@@ -182,7 +182,7 @@ M_z = d I_{zz} \pdiff
 
 	\section{Nonlinear Model Predictive Control (NMPC)}
 	\label{nmpc}
-Model predictive control (\mpc)  \cite{mpc} is a control algorithm that solves an optimization problem at each time step. It returns a series of control inputs over a finite time horizon, creating a {\em plan} of actions that can anticipate and adjust to future issues. The control values for the first step of the plan is applied to the system and then the plan is revised at the next time step, allowing the system to respond to disturbances and noise. The {\mpc} framework also allows us to enforce the mechanical limitations of our thrust motors and gimbal servos. Nonlinear model predictive control (\nmpc) is a variant of {\mpc} that can handle nonlinear dynamics.   Working directly with the nonlinear equations allows more accurate predictions of the drone behavior.  Libraries like {\casadi} \cite{casadi} and {\dompc} \cite{do-mpc} make {\nmpc} easy to implement in practice.
+Model predictive control (\mpc)  \cite{mpc} is a control algorithm that solves an optimization problem at each time step. It returns a series of control inputs over a finite time horizon, creating a {\em plan} of actions that can anticipate and adjust to future issues. The control values for the first step of the plan are applied to the system and then the plan is revised at the next time step, allowing the system to respond to disturbances and noise. The {\mpc} framework also allows us to enforce the mechanical limitations of our thrust motors and gimbal servos. Nonlinear model predictive control (\nmpc) is a variant of {\mpc} that can handle nonlinear dynamics.   Working directly with the nonlinear equations allows more accurate predictions of the drone behavior.  Libraries like {\casadi} \cite{casadi} and {\dompc} \cite{do-mpc} make {\nmpc} NMPC more accessible in practice.
 
 An {\nmpc} instance for the thrust vector drone is a minimization problem of the form
 \begin{align}
@@ -198,7 +198,7 @@ An {\nmpc} instance for the thrust vector drone is a minimization problem of the
 	&  	-\dot{\theta}_{max} \leq \dot{\theta}_2 \leq \dot{\theta}_{max} \nonumber \\ 
 	&        0 \leq z.\nonumber
 \end{align}
-The problem instance enforces minimum and maximum gimbal angles of $\pm 20^{\circ}$ for the outer gimbal and $\pm 13.5^{\circ}$ for the inner gimbal, minimum and maximum thrust ranges, rate constraints for the servos and restrictons on the drone's vertical height.
+The problem instance enforces minimum and maximum gimbal angles of $\pm 20^{\circ}$ for the outer gimbal and $\pm 13.5^{\circ}$ for the inner gimbal, minimum and maximum thrust ranges, rate constraints for the servos and restrictions on the drone's vertical height.
 
 The cost function  minimizes both the squared error between the current state $x(t)$ and the goal state $x_{r}$ weighted by diagonal matrix $Q$ and the error between the current control $u(t)$ and the goal control $u_{r}$ weighted by diagonal matrix $R$. 
 \begin{equation*}
@@ -208,25 +208,25 @@ The terminal cost
 \begin{equation*}
 	\phi(x_f) = (x(t_f)-x_{r})^T Q_f (x(t_f)-x_{r})
 \end{equation*}
-prioritizes solutons with the final state in the horizon close  to the goal state.
+prioritizes solutions with the final state in the horizon close  to the goal state.
 
 
 
 \section{NLP Formulations}
 	\label{nlp}
 	To solve the continuous time optimal {\nmpc} instance, it is formulated as a discrete time finite dimensional nonlinear programming problem (NLP) and solved by a standard NLP solver.  
-	Since the system was intended as  a real-world TVC drone prototype, a major design consideration was implementation simplicity. Multiple shooting and orthogonal collocation methods met this criteria, multiple shooting because it easy to understand, and orthogonal collocation because it is available through  the {\dompc} python toolbox \cite{do-mpc}. Chebyshev pseudospectral collocation is more challenging to implement, but it has been used successfully before for a TVC drone \cite{TVCDrone} and we could be confident it would meet the computational requirements. For each method we ran tuning experiments to select the optimal parameters for the method. All tuning experiments were run on the Raspberry Pi 5 with a 2.4 GHz CPU and 8GB RAM running Ubuntu 24.04 LTS. To solve our non-linear programming (NLP) problems we used the \texttt{ipopt} solver \cite{ipopt} that comes installed with CasADi 3.7.1 \cite{casadi}.   This solver requires an additional subroutine to  solve sparse matrix systems. After some experimentation we chose to use the \texttt{ma27}  solver  from HSL (Harwell Subroutine Library) \cite{hsl}. 	We implemented warm starts for all of our methods by seeding the initial guess for the NLP with the state and control values from the previous time step. All methods used a one second prediction horizon.
+	Since the system was intended as  a real-world TVC drone prototype, a major design consideration was implementation simplicity. Multiple shooting and orthogonal collocation methods met these criteria, multiple shooting because it is easy to understand, and orthogonal collocation because it is available through  the {\dompc} Python toolbox \cite{do-mpc}. Chebyshev pseudospectral collocation is more challenging to implement, but it has been used successfully before for a TVC drone \cite{TVCDrone} suggesting it could meet the computational requirements. For each method we ran tuning experiments to select the optimal parameters for the method. All tuning experiments were run on the Raspberry Pi 5 with a 2.4 GHz CPU and 8GB RAM running Ubuntu 24.04 LTS. To solve our nonlinear programming (NLP) problems we used the \texttt{ipopt} solver \cite{ipopt} that comes installed with CasADi 3.7.1 \cite{casadi}.   This solver requires an additional subroutine to  solve sparse matrix systems. After some experimentation we chose to use the \texttt{ma27}  solver  from HSL (Harwell Subroutine Library) \cite{hsl}. 	We implemented warm starts for all of our methods by seeding the initial guess for the NLP with the state and control values from the previous time step. All methods used a one second prediction horizon.
 	
-	In multiple shooting \cite{multipleShootingCanon, multipleShootingpractical} , we divide our prediction horizon into $N$ evenly spaced intervals of length $\Delta t$ defined by nodes $\{ t_0, t_1, \ldots, t_N \}$ and we make copies of our state $x_k$ and control $u_k$ variables for each time step.  The initial state is initialized to the current state. 	Using the system dynamics $\dot{x} =  f(x(t),u(t))$ and Runge-Kutta 4 within each time step $[t_k, t_{k+1}]$ we forward integrate our differential equations to create constraints that enforce the change of state between time steps. 
+	In multiple shooting \cite{multipleShootingCanon, multipleShootingpractical}, we divide our prediction horizon into $N$ evenly spaced intervals of length $\Delta t$ defined by nodes $\{ t_0, t_1, \ldots, t_N \}$ and we make copies of our state $x_k$ and control $u_k$ variables for each time step.  The initial state is initialized to the current state. 	Using the system dynamics $\dot{x} =  f(x(t),u(t))$ and Runge-Kutta 4 within each time step $[t_k, t_{k+1}]$ we forward integrate our differential equations to create constraints that enforce the change of state between time steps. 
 	We built our multiple shooting formulation in Python with CasADi 3.7.1 \cite{casadi}.  Tuning experiments across a range of test cases showed that $N=4$ time intervals across the 1 second prediction horizon provided the best smoothing and settling scores while still meeting timing criteria.
 	
 	
 	 Orthogonal collocation on finite elements with Gauss-Radau nodes as implemented in {\dompc}, allows rapid development and testing of embedded NMPC controllers with minimal implementation overhead. 
 	The prediction horizon is divided into $N$ time intervals of equal duration called finite elements. 
 	Within each finite element, the differential equations $\dot{x} =  f(x(t),u(t))$ are approximated with a polynomial of order $K+1$ and interpolated over $j = 0, 1, \ldots, K$ interpolation points within the interval.
-	Continuity constraints are added at the boundaries of adjacent finite elements to ensure continuity of the state trajectory. Implementation details for {\dompc}'s orthogonal collocation method can be found in the work of Beigler and Lovenz  \cite{dompc-oc}.  Tuning experiments across a range of test cases showed that $N=4$ time intervals across the 1 second prediction horizon with $K=2$ provided the best smoothing and settling scores while still meeting timing criteria.
+	Continuity constraints are added at the boundaries of adjacent finite elements to ensure continuity of the state trajectory. Implementation details for {\dompc}'s orthogonal collocation method can be found in the work of Biegler and Lovenz  \cite{dompc-oc}.  Tuning experiments across a range of test cases showed that $N=4$ time intervals across the 1 second prediction horizon with $K=2$ provided the best smoothing and settling scores while still meeting timing criteria.
 
-	Chebyshev pseudospectral methods approximate the state and control trajectories using global high-order polynomials over the prediction horizon. Dynamics are enforced at Chebyshev collocation points, which are distributed non-uniformly to reduce interpolation error that can occur near interval endpoints. This allows it to accurately enforce the system equations with fewer collocation points. Our implementation is based on the work of Faroo et. al. \cite{chebyshevPS} and was implemented with CasADi 3.7.1 \cite{casadi}.  The solution of the NLP for this method often failed to converge within the alloted number of NLP iterations. Increasing the number of collocation points didn't lead to noticably better performance. 
+	Chebyshev pseudospectral methods approximate the state and control trajectories using global high-order polynomials over the prediction horizon. Dynamics are enforced at Chebyshev collocation points, which are distributed non-uniformly to reduce interpolation error that can occur near interval endpoints. This allows the method to accurately enforce the system equations with fewer collocation points. Our implementation is based on the work of Farhroo et al. \cite{chebyshevPS} and was implemented with CasADi 3.7.1 \cite{casadi}.  The solution of the NLP for this method often failed to converge within the allotted number of NLP iterations. Increasing the number of collocation points didn't lead to noticeably better performance. 
 	Removing the servo rate constraints reduced this problem so we leave those constraints  out in our comparison with the other methods. After running multiple test cases we found that $6$ collocation points were required to produce adequate smoothness and settling times within the required time limits.
 	
 
@@ -238,7 +238,7 @@ prioritizes solutons with the final state in the horizon close  to the goal stat
 
 	To compare the performance of the three NLP formulations, we ran simulations on three test cases with different levels of perturbation from the goal state.
 	All test cases used a goal state with the position $\vec{p} = [0, 0,  0]$, a vertical orientation and no translational or angular velocity.
-	The first case begins in the goal state and must simply hover to maintain the goal state. The second test state begins at  position of $\vec{p} = [1, 1, 0]$ and must move to the goal state. The third begins at position $\vec{p} = [1, 0.5, 1]$, has a $15^{\circ}$ vertical tilt, a slight rotation around the $z$ axis and some velocity in both the $x$ and $y$ directions.
+	The first case begins in the goal state and must simply hover to maintain the goal state. The second test state begins at  position of $\vec{p} = [1, 1, 0]$ and must move to the goal state. The third begins at a position $\vec{p} = [1, 0.5, 1]$, has a $15^{\circ}$ tilt from vertical, a slight rotation around the $z$ axis and some velocity in both the $x$ and $y$ directions.
 
 	For each simulation, the following metrics were evaluated: average CPU time, worst-case CPU time, number of NLP solver failures, settling time, and smoothness of the resulting state and control trajectories.
 	NLP failures are defined as any solver termination that did not return the \texttt{ipopt} status \texttt{SolverSucceeded}. This happens when the solver exceeds the maximum iteration count, fails to converge, or is given an infeasible problem.
@@ -309,7 +309,7 @@ t_k :
 				control smoothness &   4.697       &        35.606     &           0.878   \\
 				\hline
 			\end{tabular}
-			\caption{Initial position of $[1, 0, 1]$}
+			\caption{Initial position of $[1, 1, 0]$}
 			\label{table2}
 		\end{subtable}
 		\hfill
@@ -352,7 +352,7 @@ t_k :
  	\begin{subfigure}[b]{0.3\textwidth}
  		\centering
  		\includegraphics[width=\textwidth]{figures/statehover-ms3.pdf}
- 		\caption{multiple shooter}
+ 		\caption{multiple shooting}
  	\end{subfigure}
  	\caption{State data on a hover simulation with initial state equal to goal state.}
  	\label{fig:state1}
@@ -373,7 +373,7 @@ t_k :
  	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{figures/controlhover-ms6.pdf}
-		\caption{multiple shooter}
+		\caption{multiple shooting}
 	\end{subfigure}
  	\caption{Control data on a hover simulation with initial state equal to goal state.}
  	\label{fig:control1}
@@ -402,9 +402,9 @@ t_k :
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{figures/statemed_perturb-ms3.pdf}
-		\caption{multiple shooter}
+		\caption{multiple shooting}
 	\end{subfigure}
-	\caption{State data on a simulation with initial position of $[1, 0, 1]$.}
+	\caption{State data on a simulation with initial position of $[1, 1, 0]$.}
 	\label{fig:state2}
 \end{figure}
 
@@ -423,9 +423,9 @@ t_k :
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{figures/controlmed_perturb-ms6.pdf}
-		\caption{multiple shooter}
+		\caption{multiple shooting}
 	\end{subfigure}
-	\caption{Control data on a hover simulation with initial position of $[1, 0, 1]$.}
+	\caption{Control data on a simulation with initial position of $[1, 1, 0]$.}
 	\label{fig:control2}
 \end{figure}
 
@@ -453,7 +453,7 @@ t_k :
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{figures/statebig_perturb-ms3.pdf}
-		\caption{multiple shooter}
+		\caption{multiple shooting}
 	\end{subfigure}
 	\caption{State data on a simulation with a large starting perturbation.}
 	\label{fig:state3}
@@ -474,7 +474,7 @@ t_k :
 	\begin{subfigure}[b]{0.3\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{figures/controlbig_perturb-ms6.pdf}
-		\caption{multiple shooter}
+		\caption{multiple shooting}
 	\end{subfigure}
 
 	\caption{Control data on a simulation with a large starting perturbation.}
@@ -494,7 +494,7 @@ t_k :
 	\begin{subfigure}[b]{0.5\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{figures/timemed_perturb.pdf}
-	\caption{Initial position of $[1, 0, 1]$.}
+	\caption{Initial position of $[1, 1, 0]$.}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.5\textwidth}
 		\centering
@@ -509,9 +509,9 @@ t_k :
 \section{Hardware Validation and Future Work}
 \label{hardwarevalidation}
 We ran test flights using the NMPC with orthogonal collocation on the drone and achieved successful vertical stabilization and sustained hovering limited only by battery charge. 
-Although attitude stabilization was successful, the vehicle exhibited slow oscillatory drift about the vertical axis and did not exhibit the precise position control that we need. 
-Analysis of the flight logs showed the presence of a significant constant time delay, which we estimate at approximately 100-200 ms. The cause of the delay is somewhere between actuator commands generated on the Raspberry Pi and the observed actuator response. This delay was not present in our simulation environment and substantially degrades closed-loop control performance of the system.
-The source of the delay is currently under investigation. We use ROS 2 and Micro XRCE-DDS to communicate between the Raspberry Pi 5 and Pixhawk flight controller. The observed latency might arise from message transport protocols, buffering, scheduling, or mismatched timestamps logic between the Raspberry Pi and Pixhawk. Once the delay has been fixed or compensated for, live flight data can be produced.
+Although attitude stabilization was successful, the vehicle exhibited slow oscillatory drift about the vertical axis and did not exhibit the precise position control required. 
+Analysis of the flight logs showed the presence of a significant constant time delay, which we estimate at approximately 100-200 ms. The cause of the delay is between actuator commands generated on the Raspberry Pi and the observed actuator response. This delay was not present in our simulation environment and substantially degrades closed-loop control performance of the system.
+The source of the delay is currently under investigation. We use ROS 2 and Micro XRCE-DDS to communicate between the Raspberry Pi 5 and Pixhawk flight controller. The observed latency might arise from message transport protocols, buffering, scheduling, or mismatched timestamp logic between the Raspberry Pi and Pixhawk. Once the delay has been fixed or compensated for, live flight data can be produced.
 Nevertheless, the successful stabilization of the physical platform demonstrates the practical feasibility of implementing real-time NMPC for TVC control on low-cost embedded hardware.
 
 \section{Conclusions}
@@ -520,11 +520,11 @@ Nevertheless, the successful stabilization of the physical platform demonstrates
 
 This paper presents the design of a thrust vector control (TVC) drone platform for investigating nonlinear model predictive control (NMPC) of vertical takeoff and landing (VTOL) systems on low-cost embedded hardware. We experimented with three nonlinear programming (NLP) formulations for the NMPC problem: Runge-Kutta multiple shooting, orthogonal collocation with Gauss-Radau nodes, and Chebyshev pseudospectral collocation.
 
-Our results showed that all three NLP formulations were capable of stabilizing the drone’s nonlinear system with average run times that met our requirement of running at 50Hz on the Raspberry Pi 5. However, orthogonal collocation provided the most reliable overall performance, keeping all NLP solution times within the allotted $0.02s$ time interval, producing smooth converging trajectories and avoiding NLP solver failures. In addition, orthogonal collocation was the easiest to implement due to the availability of the {\dompc} library. The Chebyshev pseudospectral collocation had less consistent timing behavior and slightly irregular control trajectories. 
+Our results showed that all three NLP formulations were capable of stabilizing the drone’s nonlinear system with average run times that met our requirement of running at 50 Hz on the Raspberry Pi 5. However, orthogonal collocation provided the most reliable overall performance, keeping all NLP solution times within the allotted $0.02s$ time interval, producing smooth convergent trajectories and avoiding NLP solver failures. In addition, orthogonal collocation was the easiest to implement due to the availability of the {\dompc} library. The Chebyshev pseudospectral collocation method had less consistent timing behavior and slightly irregular control trajectories. 
 Multiple shooting demonstrated good trajectory quality and computational performance but had occasional NLP solver failures and timing spikes.
 
 
-We deployed the NMPC with orthogonal collocation controller on the physical drone. Initial experiments showed successful stabilization when hovering, but flight data analysis exhibited significant actuator-response latency possibly caused by communication protocols in the messaging pipeline. This timing lag must be fixed or accommodated before precise position control can be attained.
+We deployed the NMPC controller using orthogonal collocation on the physical drone. Initial experiments showed successful stabilization when hovering, but flight data analysis exhibited significant actuator-response latency possibly caused by communication protocols in the messaging pipeline. This timing lag must be fixed or accommodated before precise position control can be attained.
 
 
 \bibliography{references.bib}
