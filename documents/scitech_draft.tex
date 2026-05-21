@@ -143,13 +143,13 @@ The equations of motion are represented as the standard 6DOF series of first-ord
 	\dot{\vec{q}} = \frac{1}{2}Q(\vec{\omega})\vec{q}  \label{eqMotion3} \\
 	\dot{\vec{\omega}} = I^{-1}\!\left(\vec{M_b} - \vec{\omega} \times (I\,\vec{\omega})\right) \label{eqMotion4}
 \end{gather}
-where $m$ is the mass of the drone and $\vec{g} = [0, 0, -9.81]^T$ is the acceleration due to gravity. The body to world matrix $R(\vec{q})$  is used to compute the force in world coordinates due to the body-centric thrust vector given the quaternion orientation. Using vector decomposition we can find the thrust vector in body coordinates $\vec{F_b}$ in terms of the gimbal angles $\theta_1$ and $\theta_2$ and magnitude of the thrust $T$ acting on the drone.
+where $m$ is the mass of the drone and $\vec{g} = [0, 0, -9.81]^T$ is the acceleration due to gravity. The body to world matrix $R(\vec{q})$  is used to compute the force in world coordinates due to the body-centric thrust vector given the quaternion orientation. Using vector decomposition we can find the thrust vector in body coordinates $\vec{F_b}$ in terms of the gimbal angles $\theta_1$ and $\theta_2$ and magnitude of the thrust $T$ acting on the drone. The gimbal angles  are commanded in degrees but converted to radians in the dynamics model.
 \[
 \vec{F_b} = T
 \begin{bmatrix}
-	\sin{\theta_2}  \\
-	-\sin{\theta_1}\cos{\theta_2}  \\
-	\cos{\theta_1}\cos{\theta_2}
+	\sin{\theta_{2,\text{rad}}}  \\
+	-\sin{\theta_{1,\text{rad}}}\cos{\theta_{2,\text{rad}}}  \\
+	\cos{\theta_{1,\text{rad}}}\cos{\theta_{2,\text{rad}}}
 \end{bmatrix}
 \]
 The quaternion propagation matrix $Q(\vec{\omega})$ computes the change in quaternions given a set of angular velocities.
@@ -224,9 +224,9 @@ prioritizes solutons with the final state in the horizon close  to the goal stat
 	 Orthogonal collocation on finite elements with Gauss-Radau nodes as implemented in {\dompc}, allows rapid development and testing of embedded NMPC controllers with minimal implementation overhead. 
 	The prediction horizon is divided into $N$ time intervals of equal duration called finite elements. 
 	Within each finite element, the differential equations $\dot{x} =  f(x(t),u(t))$ are approximated with a polynomial of order $K+1$ and interpolated over $j = 0, 1, \ldots, K$ interpolation points within the interval.
-	Continuity constraints are added at the boundaries of adjacent finite elements to ensure continuity of the state trajectory. Implementation details for {\dompc}'s orthogonal collocation method can be found in the work of Beigler and Lovenz  \cite{dompc-oc}.  Tuning experiments across a range of test cases showed that $N=4$ time intervals across the 1 second prediction horizon with $K=2$ provided the best smoothing and settling scores while still meeting timing criteria.
+	Continuity constraints are added at the boundaries of adjacent finite elements to ensure continuity of the state trajectory. Implementation details for {\dompc}'s orthogonal collocation method can be found in the work of Biegler  \cite{dompc-oc}.  Tuning experiments across a range of test cases showed that $N=4$ time intervals across the 1 second prediction horizon with $K=2$ provided the best smoothing and settling scores while still meeting timing criteria.
 
-	Chebyshev pseudospectral methods approximate the state and control trajectories using global high-order polynomials over the prediction horizon. Dynamics are enforced at Chebyshev collocation points, which are distributed non-uniformly to reduce interpolation error that can occur near interval endpoints. This allows it to accurately enforce the system equations with fewer collocation points. Our implementation is based on the work of Faroo et. al. \cite{chebyshevPS} and was implemented with CasADi 3.7.1 \cite{casadi}.  The solution of the NLP for this method often failed to converge within the alloted number of NLP iterations. Increasing the number of collocation points didn't lead to noticably better performance. 
+	Chebyshev pseudospectral methods approximate the state and control trajectories using global high-order polynomials over the prediction horizon. Dynamics are enforced at Chebyshev collocation points, which are distributed non-uniformly to reduce interpolation error that can occur near interval endpoints. This allows it to accurately enforce the system equations with fewer collocation points. Our implementation is based on the work of Fahroo et. al. \cite{chebyshevPS} and was implemented with CasADi 3.7.1 \cite{casadi}.  The solution of the NLP for this method often failed to converge within the alloted number of NLP iterations. Increasing the number of collocation points didn't lead to noticably better performance. 
 	Removing the servo rate constraints reduced this problem so we leave those constraints  out in our comparison with the other methods. After running multiple test cases we found that $6$ collocation points were required to produce adequate smoothness and settling times within the required time limits.
 	
 
