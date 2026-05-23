@@ -74,7 +74,7 @@
 
 \begin{document}
 \maketitle
-	
+\renewcommand{\thefootnote}{\arabic{footnote}}
 \begin{abstract}
  
 We developed a nonlinear model predictive control (NMPC) framework for a thrust vector control (TVC) drone. Designed to study vertical takeoff and landing (VTOL), the drone has a two-axis gimbal and two stacked counter-rotating brushless motors for thrust.
@@ -510,7 +510,7 @@ t_k :
 \section{Hardware Validation and Future Work}
 \label{hardwarevalidation}
 We ran test flights using the NMPC with orthogonal collocation on the drone and achieved successful vertical stabilization and sustained hovering limited only by battery charge. 
-Although attitude stabilization was successful, the vehicle exhibited slow oscillatory drift about the vertical axis and did not exhibit the precise position control required. 
+Although attitude stabilization was successful, the vehicle exhibited slow oscillatory drift about the vertical axis and did not exhibit the precise position control required.  Supplementary flight videos are available online.\footnote{\url{https://www.youtube.com/watch?v=N2oum2yvaio}}
 Analysis of the flight logs showed the presence of a significant constant time delay, which we estimate at approximately 100-200 ms. The cause of the delay is between actuator commands generated on the Raspberry Pi and the observed actuator response. This delay was not present in our simulation environment and substantially degrades closed-loop control performance of the system.
 The source of the delay is currently under investigation. We use ROS 2 and Micro XRCE-DDS to communicate between the Raspberry Pi 5 and Pixhawk flight controller. The observed latency might arise from message transport protocols, buffering, scheduling, or mismatched timestamp logic between the Raspberry Pi and Pixhawk. Once the delay has been fixed or compensated for, live flight data can be produced.
 Nevertheless, the successful stabilization of the physical platform demonstrates the practical feasibility of implementing real-time NMPC for TVC control on low-cost embedded hardware.

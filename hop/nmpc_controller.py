@@ -21,6 +21,7 @@ class NMPC(OffBoardNode):
         self.mpc.setup_cost()
         self.mpc.set_start_state(mc.x0)
         self.acheive_logged = False
+        self.unpowered_mode = False
 
     def timer_callback(self):
 
@@ -44,6 +45,12 @@ class NMPC(OffBoardNode):
 
         if self.armed:
             mc.waypoints[self.waypoint_i][3] = self.voltage
+
+            # if we are running without motors powered but still want nmpc data
+            if self.unpowered_mode:
+                mc.waypoints[self.waypoint_i][3] = 25.0
+                mc.waypoints[self.waypoint_i][2] = 0.31
+
             self.mpc.set_waypoint(mc.waypoints[self.waypoint_i])
             control = self.mpc.mpc.make_step(self.state)
             self.control = np.array(control).flatten()

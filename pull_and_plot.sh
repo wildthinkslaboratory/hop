@@ -6,4 +6,4 @@ if [ ! -d "plotter_logs" ]; then
   mkdir plotter_logs
 fi
 
-scp izzy@192.168.0.100:~/drone_ws/src/hop/plotter_logs/current.json ./plotter_logs/
+scp izzy@X.X.X.X:~/drone_ws/src/hop/plotter_logs/current.json ./plotter_logs/
