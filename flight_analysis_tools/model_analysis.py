@@ -1,21 +1,21 @@
 # Analysis tools for flight logs
 #
 from hop.drone_model import DroneModel
-from hop.multiShooting import DroneNMPCMultiShoot
 from hop.dompc import DroneNMPCdompc
 from hop.constants import Constants
-from do_mpc.simulator import Simulator
 from hop.utilities import quaternion_to_angle, import_data
 import casadi as ca
-from do_mpc.estimator import StateFeedback
 import numpy as np
 import statistics as stats
 from time import perf_counter
 import matplotlib.pyplot as plt
-from matplotlib import colors
 from plotting.plots import plot_state, plot_control, plot_pwm, plot_attitude, plot_parameters, plot_weighted_error_state, plot_weighted_error_control
-from hop.multiShooting import DroneNMPCMultiShoot
+from hop.equations_of_motion import Equations6DOF
 import sys
+
+
+mc = Constants()
+equations = Equations6DOF(mc)
 
 # read in logfile and time point to begin analyzing
 log_file_name = './plotter_logs/current.json'
@@ -101,8 +101,6 @@ mpc.setup_cost()
 # mc.I[2][1] = theta[5]
 
 
-ms_mpc = DroneNMPCMultiShoot(mc)
-
 
 # data structures for the things we want to plot
 tspan = np.arange(0, len_used_data * dt , dt)
@@ -135,6 +133,7 @@ for i in range(len(state_data)-1):
 
     # first run the nmpc on the state
     start_time = perf_counter()
+
     mpc.set_waypoint(np.array(parameters[i]))
     u0 = mpc.mpc.make_step(state_data[i])
     step_time = perf_counter() - start_time
@@ -166,7 +165,7 @@ for i in range(len(state_data)-1):
         residual_control[i][j] = control_error[j] * mc.R[j,j] * control_error[j]
 
     # predict the next state and compare with actual next state
-    x0 = state_data[i] + mc.dt* ms_mpc.f(state_data[i],np.reshape(control_data[i], (4,1)), parameters[i])
+    x0 = state_data[i] + mc.dt* equations.f(state_data[i],np.reshape(control_data[i], (4,1)), parameters[i])
     flight_model_error[i] = state_data[i+1] -  np.reshape(x0, (13,))
     predicted_state[i] = np.reshape(x0, (13,))
     wx_vs_tilt[i][0] = state_data[i][10] * -10
