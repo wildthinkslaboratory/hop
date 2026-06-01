@@ -1,5 +1,13 @@
 # TVC Drone Project Code
 
+## Latest Updates
+
+[First Successful Test Flight](https://www.youtube.com/watch?v=N2oum2yvaio)
+
+[Close Up of Gimbal Action](https://www.youtube.com/watch?v=m86OpVHrvyQ)
+
+You can see from our test flight that although the drone balances, it oscillates around a balance point. We don't have the precise control that we need. We were able to identify a time delay in the servos by looking at the flight data and comparing it with the expected behavior based on the equations of motion. We've confirmed that the delay comes mostly from actuation of the servos. We had to make a slow motion video of the gimbals responding to commands from the Pi with an LED that lights when the first message is sent. There's about a 30ms delay between when the Pi sends the message and when the servos start to move. The servos then get further behind leading to about a 120 ms delay. The servos we used were JX PDI-6221MG-120 which are used primarily in small remote control cars. We've bought a couple of KST BLS815 V8 servos which are much better so we'll see what kind of delay we see with those. Then we'll model what ever hopefully smaller delay we have in our equations of motion.
+
 ## Project Structure
 
 - `documents` directory contains latex files for papers
