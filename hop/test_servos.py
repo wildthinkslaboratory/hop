@@ -54,7 +54,7 @@ class TestServos(OffBoardNode):
             self.ramp_i += 1
             if self.ramp_i % 100 < 50:
                 self.led.on()
-                self.pwm_servos = [6.0 / 52.0, 0.0]
+                self.pwm_servos = [6.0 / mc.gmb_deg_1pwm, 0.0]
             else:
                 self.led.off()
                 self.pwm_servos = [0.0, 0.0]
@@ -63,7 +63,7 @@ class TestServos(OffBoardNode):
         elif self.run_ramp_delay_test:
             if self.ramp_i < len(self.ramp)-1:
                 self.ramp_i += 1
-                self.pwm_servos =  [self.ramp[self.ramp_i]/52, 0.0]
+                self.pwm_servos =  [self.ramp[self.ramp_i] / mc.gmb_deg_1pwm, 0.0]
                 if self.ramp[self.ramp_i-1] < self.ramp[self.ramp_i]:
                     self.led.on()
                 else:

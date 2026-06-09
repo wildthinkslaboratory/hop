@@ -84,6 +84,8 @@ class Constants:
         self.Q = ca.diag([50.0,50.0,50.0, 10.0,10.0,10.0, 526.0,526.0,15.0,0.0, 15.0,15.0,1.0 ])
         self.R = ca.diag([0.01, 0.01, 100, 100])
 
+        
+        self.gmb_deg_1pwm = 52
 
         # The JX PDI-6221MG servo has a speed of 0.18 sec/60° at 4.8V 
         # that's 6.5 degrees per 0.02 sec so moving 6 degrees in a time step would be max
