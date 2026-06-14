@@ -5,6 +5,7 @@ from hop.drone_model import DroneModel
 from hop.dompc import DroneNMPCdompc
 from hop.multiShooting import DroneNMPCMultiShoot
 from hop.constants import Constants
+from hop.equations_of_motion import Equations6DOF
 from hop.utilities import  import_data
 import casadi as ca
 import numpy as np
@@ -65,6 +66,7 @@ parameters = parameters[stop_index+1:-1]
 
 # first we make a model
 mc = Constants()
+equations = Equations6DOF(mc)
 
 # update the constants with those used in the flight
 mc.update_from_dictionary(flight_constants)
@@ -78,7 +80,7 @@ mpc = DroneNMPCdompc(mc.dt, model.model)
 mpc.setup_cost()
 
 
-ms_mpc = DroneNMPCMultiShoot(mc)
+# ms_mpc = DroneNMPCMultiShoot(mc)
 
 # data structures for the things we want to plot
 tspan = np.arange(0, len_used_data * dt , dt)
@@ -108,8 +110,8 @@ x0 = x_init
 xrnp = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
 urnp = np.array([0.0, 0.0, mc.hover_thrust, 0.0])
 delay_steps = 0
-thrust_delay = 6
-servo_delay = 2
+thrust_delay = 5
+servo_delay = 5
 
 # run the simulation
 for i in range(delay_steps,len(state_data)-2):
@@ -123,8 +125,10 @@ for i in range(delay_steps,len(state_data)-2):
                           control_data[i-thrust_delay][2],
                           control_data[i-thrust_delay][3]
                           ])
-    dx = ms_mpc.f(state_data[i],u_delayed, parameters[i])
-       
+    # dx = ms_mpc.f(state_data[i],u_delayed, parameters[i])
+    dx = equations.f(state_data[i],u_delayed, parameters[i])
+    
+
     x0 = state_data[i] + mc.dt* dx
     dx = np.reshape(dx, (13,))
 

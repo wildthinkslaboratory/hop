@@ -111,8 +111,8 @@ class Constants:
         self.P_diff_dt = 0.02
 
         self.actuator_rate_costs = np.array([
-            1.0/self.gmb_deg_dt, 
-            1.0/self.gmb_deg_dt, 
+            30, 
+            30, 
             1.0/self.P_avg_dt, 
             1.0/self.P_diff_dt
         ])
