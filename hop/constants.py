@@ -14,7 +14,7 @@ class Constants:
 
         # model related constants
         # ---------------------------------------------------------------
-        self.m = 1.545    # mass of drone in kg
+        self.m = 1.576    # mass of drone in kg
 
         self.px4_height = 0.3
 
@@ -27,11 +27,17 @@ class Constants:
             self.gz
         ])
 
-        self.Ixx =  0.0595     # moments of inertia
-        self.Iyy =  0.0598
-        self.Izz =  0.0128
-        self.Ixz =  0.0003
-        self.Iyz =  0.0010
+        # self.Ixx =  0.0595     # moments of inertia
+        # self.Iyy =  0.0598
+        # self.Izz =  0.0128
+        # self.Ixz =  0.0003
+        # self.Iyz =  0.0010
+
+        self.Ixx =  0.0590     # moments of inertia
+        self.Iyy =  0.0594
+        self.Izz =  0.0130
+        self.Ixz =  0.0002
+        self.Iyz =  0.0009
 
 
         self.I = np.array([
@@ -40,10 +46,16 @@ class Constants:
             [self.Ixz, self.Iyz, self.Izz]
         ])
 
+        # self.moment_arm = np.array([
+        #     0.0015,
+        #     0.007,
+        #     -0.209799
+        # ])
+
         self.moment_arm = np.array([
-            0.0015,
-            0.007,
-            -0.209799
+            0.000073,
+            0.000271,
+            -0.208324
         ])
 
 
@@ -66,8 +78,8 @@ class Constants:
         # ---------------------------------------------------------------       
         self.outer_gimbal_range = [-20,20]          # outer gimbal range limit in degrees
         self.inner_gimbal_range = [-13.5,13.5]      # inner gimbal range limit in degrees
-        self.theta_dot_constraint = 6.16            # gimbal rate of change limit in degrees per second
-        self.thrust_dot_limit = 20.0                # thrust rate of change limit in Newtons per second
+        self.theta_dot_constraint = 6.16            # gimbal rate of change limit in degrees per dt
+        self.thrust_dot_limit = 20.0                # thrust rate of change limit in Newtons per dt
         self.hover_thrust = 0.70                   # the thrust rate needed to hover
         self.prop_thrust_constraint = 1.0          # max thrust allowed 
         self.diff_thrust_constraint = [-0.2,0.2]    # min and max thrust difference allowed
@@ -84,6 +96,8 @@ class Constants:
         self.Q = ca.diag([50.0,50.0,50.0, 10.0,10.0,10.0, 526.0,526.0,15.0,0.0, 15.0,15.0,1.0 ])
         self.R = ca.diag([0.01, 0.01, 100, 100])
 
+        
+        self.gmb_deg_1pwm = 52
 
         # The JX PDI-6221MG servo has a speed of 0.18 sec/60° at 4.8V 
         # that's 6.5 degrees per 0.02 sec so moving 6 degrees in a time step would be max

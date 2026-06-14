@@ -2,6 +2,19 @@
 
 ## Latest Updates
 
+### Fixed the time delay
+
+We did some more formal testing of the servos to identify the time delay. We set up an LED on the Pi to signal the time the servo PWM signal is sent on the Pi, and then did slow motion videos to observe the servo response. The JX PDI-6221MG-120 is really slow and not terribly precise. We ordered the KST BLS815 V8 servos and reran the tests and found them to be much faster and more precise.
+
+We ran a ramp test. We sent a series of servo commands ramping from 0 degrees up to 20 degrees then back down to -20 degrees and up to 0 degrees. This was repeated for a series of cycles. The commands were sent at 50Hz with each command being for a 4 degree change. The Pi turns the LED on when it begins sending the upward trajectory and turns the LED off when it starts sending the downward commands.
+
+| Servo             | time to movement | ramp lag | ramp degree |
+| ----------------- | ---------------- | -------- | ----------- |
+| JX PDI-6221MG-120 | 33 ms            | 80 ms    | 10          |
+| KST BLS815 V8     | 30 ms            | 33 ms    | 20          |
+
+Both servos had about the same amount of time between when the first message was sent and when the gimbal started moving. This was about 30 ms. As the ramp continued, the JX PDI-6221MG-120 developed a constant 80 ms lag and failed to reach the required 20 degrees before changing direction. It stopped at around 10 degrees. The KST BLS815 V8 developed a constant lag of 33 ms and always reached the full 20 degrees of rotation before changing direction.
+
 [First Successful Test Flight](https://www.youtube.com/watch?v=N2oum2yvaio)
 
 [Close Up of Gimbal Action](https://www.youtube.com/watch?v=m86OpVHrvyQ)
