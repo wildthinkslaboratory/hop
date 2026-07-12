@@ -28,7 +28,7 @@ class DroneModel:
 
         I_mat = ca.DM(mc.I)
         norm_P_avg = u[2] * parameters[3] / mc.battery_v
-        F = mc.a * norm_P_avg**2 + mc.b * norm_P_avg + mc.c 
+        F = (mc.a * norm_P_avg**2 + mc.b * norm_P_avg + mc.c) * mc.thrust_constant
         M = mc.d * mc.Izz * u[3]
 
         F_vector = F * ca.vertcat(
