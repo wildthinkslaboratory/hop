@@ -38,11 +38,14 @@ pwm_motors = np.empty([len(data),2])
 pwm_servos = np.empty([len(data),2])
 parameters = np.empty([len(data),5])
 voltage = []
+timestamps = []
+
 # collect all the data into arrays
 for i, d in enumerate(data):
     state_data[i] = np.array(d['state'])
     control_data[i] = np.array(d['control'])
     voltage.append(d['voltage'])
+    timestamps.append(d['timestamp'])
     pwm_motors[i] = np.array(d['pwm_motors'])
     pwm_servos[i] = np.array(d['pwm_servos'])
     if len(d['parameters']) == 4:
@@ -63,6 +66,7 @@ len_used_data = len(data) - stop_index -1
 state_data = state_data[stop_index+1:]
 control_data = control_data[stop_index+1:]
 voltage = voltage[stop_index+1:]
+timestamps = timestamps[stop_index+1:]
 pwm_motors = pwm_motors[stop_index+1:]
 pwm_servos = pwm_servos[stop_index+1:]
 parameters = parameters[stop_index+1:-1]
@@ -126,8 +130,14 @@ xrnp = np.array([0.0, 0.0, 0.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0
 urnp = np.array([0.0, 0.0, mc.hover_thrust, 0.0])
 
 # run the simulation
+took_too_long = 0
 for i in range(len(state_data)-1):
 
+    if i > 0:
+        tstep = timestamps[i] - timestamps[i-1]
+        if tstep > 0.025:
+            print(i, tstep)
+            
     # update parameters with current voltage
     parameters[i][3] = voltage[i]
 

@@ -121,7 +121,7 @@ for test in test_list_for_paper:
             if not ms_nmpc.solver_stats['status'] == 'Solve_Succeeded':
                 stats_data += 1
 
-                    # compute the accuracy metric
+        
         state_error = 0
         for i in range(num_iterations):
             error = reference_data[i] - state_data[i]
