@@ -110,8 +110,8 @@ x0 = x_init
 xrnp = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
 urnp = np.array([0.0, 0.0, mc.hover_thrust, 0.0])
 delay_steps = 0
-thrust_delay = 0
-servo_delay = 0
+thrust_delay = 3
+servo_delay = 3
 
 # run the simulation
 for i in range(delay_steps,len(state_data)-2):
