@@ -13,5 +13,8 @@
 # experiments for tuning Chebyshev pseudo-spectral collocation encoding of NLP
 # from experiments import cps_experiments
 
-# experiments that compare the three NLP encodings
-from experiments import nlp_experiment
+# # experiments that compare the three NLP encodings
+# from experiments import nlp_experiment
+
+# experiments that look at control time delays
+from experiments import time_delay
