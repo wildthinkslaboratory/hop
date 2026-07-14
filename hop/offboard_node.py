@@ -2,6 +2,7 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 from px4_msgs.msg import BatteryStatus, VehicleStatus, ActuatorMotors, ActuatorServos, OffboardControlMode, VehicleStatus, VehicleCommand, VehicleOdometry
 from rclpy.qos import qos_profile_sensor_data
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from time import perf_counter
 
 from casadi import DM
@@ -24,6 +25,10 @@ class OffBoardNode(Node):
 
     def __init__(self, name, timelimit = None, dt = mc.dt):
         super().__init__(name)
+
+        self.state_callback_group = MutuallyExclusiveCallbackGroup()
+        self.control_callback_group = MutuallyExclusiveCallbackGroup()
+
 
         self.logging_on = False
         self.timelimit = timelimit
@@ -50,7 +55,8 @@ class OffBoardNode(Node):
             VehicleOdometry,
             '/fmu/out/vehicle_odometry',
             self.state_callback,
-            qos_profile_sensor_data
+            qos_sub,
+            callback_group=self.state_callback_group
         )
 
         self.vehicle_status = self.create_subscription(
@@ -115,7 +121,16 @@ class OffBoardNode(Node):
         self.pwm_motors = [0.0, 0.0]
         self.pwm_servos = [0.0, 0.0]
         self.log_rows = []
-        self.timer = self.create_timer(self.dt, self.timer_callback)
+
+        self.timer = self.create_timer(
+            self.dt,
+            self.timer_callback,
+            callback_group=self.control_callback_group
+        )
+
+                # Protects shared state between callbacks
+        self.state_lock = threading.Lock()
+
         self.count = 0
         self.x_offset = 0.0  # offsets needed for optical flow
         self.y_offset = 0.0
@@ -178,6 +193,7 @@ class OffBoardNode(Node):
 
     # recieve vehicle odometry message
     def state_callback(self, msg):
+
         state = [0.0] * 13
 
         # px4 uses NED (North, East, Down) for position, 
@@ -215,7 +231,10 @@ class OffBoardNode(Node):
         ang_vel = msg.angular_velocity
         state[10:13] = [ang_vel[1], ang_vel[0], -ang_vel[2]]
 
-        self.state = DM(state)
+        # write to the state with a lock
+        with self.state_lock:
+            self.state = DM(state)
+
 
         # self.get_logger().info('offsets ' + str(self.state[0:3]) + ' ' + str(self.x_offset) + ' ' + str(self.y_offset))
 
