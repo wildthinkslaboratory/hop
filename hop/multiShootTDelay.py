@@ -8,7 +8,7 @@ class DroneNMPCMultiShootTDelay:
         self.mc = equations.mc
         self.dt = self.mc.ms_time_step
         self.E = equations
-        self.delay = delay
+        self.delay = delay * 2
         self.N = int(self.mc.horizon_time / self.mc.ms_time_step) + self.delay
         self.record_nlp_stats = True
     

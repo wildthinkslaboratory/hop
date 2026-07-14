@@ -45,14 +45,14 @@ single_test = [
 # Here is the full set of tests if you want to run all the simulations
 test_list_for_paper = import_data('nmpc_test_cases.json')
 
-delay_steps = 3
+delay = 3
 
 
 for test in test_list_for_paper:
 
     # set up the test case
     num_iterations = test['num_iterations']
-    x_init = ca.DM(test['x0'])
+    x_init = np.array(test['x0'])
     xr = np.array(test['xr'])
     allowed_error = np.array([0.05,0.05,0.05, 0.02,0.02,0.02, 0.02,0.02,0.02,0.02, 0.01,0.01,0.01])
     goal_ul = xr + allowed_error
@@ -71,64 +71,62 @@ for test in test_list_for_paper:
     rk_sim = RKSimulator(0.005, 4)
     params = np.array([xr[0], xr[1], xr[2], mc.battery_v, mc.hover_thrust])
     
-    model = DroneModel(mc)
-    mpc = DroneNMPCdompc(mc.dt, model.model)
-    mpc.setup_cost()
-    mpc.set_start_state(x_init)
+    # model = DroneModel(mc)
+    # mpc = DroneNMPCdompc(mc.dt, model.model)
+    # mpc.setup_cost()
+    # mpc.set_start_state(ca.DM(x_init))
 
-    # model_delay = True
+    model_delay = True
 
-    # if model_delay:
-    #     ms_nmpc = DroneNMPCMultiShootTDelay(equations, delay_steps)
-    #     ms_nmpc.build_nmpc_instance()
-    #     ms_nmpc.set_start_state(x_init)
-    #     u0 = np.zeros(4)
-    # else:
-    #     ms_nmpc = DroneNMPCMultiShoot(equations)
-    #     ms_nmpc.build_nmpc_instance()
-    #     ms_nmpc.set_start_state(x_init)
-    #     u0 = np.zeros(4)
-
-
-
-    x0 = x_init
+    if model_delay:
+        ms_nmpc = DroneNMPCMultiShootTDelay(equations, delay * 2)
+        ms_nmpc.build_nmpc_instance()
+        ms_nmpc.set_start_state(ca.DM(x_init))
+        u0 = np.zeros(4)
+    else:
+        ms_nmpc = DroneNMPCMultiShoot(equations)
+        ms_nmpc.build_nmpc_instance()
+        ms_nmpc.set_start_state(ca.DM(x_init))
+        u0 = np.zeros(4)
 
 
-    u_history = np.tile([0.0, 0.0, mc.hover_thrust, 0.0], (delay_steps, 1))
-    print(u_history)
+    u_dummy = np.array([0.0, 0.0, mc.hover_thrust, 0.0])
+
+    u_history = np.tile([0.0, 0.0, mc.hover_thrust, 0.0], ((delay * 2), 1))
+    state_history = np.tile(x_init, (delay+1,1))
+
+    for i in range(1,delay+1):
+        state_history[i] = np.reshape(rk_sim.make_step(equations.f, state_history[i-1], u_history[delay-1], params), (13,))
 
     # run the simulation
     for k in range(num_iterations):
+
         start_time = perf_counter()
+        # mpc.set_waypoint(params)
+        # u_computed = mpc.mpc.make_step(state_history[0])
 
-        mpc.set_waypoint(params)
-        u0 = mpc.mpc.make_step(x0)
-
-        
-        # if model_delay:
-        #     u0 = ms_nmpc.make_step(x0, u_history.flatten(), params)
-        # else:
-        #     u0 = ms_nmpc.make_step(x0, u0, params)
-
+        if model_delay:
+            u_computed = ms_nmpc.make_step(state_history[0], u_history.flatten(), params)
+        else:
+            u_computed = ms_nmpc.make_step(ca.DM(state_history[0]), u_dummy, params)
 
         step_time = perf_counter() - start_time
 
-        active_u = u0
-
-        # keep a history of control vectors
-        if delay_steps > 0:
-            active_u = u_history[delay_steps-1]
-            u_history = np.roll(u_history, 1, axis=0)
-            u_history[0] = u0.flatten()
-
-
+        u_current = u_computed
+        if delay > 0:
+            u_history = np.roll(u_history, -1, axis=0)
+            u_history[-1] = u_computed.flatten()
+            u_current = u_history[delay-1]
 
         # runge kutta 4 simulator
-        x0 = rk_sim.make_step(equations.f, x0, active_u, params)
+        x0 = rk_sim.make_step(equations.f, ca.DM(state_history[delay]), u_current, params)
 
         state_data[k] = np.reshape(x0, (13,))
-        control_data[k] = np.reshape(u0, (4,))
+        control_data[k] = np.reshape(u_computed, (4,))
         time_data.append(step_time)
+
+        state_history = np.roll(state_history, -1, axis=0)
+        state_history[-1] = np.reshape(x0, (13,))
 
         if not mpc.mpc.solver_stats['return_status'] == 'Solve_Succeeded':
             stats_data += 1

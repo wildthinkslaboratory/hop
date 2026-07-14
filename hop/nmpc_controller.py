@@ -1,4 +1,5 @@
 import rclpy
+from rclpy.executors import MultiThreadedExecutor
 import numpy as np
 import casadi as ca
 from casadi import sin, cos
@@ -52,7 +53,12 @@ class NMPC(OffBoardNode):
                 mc.waypoints[self.waypoint_i][2] = 0.31
 
             self.mpc.set_waypoint(mc.waypoints[self.waypoint_i])
-            control = self.mpc.mpc.make_step(self.state)
+
+            # read the state with a lock
+            with self.state_lock:
+                local_state = self.state
+
+            control = self.mpc.mpc.make_step(local_state)
             self.control = np.array(control).flatten()
             self.control_translator()   
 
@@ -89,20 +95,26 @@ class NMPC(OffBoardNode):
         top_prop_pwm, bottom_prop_pwm = self.get_thrust_pwm(thrust_values)
         self.pwm_servos =  [outer_angle, inner_angle]
         self.pwm_motors =  [top_prop_pwm, bottom_prop_pwm]
-        
+
+
 
 def main(args=None):
     rclpy.init(args=args)
     nmpc = NMPC()
     nmpc.logging_on = False
 
+    executor = MultiThreadedExecutor(num_threads=2)
+    executor.add_node(nmpc)
+
     try:
-        rclpy.spin(nmpc)
+        executor.spin()
     except SystemExit:
         pass
     finally:
+        executor.shutdown()
         nmpc.destroy_node()
         rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()
