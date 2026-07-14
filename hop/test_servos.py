@@ -9,7 +9,7 @@ class TestServos(OffBoardNode):
 
     def __init__(self):
         self.run_simple_delay_test = False
-        self.run_ramp_delay_test = False
+        self.run_ramp_delay_test = True
         self.led = LED(27)
         self.ramp_i = 0
         self.ramp = [0, 4, 8, 12, 16, 20, 16, 12, 8, 4, 0, -4, -8, -12, -16, -20, -16, -8, -4, 

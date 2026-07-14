@@ -120,6 +120,13 @@ class OffBoardNode(Node):
         self.control = np.array([0.0, 0.0, 0.0, 0.0])
         self.pwm_motors = [0.0, 0.0]
         self.pwm_servos = [0.0, 0.0]
+
+        # # 0 - time of state sample
+        # # 1 - time state sent from pixhawk
+        # # 2 - time state received on pi
+        # # 3 - time state used to compute control
+        # # 4 - time control sent to pixhawk
+        # self.timing = [0, 0, 0, 0, 0]
         self.log_rows = []
 
         self.timer = self.create_timer(
@@ -128,7 +135,8 @@ class OffBoardNode(Node):
             callback_group=self.control_callback_group
         )
 
-                # Protects shared state between callbacks
+        # state is accessed by NMPC callback and state_callback that
+        # run on different threads
         self.state_lock = threading.Lock()
 
         self.count = 0
@@ -193,6 +201,14 @@ class OffBoardNode(Node):
 
     # recieve vehicle odometry message
     def state_callback(self, msg):
+
+        # self.timing[0] = msg.timestamp
+        # self.timing[1] = msg.sample_timestamp
+        # self.timing[2] = self.get_clock().now().nanoseconds / 1000.0
+
+        # write to the state with a lock
+        with self.timing_lock:
+            self.state = DM(state)        
 
         state = [0.0] * 13
 
