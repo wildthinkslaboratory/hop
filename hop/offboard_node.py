@@ -205,10 +205,7 @@ class OffBoardNode(Node):
         # self.timing[0] = msg.timestamp
         # self.timing[1] = msg.sample_timestamp
         # self.timing[2] = self.get_clock().now().nanoseconds / 1000.0
-
-        # write to the state with a lock
-        with self.timing_lock:
-            self.state = DM(state)        
+       
 
         state = [0.0] * 13
 
