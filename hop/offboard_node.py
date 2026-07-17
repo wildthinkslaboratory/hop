@@ -178,6 +178,12 @@ class OffBoardNode(Node):
 
     # recieve vehicle odometry message
     def state_callback(self, msg):
+
+        # self.timing[0] = msg.timestamp
+        # self.timing[1] = msg.sample_timestamp
+        # self.timing[2] = self.get_clock().now().nanoseconds / 1000.0
+       
+
         state = [0.0] * 13
 
         # px4 uses NED (North, East, Down) for position, 
