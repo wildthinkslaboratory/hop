@@ -1,8 +1,6 @@
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 from px4_msgs.msg import BatteryStatus, VehicleStatus, ActuatorMotors, ActuatorServos, OffboardControlMode, VehicleStatus, VehicleCommand, VehicleOdometry
-from rclpy.qos import qos_profile_sensor_data
-from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from time import perf_counter
 
 from casadi import DM
@@ -25,10 +23,6 @@ class OffBoardNode(Node):
 
     def __init__(self, name, timelimit = None, dt = mc.dt):
         super().__init__(name)
-
-        self.state_callback_group = MutuallyExclusiveCallbackGroup()
-        self.control_callback_group = MutuallyExclusiveCallbackGroup()
-
 
         self.logging_on = False
         self.timelimit = timelimit
@@ -55,22 +49,22 @@ class OffBoardNode(Node):
             VehicleOdometry,
             '/fmu/out/vehicle_odometry',
             self.state_callback,
-            qos_sub,
-            callback_group=self.state_callback_group
+            qos_sub
         )
 
         self.vehicle_status = self.create_subscription(
             VehicleStatus,
             '/fmu/out/vehicle_status',
             self.status_callback,
-            qos_profile_sensor_data
+            qos_sub
+
         )
 
         self.battery_status = self.create_subscription(
             BatteryStatus,
             '/fmu/out/battery_status',
             self.battery_callback,
-            qos_pub
+            qos_sub
         )
 
 
@@ -120,25 +114,8 @@ class OffBoardNode(Node):
         self.control = np.array([0.0, 0.0, 0.0, 0.0])
         self.pwm_motors = [0.0, 0.0]
         self.pwm_servos = [0.0, 0.0]
-
-        # # 0 - time of state sample
-        # # 1 - time state sent from pixhawk
-        # # 2 - time state received on pi
-        # # 3 - time state used to compute control
-        # # 4 - time control sent to pixhawk
-        # self.timing = [0, 0, 0, 0, 0]
         self.log_rows = []
-
-        self.timer = self.create_timer(
-            self.dt,
-            self.timer_callback,
-            callback_group=self.control_callback_group
-        )
-
-        # state is accessed by NMPC callback and state_callback that
-        # run on different threads
-        self.state_lock = threading.Lock()
-
+        self.timer = self.create_timer(self.dt, self.timer_callback)
         self.count = 0
         self.x_offset = 0.0  # offsets needed for optical flow
         self.y_offset = 0.0
@@ -201,15 +178,6 @@ class OffBoardNode(Node):
 
     # recieve vehicle odometry message
     def state_callback(self, msg):
-
-        # self.timing[0] = msg.timestamp
-        # self.timing[1] = msg.sample_timestamp
-        # self.timing[2] = self.get_clock().now().nanoseconds / 1000.0
-
-        # write to the state with a lock
-        with self.timing_lock:
-            self.state = DM(state)        
-
         state = [0.0] * 13
 
         # px4 uses NED (North, East, Down) for position, 
@@ -247,10 +215,7 @@ class OffBoardNode(Node):
         ang_vel = msg.angular_velocity
         state[10:13] = [ang_vel[1], ang_vel[0], -ang_vel[2]]
 
-        # write to the state with a lock
-        with self.state_lock:
-            self.state = DM(state)
-
+        self.state = DM(state)
 
         # self.get_logger().info('offsets ' + str(self.state[0:3]) + ' ' + str(self.x_offset) + ' ' + str(self.y_offset))
 
@@ -357,7 +322,6 @@ class OffBoardNode(Node):
         offboard_msg.attitude = False
         offboard_msg.body_rate = False
         self.publisher_offboard_mode.publish(offboard_msg)
-
 
 
 
