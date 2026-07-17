@@ -110,6 +110,15 @@ class OffBoardNode(Node):
 
         ####################  locally store data ###################
         self.state = mc.x0
+
+        # state sample time
+        # state send time
+        # state receive time
+        # NLP start time
+        # NLP finish time
+        # control sent time
+        self.timing_info = [0,0,0,0,0,0]
+
         self.armed = False
         self.control = np.array([0.0, 0.0, 0.0, 0.0])
         self.pwm_motors = [0.0, 0.0]
@@ -143,6 +152,7 @@ class OffBoardNode(Node):
         self.log_rows.append({
             'state': self.state.full().flatten().tolist(),
             'control': self.control.tolist(),
+            'timing': self.timing_info,
             'pwm_motors': self.pwm_motors,
             'pwm_servos': self.pwm_servos,
             'voltage': self.voltage,
@@ -179,10 +189,11 @@ class OffBoardNode(Node):
     # recieve vehicle odometry message
     def state_callback(self, msg):
 
-        # self.timing[0] = msg.timestamp
-        # self.timing[1] = msg.sample_timestamp
-        # self.timing[2] = self.get_clock().now().nanoseconds / 1000.0
-       
+
+        self.timing[0] = msg.timestamp
+        self.timing[1] = msg.sample_timestamp
+        self.timing[2] = self.get_clock().now().nanoseconds / 1000.0
+    
 
         state = [0.0] * 13
 
@@ -265,6 +276,7 @@ class OffBoardNode(Node):
     def publish_vehicle_command(self, command, p1=0., p2=0.):
         msg = VehicleCommand()
         msg.timestamp = self.get_clock().now().nanoseconds // 1000
+        self.timing_info[5] = msg.timestamp
         msg.command = command
         msg.param1, msg.param2 = float(p1), float(p2)
         msg.target_system = 1
