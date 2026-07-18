@@ -3,7 +3,8 @@
 
 from hop.drone_model import DroneModel
 from hop.dompc import DroneNMPCdompc
-from hop.multiShooting import DroneNMPCMultiShoot
+from flight_analysis_tools.utilities import read_log_file
+# from hop.multiShooting import DroneNMPCMultiShoot
 from hop.constants import Constants
 from hop.equations_of_motion import Equations6DOF
 from hop.utilities import  import_data
@@ -12,21 +13,9 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 from plotting.plots import plot_state, plot_control
-import sys
 
 
-# read in logfile and time point to begin analyzing
-log_file_name = './plotter_logs/current.json'
-start_time = 0.0
-if len(sys.argv) > 1:
-    log_file_name = sys.argv[1]
-    start_time = float(sys.argv[2])
-    print(log_file_name, start_time)
-
-# Import the flight data
-log = import_data(log_file_name)   
-flight_constants = log['constants'] 
-data = log['run_data']
+start_time, flight_constants, data = read_log_file()
 
 # read in the flight data
 state_data = np.empty([len(data),13])

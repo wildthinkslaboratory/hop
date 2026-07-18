@@ -3,7 +3,8 @@
 from hop.drone_model import DroneModel
 from hop.dompc import DroneNMPCdompc
 from hop.constants import Constants
-from hop.utilities import quaternion_to_angle, import_data
+from hop.utilities import quaternion_to_angle
+from flight_analysis_tools.utilities import read_log_file
 import casadi as ca
 import numpy as np
 import statistics as stats
@@ -11,25 +12,12 @@ from time import perf_counter
 import matplotlib.pyplot as plt
 from plotting.plots import plot_state, plot_control, plot_pwm, plot_attitude, plot_parameters, plot_weighted_error_state, plot_weighted_error_control
 from hop.equations_of_motion import Equations6DOF
-import sys
 
 
 mc = Constants()
 equations = Equations6DOF(mc)
 
-# read in logfile and time point to begin analyzing
-log_file_name = './plotter_logs/current.json'
-start_time = 0.0
-if len(sys.argv) > 1:
-    log_file_name = sys.argv[1]
-    start_time = float(sys.argv[2])
-    print(log_file_name, start_time)
-
-
-# Import the flight data
-log = import_data(log_file_name)   
-flight_constants = log['constants'] 
-data = log['run_data']
+start_time, flight_constants, data = read_log_file()
 
 # read in the flight data
 state_data = np.empty([len(data),13])
@@ -39,6 +27,7 @@ pwm_servos = np.empty([len(data),2])
 parameters = np.empty([len(data),5])
 voltage = []
 timestamps = []
+timing_info = np.empty([len(data),6])
 
 # collect all the data into arrays
 for i, d in enumerate(data):
@@ -48,6 +37,7 @@ for i, d in enumerate(data):
     timestamps.append(d['timestamp'])
     pwm_motors[i] = np.array(d['pwm_motors'])
     pwm_servos[i] = np.array(d['pwm_servos'])
+    timing_info[i] = np.array(d['timing'])
     if len(d['parameters']) == 4:
         parameters[i] = np.array(d['parameters'] + [0.0])
     else:
@@ -70,6 +60,7 @@ timestamps = timestamps[stop_index+1:]
 pwm_motors = pwm_motors[stop_index+1:]
 pwm_servos = pwm_servos[stop_index+1:]
 parameters = parameters[stop_index+1:-1]
+timing_info = timing_info[stop_index+1:]
 
 wx_vs_tilt = np.empty([len_used_data, 2])
 
@@ -115,9 +106,13 @@ predicted_state = np.empty([len_used_data-1,13])
 residual_state = np.empty([len_used_data,13])
 residual_control = np.empty([len_used_data,4])
 attitude = np.empty([len_used_data,3])
+timing_int = np.empty([len_used_data,2])
 time_data = []
 cost_data = []
 
+# set the start times for pi and px4
+px4_start_time = timing_info[0][0]
+pi_start_time = timing_info[0][2]
 
 # Now we set the initial state
 x_init = ca.DM(state_data[0])
@@ -180,6 +175,7 @@ for i in range(len(state_data)-1):
     predicted_state[i] = np.reshape(x0, (13,))
     wx_vs_tilt[i][0] = state_data[i][10] * -10
     wx_vs_tilt[i][1] = attitude[i][0]
+    timing_int[i] = np.array([timing_info[i][0]-px4_start_time, 0.0])
 
 
 
@@ -224,6 +220,11 @@ plt.title('cpu time')
 plt.figure(3)
 plt.plot(tspan, voltage)
 plt.title('voltage')
+
+plt.figure(4)
+plt.plot(tspan[:], timing_int, label='Timing', marker='+', linestyle='None', markersize=4)
+plt.title('timing')
+
 plot_parameters(tspan[:-1], parameters, 'parameters')
 plot_pwm(tspan, pwm_servos, pwm_motors, 'pwm')
 
