@@ -3,7 +3,8 @@
 from hop.drone_model import DroneModel
 from hop.dompc import DroneNMPCdompc
 from hop.constants import Constants
-from hop.utilities import quaternion_to_angle, import_data
+from hop.utilities import quaternion_to_angle
+from flight_analysis_tools.flight_data import FlightData
 import casadi as ca
 import numpy as np
 import statistics as stats
@@ -11,73 +12,14 @@ from time import perf_counter
 import matplotlib.pyplot as plt
 from plotting.plots import plot_state, plot_control, plot_pwm, plot_attitude, plot_parameters, plot_weighted_error_state, plot_weighted_error_control
 from hop.equations_of_motion import Equations6DOF
-import sys
 
 
 mc = Constants()
 equations = Equations6DOF(mc)
-
-# read in logfile and time point to begin analyzing
-log_file_name = './plotter_logs/current.json'
-start_time = 0.0
-if len(sys.argv) > 1:
-    log_file_name = sys.argv[1]
-    start_time = float(sys.argv[2])
-    print(log_file_name, start_time)
-
-
-# Import the flight data
-log = import_data(log_file_name)   
-flight_constants = log['constants'] 
-data = log['run_data']
-
-# read in the flight data
-state_data = np.empty([len(data),13])
-control_data = np.empty([len(data),4])
-pwm_motors = np.empty([len(data),2])
-pwm_servos = np.empty([len(data),2])
-parameters = np.empty([len(data),5])
-voltage = []
-timestamps = []
-
-# collect all the data into arrays
-for i, d in enumerate(data):
-    state_data[i] = np.array(d['state'])
-    control_data[i] = np.array(d['control'])
-    voltage.append(d['voltage'])
-    timestamps.append(d['timestamp'])
-    pwm_motors[i] = np.array(d['pwm_motors'])
-    pwm_servos[i] = np.array(d['pwm_servos'])
-    if len(d['parameters']) == 4:
-        parameters[i] = np.array(d['parameters'] + [0.0])
-    else:
-        parameters[i] = np.array(d['parameters'])
-
-
-# we often want to cut off the beginning of the data
-# and start analyzing when the drone takes off
-# here we set up all the data structures for storing 
-# the analysis data
-dt = 0.02
-stop_index = int(start_time // dt)
-len_used_data = len(data) - stop_index -1
-
-# Truncate the data to start at the takeoff
-state_data = state_data[stop_index+1:]
-control_data = control_data[stop_index+1:]
-voltage = voltage[stop_index+1:]
-timestamps = timestamps[stop_index+1:]
-pwm_motors = pwm_motors[stop_index+1:]
-pwm_servos = pwm_servos[stop_index+1:]
-parameters = parameters[stop_index+1:-1]
-
-wx_vs_tilt = np.empty([len_used_data, 2])
-
-# first we make a model
-mc = Constants()
+fd = FlightData()
 
 # update the constants with those used in the flight
-mc.update_from_dictionary(flight_constants)
+mc.update_from_dictionary(fd.constants)
 
 model = DroneModel(mc)  
 
@@ -87,40 +29,25 @@ model = DroneModel(mc)
 mpc = DroneNMPCdompc(mc.dt, model.model)
 mpc.setup_cost()
 
-# create a second nmpc. We use this one to compute
-# the next state from current flight state and current flight
-# control. Then we can see if the model prediction of state
-# matches the actual change in state
-
-# theta = [ 0.06629151,  0.06187037,  0.005, -0.00229176,  0.00172769,  0.000987, 0.00679447,  0.00957006, -0.3 ]
-# mc.moment_arm = theta[6:]
-# mc.I[0][0] = theta[0]
-# mc.I[1][1] = theta[1]
-# mc.I[2][2] = theta[2]
-# mc.I[0][1] = theta[3]
-# mc.I[1][0] = theta[3]
-# mc.I[0][2] = theta[4]
-# mc.I[2][0] = theta[4]
-# mc.I[1][2] = theta[5]
-# mc.I[2][1] = theta[5]
-
-
-
 # data structures for the things we want to plot
-tspan = np.arange(0, len_used_data * dt , dt)
-flight_model_error = np.empty([len_used_data-1,13])
-control_data_computed = np.empty([len_used_data-1,4])
-control_computed_diff = np.empty([len_used_data-1,4])
-predicted_state = np.empty([len_used_data-1,13])
-residual_state = np.empty([len_used_data,13])
-residual_control = np.empty([len_used_data,4])
-attitude = np.empty([len_used_data,3])
+tspan = np.arange(0, fd.len_used_data * fd.dt , fd.dt)
+flight_model_error = np.empty([fd.len_used_data-1,13])
+control_data_computed = np.empty([fd.len_used_data-1,4])
+control_computed_diff = np.empty([fd.len_used_data-1,4])
+predicted_state = np.empty([fd.len_used_data-1,13])
+residual_state = np.empty([fd.len_used_data,13])
+residual_control = np.empty([fd.len_used_data,4])
+attitude = np.empty([fd.len_used_data,3])
+timing_int = np.empty([fd.len_used_data,2])
 time_data = []
 cost_data = []
 
+# set the start times for pi and px4
+px4_start_time = fd.timing_data[0][0]
+pi_start_time = fd.timing_data[0][2]
 
 # Now we set the initial state
-x_init = ca.DM(state_data[0])
+x_init = ca.DM(fd.state_data[0])
 xr = mc.xr
 mpc.set_start_state(x_init)
 x0 = x_init
@@ -131,27 +58,27 @@ urnp = np.array([0.0, 0.0, mc.hover_thrust, 0.0])
 
 # run the simulation
 took_too_long = 0
-for i in range(len(state_data)-1):
+for i in range(len(fd.state_data)-1):
 
     if i > 0:
-        tstep = timestamps[i] - timestamps[i-1]
+        tstep = fd.timestamps[i] - fd.timestamps[i-1]
         if tstep > 0.025:
             print(i, tstep)
             
     # update parameters with current voltage
-    parameters[i][3] = voltage[i]
+    fd.parameters[i][3] = fd.voltage[i]
 
     # first run the nmpc on the state
     start_time = perf_counter()
 
-    mpc.set_waypoint(np.array(parameters[i]))
-    u0 = mpc.mpc.make_step(state_data[i])
+    mpc.set_waypoint(np.array(fd.parameters[i]))
+    u0 = mpc.mpc.make_step(fd.state_data[i])
     step_time = perf_counter() - start_time
     
 
     # we want to check the nmpc results for the flight
     control_data_computed[i] = np.reshape(u0, (4,))
-    control_computed_diff[i] = control_data[i] - control_data_computed[i]
+    control_computed_diff[i] = fd.control_data[i] - control_data_computed[i]
     time_data.append(step_time)
     cost_data.append(mpc.mpc.data['_aux'][-1][2])
     if not mpc.mpc.solver_stats['return_status'] == 'Solve_Succeeded':
@@ -160,14 +87,14 @@ for i in range(len(state_data)-1):
 
     # turn quaternions into attitude
     # it's easier to read
-    q = state_data[6:10].copy()
-    q = np.reshape(state_data[i][6:10].copy(), (4,))
+    q = fd.state_data[6:10].copy()
+    q = np.reshape(fd.state_data[i][6:10].copy(), (4,))
     attitude[i] = quaternion_to_angle(q)
     
 
     # compute the weighted squared error
-    state_error = state_data[i] - xrnp
-    control_error = control_data[i] - urnp
+    state_error = fd.state_data[i] - xrnp
+    control_error = fd.control_data[i] - urnp
     for j in range(len(state_error)):
         residual_state[i][j] = state_error[j] * mc.Q[j,j] * state_error[j]
     residual_control[i] = np.absolute(control_error)
@@ -175,11 +102,10 @@ for i in range(len(state_data)-1):
         residual_control[i][j] = control_error[j] * mc.R[j,j] * control_error[j]
 
     # predict the next state and compare with actual next state
-    x0 = state_data[i] + mc.dt* equations.f(state_data[i],np.reshape(control_data[i], (4,1)), parameters[i])
-    flight_model_error[i] = state_data[i+1] -  np.reshape(x0, (13,))
+    x0 = fd.state_data[i] + mc.dt* equations.f(fd.state_data[i],np.reshape(fd.control_data[i], (4,1)), fd.parameters[i])
+    flight_model_error[i] = fd.state_data[i+1] -  np.reshape(x0, (13,))
     predicted_state[i] = np.reshape(x0, (13,))
-    wx_vs_tilt[i][0] = state_data[i][10] * -10
-    wx_vs_tilt[i][1] = attitude[i][0]
+    timing_int[i] = np.array([fd.timing_data[i][0]-px4_start_time, 0.0])
 
 
 
@@ -188,28 +114,6 @@ mean_time = round(stats.mean(time_data),3)
 max_time = round(max(time_data),3) 
 print('mean time: ', mean_time)
 print('max time: ', max_time)
-
-def plot_temp(tspan, wx_tilt, title='wx vs tilt'):
-    plt.rcParams['ytick.labelsize'] = 8 
-    plt.rcParams['xtick.labelsize'] = 8
-    fig, axs = plt.subplots(1)
-    fig.set_figheight(8)
-    fig.suptitle(title)
-
-
-    # x angle
-
-    axs.plot(tspan, wx_tilt[:,0])
-
-   
-    # y angle
-    axs.plot(tspan, wx_tilt[:,1])
-
-
-
-    plt.xlabel('Time')
-    # plt.show()
-
 
 # now all the plots
 plt.figure(figsize=(6,3))
@@ -222,22 +126,21 @@ plt.plot(tspan[:-1], time_data, label='CPU Time', marker='+', linestyle='None', 
 plt.title('cpu time')
 
 plt.figure(3)
-plt.plot(tspan, voltage)
+plt.plot(tspan, fd.voltage)
 plt.title('voltage')
-plot_parameters(tspan[:-1], parameters, 'parameters')
-plot_pwm(tspan, pwm_servos, pwm_motors, 'pwm')
+
+plot_parameters(tspan[:-1], fd.parameters, 'parameters')
+plot_pwm(tspan, fd.pwm_servos, fd.pwm_motors, 'pwm')
 
 plot_control(tspan[:-1], control_data_computed, 'control computed')
 plot_control(tspan[:-1], control_computed_diff, 'control computed difference')
 plot_state(tspan[:-1], flight_model_error, 'flight state vs model predicted state error')
-# plot_state(tspan[:-1], predicted_state, 'predicted state')
 plot_weighted_error_state(tspan, residual_state, 'state weighted squared errors')
 plot_weighted_error_control(tspan, residual_control, 'control weighted squared errors')
 plot_attitude(tspan, attitude, 'attitude')
-plot_control(tspan, control_data, 'flight control data')
-plot_state(tspan, state_data, 'state')
+plot_control(tspan, fd.control_data, 'flight control data')
+plot_state(tspan, fd.state_data, 'state')
 
-plot_temp(tspan, wx_vs_tilt)
 plt.show()
 
 
