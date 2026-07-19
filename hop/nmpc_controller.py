@@ -51,7 +51,7 @@ class NMPC(OffBoardNode):
                 mc.waypoints[self.waypoint_i][3] = 25.0
                 mc.waypoints[self.waypoint_i][2] = 0.31
 
-            self.timing_data[3] = self.get_clock().now().nanoseconds / 1000.0
+            self.timing_data[3] = self.get_clock().now().nanoseconds // 1000000
 
             # this is temporary code for until I get my timing code up and running
             if True:
@@ -66,7 +66,7 @@ class NMPC(OffBoardNode):
                 self.get_logger().info('\nWAYPOINT ACHEIVED ' + str(self.waypoint_i))
                 self.acheive_logged = True
             
-            self.timing_data[4] = self.get_clock().now().nanoseconds / 1000.0   
+            self.timing_data[4] = self.get_clock().now().nanoseconds // 1000000   
             
         super().timer_callback()
     
