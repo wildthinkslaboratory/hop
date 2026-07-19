@@ -10,6 +10,7 @@ from hop.constants import Constants
 from hop.utilities import output_data, quaternion_multiply
 from datetime import datetime
 from math import sqrt
+from copy import deepcopy
 mc = Constants()
 
 # this is all needed for keyboard input
@@ -152,7 +153,7 @@ class OffBoardNode(Node):
         self.log_rows.append({
             'state': self.state.full().flatten().tolist(),
             'control': self.control.tolist(),
-            'timing': self.timing_data,
+            'timing': deepcopy(self.timing_data),
             'pwm_motors': self.pwm_motors,
             'pwm_servos': self.pwm_servos,
             'voltage': self.voltage,
@@ -189,7 +190,7 @@ class OffBoardNode(Node):
     # recieve vehicle odometry message
     def state_callback(self, msg):
 
-        self.timing_data[0:3] = [msg.timestamp_sample, msg.timestamp, self.get_clock().now().nanoseconds / 1000.0]
+        self.timing_data[0:3] = [msg.timestamp_sample, msg.timestamp, self.get_clock().now().nanoseconds // 1000000]
         state = [0.0] * 13
 
         # px4 uses NED (North, East, Down) for position, 
@@ -271,7 +272,6 @@ class OffBoardNode(Node):
     def publish_vehicle_command(self, command, p1=0., p2=0.):
         msg = VehicleCommand()
         msg.timestamp = self.get_clock().now().nanoseconds // 1000
-        self.timing_data[5] = msg.timestamp
         msg.command = command
         msg.param1, msg.param2 = float(p1), float(p2)
         msg.target_system = 1
@@ -299,6 +299,7 @@ class OffBoardNode(Node):
     def run_servos(self):
         servo_command = ActuatorServos()
         t = self.get_clock().now().nanoseconds // 1000
+        self.timing_data[5] = t // 1000
         servo_command.timestamp_sample = t
         servo_command.timestamp = t
         servo_command.control = [-self.pwm_servos[0], -self.pwm_servos[1], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]   # 4 motors + 4 unused
