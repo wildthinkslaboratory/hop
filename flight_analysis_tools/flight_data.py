@@ -26,7 +26,7 @@ class FlightData:
         self.pwm_motors = np.empty([len(data),2])
         self.pwm_servos = np.empty([len(data),2])
         self.parameters = np.empty([len(data),5])
-        self.timing_data = np.empty([len(data),6])
+        self.timing_data = []
         self.voltage = []
         self.timestamps = []
 
@@ -39,7 +39,7 @@ class FlightData:
             self.pwm_motors[i] = np.array(d['pwm_motors'])
             self.pwm_servos[i] = np.array(d['pwm_servos'])
             if 'timing' in d:
-                self.timing_data[i] = np.array(d['timing'])
+                self.timing_data.append(d['timing'])
             if len(d['parameters']) == 4:
                 self.parameters[i] = np.array(d['parameters'] + [0.0])
             else:
