@@ -51,22 +51,22 @@ class NMPC(OffBoardNode):
                 mc.waypoints[self.waypoint_i][3] = 25.0
                 mc.waypoints[self.waypoint_i][2] = 0.31
 
-            self.timing_data[3] = self.get_clock().now().nanoseconds // 1000000
+            self.timing_data[3] = self.get_clock().now().nanoseconds // 1000
 
             # this is temporary code for until I get my timing code up and running
-            if True:
-                sleep(0.015)
-            else:
-                self.mpc.set_waypoint(mc.waypoints[self.waypoint_i])
-                control = self.mpc.mpc.make_step(self.state)
-                self.control = np.array(control).flatten()
-                self.control_translator()   
+            # if True:
+            #     sleep(0.015)
+            # else:
+            self.mpc.set_waypoint(mc.waypoints[self.waypoint_i])
+            control = self.mpc.mpc.make_step(self.state)
+            self.control = np.array(control).flatten()
+            self.control_translator()   
 
             if distance(mc.waypoints[self.waypoint_i][:3], self.state[:3]) < 0.05 and not self.acheive_logged:
                 self.get_logger().info('\nWAYPOINT ACHEIVED ' + str(self.waypoint_i))
                 self.acheive_logged = True
             
-            self.timing_data[4] = self.get_clock().now().nanoseconds // 1000000   
+            self.timing_data[4] = self.get_clock().now().nanoseconds // 1000   
             
         super().timer_callback()
     

@@ -190,7 +190,7 @@ class OffBoardNode(Node):
     # recieve vehicle odometry message
     def state_callback(self, msg):
 
-        self.timing_data[0:3] = [msg.timestamp_sample, msg.timestamp, self.get_clock().now().nanoseconds // 1000000]
+        self.timing_data[0:3] = [msg.timestamp_sample, msg.timestamp, self.get_clock().now().nanoseconds // 1000]
         state = [0.0] * 13
 
         # px4 uses NED (North, East, Down) for position, 
@@ -299,7 +299,7 @@ class OffBoardNode(Node):
     def run_servos(self):
         servo_command = ActuatorServos()
         t = self.get_clock().now().nanoseconds // 1000
-        self.timing_data[5] = t // 1000
+        self.timing_data[5] = t 
         servo_command.timestamp_sample = t
         servo_command.timestamp = t
         servo_command.control = [-self.pwm_servos[0], -self.pwm_servos[1], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]   # 4 motors + 4 unused
