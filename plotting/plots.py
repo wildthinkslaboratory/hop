@@ -25,24 +25,24 @@ def plot_state(tspan, data, title='State'):
     plt.savefig(plotdir + "flight_model_comp.pdf", format="pdf", bbox_inches="tight")
     # plt.show()
 
-def plot_weighted_error_state(tspan, data, title='State'):
+def plot_weighted_error_state(tspan, data, title='State', ylim = 20):
     fig, axs = plt.subplots(4)
     fig.set_figheight(8)
     fig.suptitle(title)
 
-    axs[0].set_ylim([0, 20])
+    axs[0].set_ylim([0, ylim])
     for i in range(3):
         axs[0].plot(tspan, data[:,i])
     axs[0].set_ylabel('$x$')
-    axs[1].set_ylim([0, 20])
+    axs[1].set_ylim([0, ylim])
     for i in range(3):
         axs[1].plot(tspan, data[:,i+3])
     axs[1].set_ylabel('$v$')
-    axs[2].set_ylim([0, 20])
+    axs[2].set_ylim([0, ylim])
     for i in range(4):
         axs[2].plot(tspan, data[:,i+6])
     axs[2].set_ylabel('$q$')
-    axs[3].set_ylim([0, 20])
+    axs[3].set_ylim([0, ylim])
     for i in range(3):
         axs[3].plot(tspan, data[:,i+10])
     axs[3].set_ylabel('$w$')
