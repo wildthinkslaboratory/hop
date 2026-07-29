@@ -39,12 +39,11 @@ residual_state = np.empty([fd.len_used_data,13])
 residual_control = np.empty([fd.len_used_data,4])
 attitude = np.empty([fd.len_used_data,3])
 timing_int = np.empty([fd.len_used_data,2])
+cost_by_state = np.empty([fd.len_used_data,13])
+
 time_data = []
 cost_data = []
 
-# set the start times for pi and px4
-px4_start_time = fd.timing_data[0][0]
-pi_start_time = fd.timing_data[0][2]
 
 # Now we set the initial state
 x_init = ca.DM(fd.state_data[0])
@@ -58,6 +57,7 @@ urnp = np.array([0.0, 0.0, mc.hover_thrust, 0.0])
 
 # run the simulation
 took_too_long = 0
+max_cost = 0
 for i in range(len(fd.state_data)-1):
 
     if i > 0:
@@ -84,6 +84,12 @@ for i in range(len(fd.state_data)-1):
     if not mpc.mpc.solver_stats['return_status'] == 'Solve_Succeeded':
         print(mpc.mpc.solver_stats['return_status'])
 
+    state_sol = mpc.mpc.data.prediction(('_x',))
+    for k, state in enumerate(state_sol):
+        cost_by_state[i][k] = sum([(c - xrnp[k]) @ mc.Q[k,k] @ (c - xrnp[k]) for c in state])
+        if cost_by_state[i][k] > max_cost:
+            max_cost = cost_by_state[i][k]
+
 
     # turn quaternions into attitude
     # it's easier to read
@@ -105,7 +111,6 @@ for i in range(len(fd.state_data)-1):
     x0 = fd.state_data[i] + mc.dt* equations.f(fd.state_data[i],np.reshape(fd.control_data[i], (4,1)), fd.parameters[i])
     flight_model_error[i] = fd.state_data[i+1] -  np.reshape(x0, (13,))
     predicted_state[i] = np.reshape(x0, (13,))
-    timing_int[i] = np.array([fd.timing_data[i][0]-px4_start_time, 0.0])
 
 
 
@@ -137,6 +142,7 @@ plot_control(tspan[:-1], control_computed_diff, 'control computed difference')
 plot_state(tspan[:-1], flight_model_error, 'flight state vs model predicted state error')
 plot_weighted_error_state(tspan, residual_state, 'state weighted squared errors')
 plot_weighted_error_control(tspan, residual_control, 'control weighted squared errors')
+plot_weighted_error_state(tspan, cost_by_state, 'cost across horizon', max_cost)
 plot_attitude(tspan, attitude, 'attitude')
 plot_control(tspan, fd.control_data, 'flight control data')
 plot_state(tspan, fd.state_data, 'state')
