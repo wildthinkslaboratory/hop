@@ -1,7 +1,8 @@
+import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 from px4_msgs.msg import BatteryStatus, OffboardControlMode, VehicleStatus, VehicleCommand, VehicleOdometry
-from rclpy import shutdown
+from hop_interfaces.msg import NMPCInput, NMPCStatus
 
 from casadi import DM
 import numpy as np
@@ -20,8 +21,8 @@ import threading
 
 class ControlNode(Node):
 
-    def __init__(self, name, timelimit = None, dt = mc.dt):
-        super().__init__(name)
+    def __init__(self, dt = mc.dt):
+        super().__init__('main_control_node')
 
         qos_pub = QoSProfile(
             reliability=QoSReliabilityPolicy.BEST_EFFORT,
@@ -44,27 +45,29 @@ class ControlNode(Node):
             VehicleOdometry,
             '/fmu/out/vehicle_odometry',
             self.state_callback,
-            qos_sub,
-            callback_group=self.sub_group
+            qos_sub
         )
 
         self.vehicle_status = self.create_subscription(
             VehicleStatus,
             '/fmu/out/vehicle_status',
             self.vehicle_status_callback,
-            qos_sub,
-            callback_group=self.sub_group
-
+            qos_sub
         )
 
         self.battery_status = self.create_subscription(
             BatteryStatus,
             '/fmu/out/battery_status',
             self.battery_callback,
-            qos_sub,
-            callback_group=self.sub_group
+            qos_sub
         )
 
+        self.nmpc_status = self.create_subscription(
+            NMPCStatus,
+            '/hop/nmpc_status',
+            self.nmpc_status_callback,
+            qos_sub
+        )
 
         ############ Publishers #########################
 
@@ -80,10 +83,16 @@ class ControlNode(Node):
             qos_pub
         )
 
-        # will need a state publisher here
+        self.publisher_nmpc_input = self.create_publisher(
+            NMPCInput, 
+            '/hop/nmpc_input', 
+            qos_pub
+        )
 
         ####################  locally store data ###################
         
+        # SHUTDOWN move waypoint_i to nmpc node
+
         self.dt = dt
         self.logging_on = False
         self.nav_state = VehicleStatus.NAVIGATION_STATE_MAX
@@ -92,11 +101,18 @@ class ControlNode(Node):
         self.waypoint_i = 0
         self.first_arm = True
         self.state = mc.x0
+        self.voltage = 0.0    
+        self.timestamp_sample = 0
+        self.main_receive_time = 0  
+        self.nmpc_status = NMPCStatus.STARTING          
         self.armed = False
         self.count = 0
         self.x_offset = 0.0  # offsets needed for optical flow
         self.y_offset = 0.0
-        self.voltage = 0.0
+
+        self.stop_requested = False
+
+        # SHUTDOWN strip out the keyboard code 
 
         # set up for keyboard reading
         if not sys.stdin.isatty():
@@ -104,27 +120,39 @@ class ControlNode(Node):
         self.std_in_fd = sys.stdin.fileno()
         self.term_settings = termios.tcgetattr(self.std_in_fd)
         tty.setcbreak(self.std_in_fd)
-        self.stop_requested = False
-
-        self.pub_timer = self.create_timer(self.dt, self.send_state, callback_group=self.pub_group)
-        self.keyboard_timer = self.create_timer(self.dt, self.keyboard_callback, callback_group=self.pub_group)        
 
 
-############################# pub_group callback  ####################################
+        self.timer = self.create_timer(self.dt, self.main_loop)    
+
+
+#############################  ####################################
 
 
     # 1. forward state to nmpc
     # 2. maintain offboard mode
     # manage arming at beginning of flight and disarming when stop requested
-    def send_state(self):
+    def main_loop(self):
 
-        if self.stop_requested:
+        # SHUTDOWN strip out keyboard code
+
+        # monitor keyboard presses
+        if select.select([sys.stdin], [], [], 0.0)[0]:
+            self.key = sys.stdin.read(1)
+            if self.logging_on:
+                self.get_logger().info(f"Key pressed: {self.key}")
+
+
+        # switch this to look at nmpc_status MOTOR_SHUTDOWN OR LAND
+        if not self.key == '': # any key press means stop the run
             if self.armed:
-                self.turn_off_motors()
                 self.disarm()
             else:
-                shutdown()
+                rclpy.shutdown()
         else: 
+            if self.armed and self.nmpc_status == NMPCStatus.READY:
+                self.publish_nmpc_input()
+
+
             self.count += 1
             self.maintain_offboard()
 
@@ -132,16 +160,9 @@ class ControlNode(Node):
                 self.offboard_arm()
 
 
-    # monitor keyboard input
-    def keyboard_callback(self):
-        
-        if select.select([sys.stdin], [], [], 0.0)[0]:
-            self.key = sys.stdin.read(1)
-            if self.logging_on:
-                self.get_logger().info(f"Key pressed: {self.key}")
 
-        if not self.key == '':
-            self.stop_requested = True
+        
+
 
 
 
@@ -192,7 +213,26 @@ class ControlNode(Node):
         )
 
 
-############################# sub_group callback  ####################################
+    def publish_nmpc_input(self):
+        msg = NMPCInput()
+        msg.timestamp_sample = self.timestamp_sample
+        msg.main_receive_time = self.main_receive_time
+        msg.main_send_time = self.get_clock().now().nanoseconds // 1000
+        msg.state = self.state
+
+        # SHUTDOWN move waypoint_i to nmpc node just send the voltage
+        # update the message nmpc_input
+
+        # fill in the parameters
+        parameters = [0.0] * 8
+        parameters[:5] = mc.waypoints[self.waypoint_i]
+        parameters[3] = self.voltage
+        
+        msg.parameters = parameters
+        self.publisher_nmpc_input.publish(msg)
+
+
+############################# subscription callbacks  ####################################
 
     # recieve armed status
     def vehicle_status_callback(self, msg):
@@ -211,17 +251,19 @@ class ControlNode(Node):
             self.x_offset = float(self.state[0])
             self.y_offset = float(self.state[1])
 
-
     # recieve armed status
     def battery_callback(self, msg):
-        with self.voltage_lock:
-            self.voltage = msg.voltage_v
+        self.voltage = msg.voltage_v
         
+
+    def nmpc_status_callback(self, msg):
+        self.nmpc_status = msg.status
+        self.get_logger().info('NMPC Ready Received')
 
 
     # recieve vehicle odometry message
     def state_callback(self, msg):
-        state = [0.0] * 13
+        self.state = [0.0] * 13
 
         # px4 uses NED (North, East, Down) for position, 
         #  quaternion (w, i, j, k) gives rotation from body frame FRD (front, right, down) 
@@ -235,8 +277,8 @@ class ControlNode(Node):
         # position is translated from NED to ENU
         pos = np.array(msg.position)
         vel = np.array(msg.velocity)
-        state[0:3] = [pos[1] - self.x_offset, pos[0] - self.y_offset, -pos[2]]
-        state[3:6] = [vel[1], vel[0], -vel[2]]
+        self.state[0:3] = [pos[1] - self.x_offset, pos[0] - self.y_offset, -pos[2]]
+        self.state[3:6] = [vel[1], vel[0], -vel[2]]
     
         # Front Left Up to Front Right Down translation (w, x, y, z)
         FLU_FRD = np.array([0, sqrt(2)/2, sqrt(2)/2, 0])
@@ -253,23 +295,22 @@ class ControlNode(Node):
         norm = np.linalg.norm(q_FLU_ENU)
         if norm > 0:
             q_FLU_ENU /= norm
-        state[6:10] = np.array([q_FLU_ENU[1], q_FLU_ENU[2], q_FLU_ENU[3], q_FLU_ENU[0]])
+        self.state[6:10] = np.array([q_FLU_ENU[1], q_FLU_ENU[2], q_FLU_ENU[3], q_FLU_ENU[0]])
                
         ang_vel = msg.angular_velocity
-        state[10:13] = [ang_vel[1], ang_vel[0], -ang_vel[2]]
+        self.state[10:13] = [ang_vel[1], ang_vel[0], -ang_vel[2]]
 
-
-        self.state = DM(state)
-        # self.state_timing_data = [msg.timestamp_sample, msg.timestamp, self.get_clock().now().nanoseconds // 1000]
-
+        self.timestamp_sample = msg.timestamp_sample
+        self.main_receive_time = self.get_clock().now().nanoseconds // 1000
+       
         if self.logging_on:
             self.get_logger().info(
                 f"""\n=== NMPC Step ===
                 State:
-                p: {state[0:3]}
-                v: {state[3:6]}
-                q: {state[6:10]}
-                w: {state[10:13]}
+                p: {self.state[0:3]}
+                v: {self.state[3:6]}
+                q: {self.state[6:10]}
+                w: {self.state[10:13]}
                 """
             )
 
@@ -282,12 +323,6 @@ class ControlNode(Node):
 
         # reset terminal settings
         termios.tcsetattr(self.std_in_fd, termios.TCSANOW, self.term_settings)
-
-        # write log data to file
-        data = {'constants': mc.__dict__(), 'run_data': self.log_rows}
-        output_data(data, "src/hop/plotter_logs/current.json")
-        formatted_date = datetime.now().strftime("%Y-%m-%d-%H-%M")
-        output_data(data, "src/hop/plotter_logs/" + formatted_date + "log.json")
         super().destroy_node()
 
 
@@ -295,16 +330,16 @@ class ControlNode(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    nmpc = ControlNode()
-    nmpc.logging_on = False
+    main_node = ControlNode()
+    main_node.logging_on = False
 
     try:
-        rclpy.spin(nmpc)
+        rclpy.spin(main_node)
     except SystemExit:
         pass
     finally:
-        nmpc.destroy_node()
-        rclpy.shutdown()
+        main_node.destroy_node()
+        rclpy.try_shutdown()
 
 if __name__ == '__main__':
     main()

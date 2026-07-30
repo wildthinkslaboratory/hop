@@ -14,16 +14,21 @@
 #
 #
 
-
+import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 from px4_msgs.msg import ActuatorMotors, ActuatorServos
+
+# SHUTDOWN add the new keyboard message
+from hop_interfaces.msg import NMPCInput, NMPCStatus
 from time import perf_counter
 from datetime import datetime
 
 from casadi import DM
 import numpy as np
 from hop.constants import Constants
+from hop.drone_model import DroneModel
+from hop.dompc import DroneNMPCdompc
 from hop.utilities import output_data
 
 mc = Constants()
@@ -32,9 +37,9 @@ mc = Constants()
 
 class NMPCNode(Node):
 
-    def __init__(self, name, timelimit = None, dt = mc.dt):
-        super().__init__(name)
-
+    def __init__(self, dt = mc.dt):
+        super().__init__('nmpc_node')
+        
         qos_pub = QoSProfile(
             reliability=QoSReliabilityPolicy.BEST_EFFORT,
             durability=QoSDurabilityPolicy.VOLATILE,
@@ -53,8 +58,14 @@ class NMPCNode(Node):
         ################# Subscriptons #########################  
 
         # it will have one state subscription from main node
+        self.nmpc_input = self.create_subscription(
+            NMPCInput, 
+            '/hop/nmpc_input', 
+            self.nmpc,
+            qos_sub
+        )
 
-
+        # we need to subscribe to the keyboard node
 
         ############ Publishers #########################
 
@@ -70,36 +81,61 @@ class NMPCNode(Node):
             qos_pub
         )
 
+        self.publisher_status = self.create_publisher(
+            NMPCStatus, 
+            '/hop/nmpc_status', 
+            qos_pub
+        )
+
         ####################  locally store data ###################
 
-        self.log_rows = []
+        # SHUTDOWN need a shutdown/land request variable
+        # add waypoint_i
+        # add waypoint arrived test
 
+        self.log_rows = []
+        self.model = DroneModel(mc)
+        self.mpc = DroneNMPCdompc(mc.dt, self.model.model)
+        self.mpc.setup_cost()
+        self.mpc.set_start_state(mc.x0)
+
+        status = NMPCStatus()
+        status.status = NMPCStatus.READY
+        status.timestamp = self.get_clock().now().nanoseconds // 1000
+        self.publisher_status.publish(status)
+        self.get_logger().info('NMPC Ready')
 
 
 ############################# callbacks  ####################################
 
     # publish all of our messages
     def nmpc(self, msg):
-        state = msg.state
-        state_sample_time = msg.state_sample_time
-        parameters = msg.parameters       # this needs to have latest voltage     
 
+        # SHUTDOWN need a shutdown/land request variable
+        # read goal state from mc not msg
+        # add waypoint arrived test
+        # add keyboard request status SHUTDOWN, LAND
+        # after we publish motors at 0.0 then we send nmpc status requesting disarm
+        # then we shutdown the node
+
+        state = DM(np.array(msg.state))
+        parameters = msg.parameters[:5]       # this needs to have latest voltage     
+
+        start_time = perf_counter()
         self.mpc.set_waypoint(parameters)
         control = np.array(self.mpc.mpc.make_step(state)).flatten()
         pwm_servos, pwm_motors = self.control_translator(control)   
-
         self.run_motors(pwm_motors)
         self.run_servos(pwm_servos)   
-        
+        nmpc_time = perf_counter() - start_time
+
         self.log_rows.append({
-            'state': state.full().flatten().tolist(),
-            'control': control.tolist(),
-            'timing': [state_sample_time, 0.0],
+            'state': state,
+            'control': control,
+            'timing': [msg.timestamp_sample, msg.main_receive_time, msg.main_send_time, nmpc_time],
             'pwm_motors': pwm_motors,
             'pwm_servos': pwm_servos,
-            'voltage': parameters[3],
-            'parameters': parameters.tolist(),
-            'timestamp' : 0.0
+            'parameters': parameters,
         })
     
     

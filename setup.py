@@ -24,6 +24,9 @@ setup(
             'nmpc_controller = hop.nmpc_controller:main',
             'test_servos = hop.test_servos:main',
             'test_motors = hop.test_motors:main',
+            'main_controller = hop.main_control_node:main',
+            'nmpc_node = hop.nmpc_node:main',
+            'keyboard_node = hop.keyboard_node:main',
         ],
     },
 )

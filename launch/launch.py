@@ -5,14 +5,16 @@ def generate_launch_description():
     return LaunchDescription([
         Node(
             package='hop',
-            executable='nmpc_controller',
-            name='nmpc_controller'
+            executable='main_controller',
+            name='main_controller',
+            output='screen',
         )
         ,
-        # Node(
-        #     package='hop',
-        #     executable='test_servos',
-        #     name='test_servos'
-        # )
+        Node(
+            package='hop',
+            executable='nmpc_node',
+            name='nmpc_node',
+            output='screen',
+        )
     ])
     
