@@ -29,6 +29,8 @@ from hop.drone_model import DroneModel
 from hop.dompc import DroneNMPCdompc
 from hop.utilities import output_data
 
+from time import sleep
+
 mc = Constants()
 
 class NMPCNode(Node):
@@ -126,20 +128,23 @@ class NMPCNode(Node):
             parameters[3] = msg.battery_voltage        
 
             start_time = perf_counter()
-            self.mpc.set_waypoint(parameters)
-            control = np.array(self.mpc.mpc.make_step(state)).flatten()
+
+            control = np.array([0.0, 0.0, 0.0, 0.0])
+            # self.mpc.set_waypoint(parameters)
+            # control = np.array(self.mpc.mpc.make_step(state)).flatten()
+            sleep(0.01)
             pwm_servos, pwm_motors = self.control_translator(control)   
             self.run_motors(pwm_motors)
             self.run_servos(pwm_servos)   
             nmpc_time = perf_counter() - start_time
 
             self.log_rows.append({
-                'state': state,
-                'control': control,
+                'state': state.full().flatten().tolist(),
+                'control': control.tolist(),
                 'timing': [msg.timestamp_sample, msg.main_receive_time, msg.main_send_time, nmpc_time],
                 'pwm_motors': pwm_motors,
                 'pwm_servos': pwm_servos,
-                'parameters': parameters,
+                'parameters': parameters.tolist(),
             })
     
 
@@ -181,10 +186,10 @@ class NMPCNode(Node):
     def destroy_node(self):
 
         # write out the nmpc data
-        # data = {'constants': mc.__dict__(), 'run_data': self.log_rows}
-        # output_data(data, "src/hop/plotter_logs/current.json")
-        # formatted_date = datetime.now().strftime("%Y-%m-%d-%H-%M")
-        # output_data(data, "src/hop/plotter_logs/" + formatted_date + "log.json")
+        data = {'constants': mc.__dict__(), 'run_data': self.log_rows}
+        output_data(data, "src/hop/plotter_logs/current.json")
+        formatted_date = datetime.now().strftime("%Y-%m-%d-%H-%M")
+        output_data(data, "src/hop/plotter_logs/" + formatted_date + "log.json")
         super().destroy_node()
 
 ################################### PUBLISHER functions #######################################
