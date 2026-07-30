@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
-from hop_interfaces.msg import NMPCInput, NMPCStatus, KeyboardInput
+from hop_interfaces.msg import NMPCInput, NMPCStatus, CommandInput
 
 
 import sys
@@ -24,8 +24,8 @@ class KeyboardMonitorNode(Node):
         )          
 
         self.publisher_keyboard_input = self.create_publisher(
-            KeyboardInput, 
-            '/hop/Keyboard_input', 
+            CommandInput, 
+            '/hop/Command_input', 
             qos_pub
         )
         
@@ -57,15 +57,15 @@ class KeyboardMonitorNode(Node):
                 self.get_logger().info('shutting down keyboard node')
                 rclpy.shutdown()
             else:
-                msg = KeyboardInput()
+                msg = CommandInput()
                 if self.key == 'u':
-                    msg.command = KeyboardInput.INC_WAYPOINT
+                    msg.command = CommandInput.INC_WAYPOINT
                     self.get_logger().info('Increment waypoint requested')
                 elif self.key == 'l':
-                    msg.command = KeyboardInput.LAND
+                    msg.command = CommandInput.LAND
                     self.get_logger().info('LAND requested')
                 elif not self.key == '':
-                    msg.command = KeyboardInput.SHUTDOWN
+                    msg.command = CommandInput.SHUTDOWN
                     self.get_logger().info('SHUTDOWN requested')
 
                 # reset the key

@@ -18,9 +18,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 from px4_msgs.msg import ActuatorMotors, ActuatorServos
-
-# SHUTDOWN add the new keyboard message
-from hop_interfaces.msg import NMPCInput, NMPCStatus
+from hop_interfaces.msg import NMPCInput, NMPCStatus, CommandInput
 from time import perf_counter
 from datetime import datetime
 
@@ -32,8 +30,6 @@ from hop.dompc import DroneNMPCdompc
 from hop.utilities import output_data
 
 mc = Constants()
-
-
 
 class NMPCNode(Node):
 
@@ -57,7 +53,6 @@ class NMPCNode(Node):
 
         ################# Subscriptons #########################  
 
-        # it will have one state subscription from main node
         self.nmpc_input = self.create_subscription(
             NMPCInput, 
             '/hop/nmpc_input', 
@@ -65,7 +60,12 @@ class NMPCNode(Node):
             qos_sub
         )
 
-        # we need to subscribe to the keyboard node
+        self.command_input = self.create_subscription(
+            CommandInput, 
+            '/hop/Command_input', 
+            self.command_callback,
+            qos_sub
+        )
 
         ############ Publishers #########################
 
@@ -89,15 +89,13 @@ class NMPCNode(Node):
 
         ####################  locally store data ###################
 
-        # SHUTDOWN need a shutdown/land request variable
-        # add waypoint_i
-        # add waypoint arrived test
-
         self.log_rows = []
         self.model = DroneModel(mc)
         self.mpc = DroneNMPCdompc(mc.dt, self.model.model)
         self.mpc.setup_cost()
         self.mpc.set_start_state(mc.x0)
+        self.waypoint_i = 0
+        self.command = CommandInput.NONE
 
         status = NMPCStatus()
         status.status = NMPCStatus.READY
@@ -111,34 +109,48 @@ class NMPCNode(Node):
     # publish all of our messages
     def nmpc(self, msg):
 
-        # SHUTDOWN need a shutdown/land request variable
-        # read goal state from mc not msg
         # add waypoint arrived test
-        # add keyboard request status SHUTDOWN, LAND
-        # after we publish motors at 0.0 then we send nmpc status requesting disarm
-        # then we shutdown the node
+        # add landing managment
 
-        state = DM(np.array(msg.state))
-        parameters = msg.parameters[:5]       # this needs to have latest voltage     
+        if self.command == CommandInput.SHUTDOWN:
+            self.run_motors([0.0, 0.0])
+            self.run_servos([0.0, 0.0])
+            disarm_msg = NMPCStatus()
+            disarm_msg.status = NMPCStatus.DISARM_REQUEST
+            self.publisher_status.publish(disarm_msg)
+            self.get_logger().info('NMPC Node shutting down')
+            rclpy.shutdown()
+        else:
+            state = DM(np.array(msg.state))
+            parameters = mc.waypoints[self.waypoint_i]
+            parameters[3] = msg.battery_voltage        
 
-        start_time = perf_counter()
-        self.mpc.set_waypoint(parameters)
-        control = np.array(self.mpc.mpc.make_step(state)).flatten()
-        pwm_servos, pwm_motors = self.control_translator(control)   
-        self.run_motors(pwm_motors)
-        self.run_servos(pwm_servos)   
-        nmpc_time = perf_counter() - start_time
+            start_time = perf_counter()
+            self.mpc.set_waypoint(parameters)
+            control = np.array(self.mpc.mpc.make_step(state)).flatten()
+            pwm_servos, pwm_motors = self.control_translator(control)   
+            self.run_motors(pwm_motors)
+            self.run_servos(pwm_servos)   
+            nmpc_time = perf_counter() - start_time
 
-        self.log_rows.append({
-            'state': state,
-            'control': control,
-            'timing': [msg.timestamp_sample, msg.main_receive_time, msg.main_send_time, nmpc_time],
-            'pwm_motors': pwm_motors,
-            'pwm_servos': pwm_servos,
-            'parameters': parameters,
-        })
+            self.log_rows.append({
+                'state': state,
+                'control': control,
+                'timing': [msg.timestamp_sample, msg.main_receive_time, msg.main_send_time, nmpc_time],
+                'pwm_motors': pwm_motors,
+                'pwm_servos': pwm_servos,
+                'parameters': parameters,
+            })
     
-    
+
+    def command_callback(self, msg):
+        if msg.command == CommandInput.INC_WAYPOINT:
+            self.waypoint_i = self.waypoint_i + 1
+        else:
+            self.command = msg.command
+
+
+
     def get_angle_pwm(self, gimbal_angles):
         gimbal_angles[0] = gimbal_angles[0]       # gimbal offset
         gimbal_angles[0] = np.clip(gimbal_angles[0], mc.outer_gimbal_range[0], mc.outer_gimbal_range[1])
@@ -169,10 +181,10 @@ class NMPCNode(Node):
     def destroy_node(self):
 
         # write out the nmpc data
-        data = {'constants': mc.__dict__(), 'run_data': self.log_rows}
-        output_data(data, "src/hop/plotter_logs/current.json")
-        formatted_date = datetime.now().strftime("%Y-%m-%d-%H-%M")
-        output_data(data, "src/hop/plotter_logs/" + formatted_date + "log.json")
+        # data = {'constants': mc.__dict__(), 'run_data': self.log_rows}
+        # output_data(data, "src/hop/plotter_logs/current.json")
+        # formatted_date = datetime.now().strftime("%Y-%m-%d-%H-%M")
+        # output_data(data, "src/hop/plotter_logs/" + formatted_date + "log.json")
         super().destroy_node()
 
 ################################### PUBLISHER functions #######################################
@@ -194,7 +206,6 @@ class NMPCNode(Node):
     def run_servos(self, pwm_servos):
         servo_command = ActuatorServos()
         t = self.get_clock().now().nanoseconds // 1000
-        self.timing_data[5] = t 
         servo_command.timestamp_sample = t
         servo_command.timestamp = t
         servo_command.control = [-pwm_servos[0], -pwm_servos[1], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]   # 4 motors + 4 unused
@@ -215,7 +226,7 @@ def main(args=None):
         pass
     finally:
         nmpc.destroy_node()
-        rclpy.shutdown()
+        rclpy.try_shutdown()
 
 if __name__ == '__main__':
     main()

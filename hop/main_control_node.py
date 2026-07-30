@@ -12,13 +12,6 @@ from datetime import datetime
 from math import sqrt
 mc = Constants()
 
-# this is all needed for keyboard input
-import sys
-import select
-import termios
-import tty
-import threading
-
 class ControlNode(Node):
 
     def __init__(self, dt = mc.dt):
@@ -89,16 +82,11 @@ class ControlNode(Node):
             qos_pub
         )
 
-        ####################  locally store data ###################
-        
-        # SHUTDOWN move waypoint_i to nmpc node
 
         self.dt = dt
         self.logging_on = False
         self.nav_state = VehicleStatus.NAVIGATION_STATE_MAX
         self.arming_state = VehicleStatus.ARMING_STATE_DISARMED
-        self.key = ''
-        self.waypoint_i = 0
         self.first_arm = True
         self.state = mc.x0
         self.voltage = 0.0    
@@ -109,44 +97,18 @@ class ControlNode(Node):
         self.count = 0
         self.x_offset = 0.0  # offsets needed for optical flow
         self.y_offset = 0.0
-
-        self.stop_requested = False
-
-        # SHUTDOWN strip out the keyboard code 
-
-        # set up for keyboard reading
-        if not sys.stdin.isatty():
-            raise RuntimeError("The node must run in an interactive terminal.")
-        self.std_in_fd = sys.stdin.fileno()
-        self.term_settings = termios.tcgetattr(self.std_in_fd)
-        tty.setcbreak(self.std_in_fd)
-
-
         self.timer = self.create_timer(self.dt, self.main_loop)    
 
 
-#############################  ####################################
+#############################  MAIN CALLBACK ####################################
 
-
-    # 1. forward state to nmpc
-    # 2. maintain offboard mode
-    # manage arming at beginning of flight and disarming when stop requested
     def main_loop(self):
-
-        # SHUTDOWN strip out keyboard code
-
-        # monitor keyboard presses
-        if select.select([sys.stdin], [], [], 0.0)[0]:
-            self.key = sys.stdin.read(1)
-            if self.logging_on:
-                self.get_logger().info(f"Key pressed: {self.key}")
-
-
-        # switch this to look at nmpc_status MOTOR_SHUTDOWN OR LAND
-        if not self.key == '': # any key press means stop the run
+        
+        if self.nmpc_status == NMPCStatus.DISARM_REQUEST: 
             if self.armed:
                 self.disarm()
             else:
+                self.get_logger().info('MAIN Node shutting down')
                 rclpy.shutdown()
         else: 
             if self.armed and self.nmpc_status == NMPCStatus.READY:
@@ -158,11 +120,6 @@ class ControlNode(Node):
 
             if not self.armed and self.count >= 100 and self.count % 50 == 0:
                 self.offboard_arm()
-
-
-
-        
-
 
 
 
@@ -219,16 +176,7 @@ class ControlNode(Node):
         msg.main_receive_time = self.main_receive_time
         msg.main_send_time = self.get_clock().now().nanoseconds // 1000
         msg.state = self.state
-
-        # SHUTDOWN move waypoint_i to nmpc node just send the voltage
-        # update the message nmpc_input
-
-        # fill in the parameters
-        parameters = [0.0] * 8
-        parameters[:5] = mc.waypoints[self.waypoint_i]
-        parameters[3] = self.voltage
-        
-        msg.parameters = parameters
+        msg.battery_voltage = self.voltage
         self.publisher_nmpc_input.publish(msg)
 
 
@@ -258,7 +206,7 @@ class ControlNode(Node):
 
     def nmpc_status_callback(self, msg):
         self.nmpc_status = msg.status
-        self.get_logger().info('NMPC Ready Received')
+        self.get_logger().info('NMPC status: ' + str(self.nmpc_status))
 
 
     # recieve vehicle odometry message
@@ -313,18 +261,6 @@ class ControlNode(Node):
                 w: {self.state[10:13]}
                 """
             )
-
-
-    ############################# other functions  ####################################
-
-
-    # when we exit do clean up and output the run data
-    def destroy_node(self):
-
-        # reset terminal settings
-        termios.tcsetattr(self.std_in_fd, termios.TCSANOW, self.term_settings)
-        super().destroy_node()
-
 
 
 
