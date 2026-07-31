@@ -30,6 +30,7 @@ from hop.dompc import DroneNMPCdompc
 from hop.utilities import output_data
 
 from time import sleep
+from random import uniform
 
 mc = Constants()
 
@@ -111,8 +112,7 @@ class NMPCNode(Node):
     # publish all of our messages
     def nmpc(self, msg):
 
-        # add waypoint arrived test
-        # add landing managment
+        nmpc_receive_time = self.get_clock().now().nanoseconds // 1000
 
         if self.command == CommandInput.SHUTDOWN:
             self.run_motors([0.0, 0.0])
@@ -123,16 +123,12 @@ class NMPCNode(Node):
             self.get_logger().info('NMPC Node shutting down')
             rclpy.shutdown()
         else:
+            start_time = perf_counter()
             state = DM(np.array(msg.state))
             parameters = mc.waypoints[self.waypoint_i]
             parameters[3] = msg.battery_voltage        
-
-            start_time = perf_counter()
-
-            control = np.array([0.0, 0.0, 0.0, 0.0])
-            # self.mpc.set_waypoint(parameters)
-            # control = np.array(self.mpc.mpc.make_step(state)).flatten()
-            sleep(0.01)
+            self.mpc.set_waypoint(parameters)
+            control = np.array(self.mpc.mpc.make_step(state)).flatten()
             pwm_servos, pwm_motors = self.control_translator(control)   
             self.run_motors(pwm_motors)
             self.run_servos(pwm_servos)   
@@ -141,7 +137,7 @@ class NMPCNode(Node):
             self.log_rows.append({
                 'state': state.full().flatten().tolist(),
                 'control': control.tolist(),
-                'timing': [msg.timestamp_sample, msg.main_receive_time, msg.main_send_time, nmpc_time],
+                'timing': [msg.timestamp_sample, msg.main_receive_time, msg.main_send_time, nmpc_receive_time, nmpc_time],
                 'pwm_motors': pwm_motors,
                 'pwm_servos': pwm_servos,
                 'parameters': parameters.tolist(),
