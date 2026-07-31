@@ -34,8 +34,6 @@ class FlightData:
         for i, d in enumerate(data):
             self.state_data[i] = np.array(d['state'])
             self.control_data[i] = np.array(d['control'])
-            self.voltage.append(d['voltage'])
-            self.timestamps.append(d['timestamp'])
             self.pwm_motors[i] = np.array(d['pwm_motors'])
             self.pwm_servos[i] = np.array(d['pwm_servos'])
             if 'timing' in d:
@@ -44,6 +42,7 @@ class FlightData:
                 self.parameters[i] = np.array(d['parameters'] + [0.0])
             else:
                 self.parameters[i] = np.array(d['parameters'])
+            self.voltage.append(d['parameters'][3])
 
         stop_index = int(self.start_time // self.dt)
         self.len_used_data = len(data) - stop_index -1
