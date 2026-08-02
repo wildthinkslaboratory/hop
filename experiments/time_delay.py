@@ -45,7 +45,7 @@ single_test = [
 # Here is the full set of tests if you want to run all the simulations
 test_list_for_paper = import_data('nmpc_test_cases.json')
 
-delay = 3
+delay = 2
 
 
 for test in test_list_for_paper:
@@ -79,7 +79,7 @@ for test in test_list_for_paper:
     model_delay = True
 
     if model_delay:
-        ms_nmpc = DroneNMPCMultiShootTDelay(equations, delay * 2)
+        ms_nmpc = DroneNMPCMultiShootTDelay(equations, delay)
         ms_nmpc.build_nmpc_instance()
         ms_nmpc.set_start_state(ca.DM(x_init))
         u0 = np.zeros(4)
@@ -128,12 +128,12 @@ for test in test_list_for_paper:
         state_history = np.roll(state_history, -1, axis=0)
         state_history[-1] = np.reshape(x0, (13,))
 
-        if not mpc.mpc.solver_stats['return_status'] == 'Solve_Succeeded':
-            stats_data += 1
-
-        # if not ms_nmpc.solver_stats['status'] == 'Solve_Succeeded':
+        # if not mpc.mpc.solver_stats['return_status'] == 'Solve_Succeeded':
         #     stats_data += 1
-        #     print("NPL fail on iteration: ", k)
+
+        if not ms_nmpc.solver_stats['status'] == 'Solve_Succeeded':
+            stats_data += 1
+            print("NPL fail on iteration: ", k)
 
 
     # state_error = 0
