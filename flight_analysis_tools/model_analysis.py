@@ -60,10 +60,10 @@ took_too_long = 0
 max_cost = 0
 for i in range(len(fd.state_data)-1):
 
-    if i > 0:
-        tstep = fd.timestamps[i] - fd.timestamps[i-1]
-        if tstep > 0.025:
-            print(i, tstep)
+    # if i > 0:
+    #     tstep = fd.timestamps[i] - fd.timestamps[i-1]
+    #     if tstep > 0.025:
+    #         print(i, tstep)
             
     # update parameters with current voltage
     fd.parameters[i][3] = fd.voltage[i]
@@ -140,7 +140,7 @@ plot_pwm(tspan, fd.pwm_servos, fd.pwm_motors, 'pwm')
 plot_control(tspan[:-1], control_data_computed, 'control computed')
 plot_control(tspan[:-1], control_computed_diff, 'control computed difference')
 plot_state(tspan[:-1], flight_model_error, 'flight state vs model predicted state error')
-plot_weighted_error_state(tspan, residual_state, 'state weighted squared errors')
+plot_weighted_error_state(tspan, residual_state, 'state weighted squared errors', max_cost)
 plot_weighted_error_control(tspan, residual_control, 'control weighted squared errors')
 plot_weighted_error_state(tspan, cost_by_state, 'cost across horizon', max_cost)
 plot_attitude(tspan, attitude, 'attitude')
