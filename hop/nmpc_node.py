@@ -21,13 +21,18 @@ from px4_msgs.msg import ActuatorMotors, ActuatorServos
 from hop_interfaces.msg import NMPCInput, NMPCStatus, CommandInput
 from time import perf_counter
 from datetime import datetime
+from hop.utilities import output_data
 
 from casadi import DM
 import numpy as np
 from hop.constants import Constants
 from hop.drone_model import DroneModel
 from hop.dompc import DroneNMPCdompc
-from hop.utilities import output_data
+
+from hop.equations_of_motion import Equations6DOF
+from hop.multiShootTDelay import DroneNMPCMultiShootTDelay
+
+
 
 from time import sleep
 from random import uniform
@@ -93,12 +98,25 @@ class NMPCNode(Node):
         ####################  locally store data ###################
 
         self.log_rows = []
-        self.model = DroneModel(mc)
-        self.mpc = DroneNMPCdompc(mc.dt, self.model.model)
-        self.mpc.setup_cost()
-        self.mpc.set_start_state(mc.x0)
         self.waypoint_i = 0
         self.command = CommandInput.NONE
+        self.model_time_delay = False
+
+        # build the model and set up the NMPC
+        if self.model_time_delay:
+            self.equations = Equations6DOF(mc)
+            delay = 2
+            self.ms_nmpc = DroneNMPCMultiShootTDelay(self.equations, delay * 2)
+            self.ms_nmpc.build_nmpc_instance()
+            self.ms_nmpc.set_start_state(mc.x0)
+            self.control_history = np.tile([0.0, 0.0, mc.hover_thrust, 0.0], ((delay * 2), 1))
+
+        else:
+            self.model = DroneModel(mc)
+            self.mpc = DroneNMPCdompc(mc.dt, self.model.model)
+            self.mpc.setup_cost()
+            self.mpc.set_start_state(mc.x0)
+
 
         status = NMPCStatus()
         status.status = NMPCStatus.READY
@@ -126,9 +144,18 @@ class NMPCNode(Node):
             start_time = perf_counter()
             state = DM(np.array(msg.state))
             parameters = mc.waypoints[self.waypoint_i]
-            parameters[3] = msg.battery_voltage        
-            self.mpc.set_waypoint(parameters)
-            control = np.array(self.mpc.mpc.make_step(state)).flatten()
+            parameters[3] = msg.battery_voltage   
+
+            control = np.array([0.0, 0.0, mc.hover_thrust, 0.0])
+            if self.model_time_delay:
+                control = self.ms_nmpc.make_step(state, self.control_history.flatten(), parameters).flatten()
+                self.control_history = np.roll(self.control_history, -1, axis=0)
+                self.control_history[-1] = control
+
+            else:      
+                self.mpc.set_waypoint(parameters)
+                control = np.array(self.mpc.mpc.make_step(state)).flatten()
+
             pwm_servos, pwm_motors = self.control_translator(control)   
             self.run_motors(pwm_motors)
             self.run_servos(pwm_servos)   

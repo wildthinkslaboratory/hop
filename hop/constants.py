@@ -95,7 +95,7 @@ class Constants:
         # self.Q = ca.diag([40.0,40.0,50.0, 10.0,10.0,15.0, 2500.0,2500.0,200.0,200.0, 30.0,30.0,1.0 ])
 
         # self.Q = ca.diag([50.0,50.0,50.0, 10.0,10.0,10.0, 526.0,526.0,15.0,0.0, 15.0,15.0,1.0 ])
-        self.Q = ca.diag([20.0,20.0,20.0, 8.0,8.0,8.0, 526.0,526.0,33.0,0.0, 275.0,275.0,8.0 ])
+        self.Q = ca.diag([20.0,20.0,20.0, 8.0,8.0,8.0, 526.0,526.0,33.0,0.0, 180.0,180.0,8.0 ])
         self.R = ca.diag([0.01, 0.01, 100, 100])
         
         self.gmb_deg_1pwm = 52
@@ -105,13 +105,16 @@ class Constants:
         # gimbal angle degrees change per dt
         self.gmb_deg_dt = 6.0
 
+        self.nmpc_rate_constraints = True
+
         # Ballpark guess, thrust is allowed to go from 0 to 1 in 0.5-1 second
         # that would mean a change of 0.02-0.04 per time step.
         # P average thrust change allowed per dt
         self.P_avg_dt = 0.04
         self.P_diff_dt = 0.02
 
-        self.actuator_rate_costs = np.array([
+        self.rate_scale_factor = 10
+        self.actuator_rate_costs = self.rate_scale_factor * np.array([
             1, 
             1, 
             1.0/self.P_avg_dt, 
@@ -150,7 +153,7 @@ class Constants:
 
         self.land = np.array([0.0, 0.0, self.px4_height, 23.0])
 
-        self.nmpc_rate_constraints = True
+
 
         # constants for specific NLP formulations
         # --------------------------------------------------------------- 
