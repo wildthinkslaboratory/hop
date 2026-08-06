@@ -21,7 +21,7 @@ from px4_msgs.msg import ActuatorMotors, ActuatorServos
 from hop_interfaces.msg import NMPCInput, NMPCStatus, CommandInput
 from time import perf_counter
 from datetime import datetime
-from hop.utilities import output_data
+from hop.utilities import output_data, quaternion_to_angle
 
 from casadi import DM
 import numpy as np
@@ -31,7 +31,6 @@ from hop.dompc import DroneNMPCdompc
 
 from hop.equations_of_motion import Equations6DOF
 from hop.multiShootTDelay import DroneNMPCMultiShootTDelay
-
 
 
 from time import sleep
@@ -101,6 +100,7 @@ class NMPCNode(Node):
         self.waypoint_i = 0
         self.command = CommandInput.NONE
         self.model_time_delay = False
+        self.q = np.array([0.0, 0.0, 0.0, 1.0])
 
         # build the model and set up the NMPC
         if self.model_time_delay:
@@ -123,6 +123,7 @@ class NMPCNode(Node):
         status.timestamp = self.get_clock().now().nanoseconds // 1000
         self.publisher_status.publish(status)
         self.get_logger().info('NMPC Ready')
+        self.start_time = perf_counter()
 
 
 ############################# callbacks  ####################################
@@ -131,20 +132,30 @@ class NMPCNode(Node):
     def nmpc(self, msg):
 
         nmpc_receive_time = self.get_clock().now().nanoseconds // 1000
+        runtime = perf_counter() - self.start_time
+        x_theta, y_theta, theta = quaternion_to_angle(self.q)
 
-        if self.command == CommandInput.SHUTDOWN:
+        if self.command == CommandInput.SHUTDOWN or runtime > mc.timelimit or theta > mc.shutdown_angle:
             self.run_motors([0.0, 0.0])
             self.run_servos([0.0, 0.0])
             disarm_msg = NMPCStatus()
             disarm_msg.status = NMPCStatus.DISARM_REQUEST
             self.publisher_status.publish(disarm_msg)
+
+            if runtime > mc.timelimit:
+                self.get_logger().info('time limit of ' + str(mc.timelimit) + ' sec was exceeded.')
+            elif theta > 10.0:
+                self.get_logger().info('attitude exceeded limit of ' + str(mc.shutdown_angle) + ' degrees.')
+            
             self.get_logger().info('NMPC Node shutting down')
+
             rclpy.shutdown()
         else:
             start_time = perf_counter()
             state = DM(np.array(msg.state))
             parameters = mc.waypoints[self.waypoint_i]
             parameters[3] = msg.battery_voltage   
+            self.q = np.reshape(state[6:10], (4,))
 
             control = np.array([0.0, 0.0, mc.hover_thrust, 0.0])
             if self.model_time_delay:
@@ -154,11 +165,11 @@ class NMPCNode(Node):
 
             else:      
                 self.mpc.set_waypoint(parameters)
-                control = np.array(self.mpc.mpc.make_step(state)).flatten()
+                # control = np.array(self.mpc.mpc.make_step(state)).flatten()
 
             pwm_servos, pwm_motors = self.control_translator(control)   
-            self.run_motors(pwm_motors)
-            self.run_servos(pwm_servos)   
+            # self.run_motors(pwm_motors)
+            # self.run_servos(pwm_servos)   
             nmpc_time = perf_counter() - start_time
 
             self.log_rows.append({

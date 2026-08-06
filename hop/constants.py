@@ -8,7 +8,8 @@ class Constants:
 
         # general constants
         # ---------------------------------------------------------------
-        self.timelimit = 1 # time limit for a flight in seconds 
+        self.timelimit = 10 # time limit for a flight in seconds 
+        self.shutdown_angle = 10.0 # shutdown if attitude exceeds this angle
 
         self.battery_v = 25.0 # 25 volt battery
 
