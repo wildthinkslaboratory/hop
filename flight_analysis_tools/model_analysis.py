@@ -85,11 +85,18 @@ for i in range(len(fd.state_data)-1):
         print(mpc.mpc.solver_stats['return_status'])
 
     state_sol = mpc.mpc.data.prediction(('_x',))
+    horizon = np.empty([len(state_sol[0]),13])
     for k, state in enumerate(state_sol):
+        for j, val in enumerate(state):
+            horizon[j][k] = val
+
         cost_by_state[i][k] = sum([(c - xrnp[k]) @ mc.Q[k,k] @ (c - xrnp[k]) for c in state])
         if cost_by_state[i][k] > max_cost:
             max_cost = cost_by_state[i][k]
-
+    fis = mc.finite_interval_size
+    hspan = np.arange(0, len(state_sol[0]) * fis , fis)
+    plot_state(hspan, horizon, 'state')
+    plt.show()
 
     # turn quaternions into attitude
     # it's easier to read
