@@ -1,3 +1,26 @@
+#  This is a new version of the controller that runs three seperate ROS2 nodes
+#  The reason for trying this is that with a single node in python you can't have
+#  Any parallel execution due to the GIL lock. That's the Global Interpreter Lock. 
+#  I didn't know anything about this before I tried to multithread our previous controller node
+#  and had disasterous results. Python can be so dumb.
+#  Well the way around it is to run two separate nodes. This way the nmpc can execute in parallel
+#  with the other monitoring and subscriptions needed for the drone. The other options are
+#  to move the code to C++, or adapt the system equations to model the time delay that occurs from a single 
+#  threaded controller that tries to do everything.
+#
+#
+#  nmpc_node :     This node will collect a state reading from the main node every 20ms, it will 
+#                  run the nmpc and publish the control uninterrupted by the any other monitoring tasks.
+#
+#  keyboard_node : This node monitors the keyboard for navigation controls, incrementing waypoints, landing
+#                  and and shutdown
+#
+# main_control_node : This node does everything else. Subscribes to state odometry, battery status and vehicle
+#                  status. Takes care of arming and disarming. Maintains offboard mode.
+#
+#
+
+
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
@@ -7,8 +30,7 @@ from hop_interfaces.msg import NMPCInput, NMPCStatus
 from casadi import DM
 import numpy as np
 from hop.constants import Constants
-from hop.utilities import output_data, quaternion_multiply
-from datetime import datetime
+from hop.utilities import quaternion_multiply
 from math import sqrt
 mc = Constants()
 
@@ -30,7 +52,6 @@ class ControlNode(Node):
             history=QoSHistoryPolicy.KEEP_LAST,
             depth=1
         )             
-
 
         ################# Subscriptons #########################  
       
@@ -82,19 +103,21 @@ class ControlNode(Node):
             qos_pub
         )
 
+        # read this data from pixhawk and then we translate it to 
+        # the appropriate coordinate systems and forward to the nmpc_node
+        self.state = mc.x0
+        self.voltage = 0.0    
+        self.timestamp_sample = 0
+        self.main_receive_time = 0  
 
         self.dt = dt
         self.logging_on = False
         self.nav_state = VehicleStatus.NAVIGATION_STATE_MAX
         self.arming_state = VehicleStatus.ARMING_STATE_DISARMED
         self.first_arm = True
-        self.state = mc.x0
-        self.voltage = 0.0    
-        self.timestamp_sample = 0
-        self.main_receive_time = 0  
-        self.nmpc_status = NMPCStatus.STARTING          
         self.armed = False
-        self.count = 0
+        self.nmpc_status = NMPCStatus.STARTING      
+        self.count = 0 # number of times through main callback
         self.x_offset = 0.0  # offsets needed for optical flow
         self.y_offset = 0.0
         self.timer = self.create_timer(self.dt, self.main_loop)    
@@ -114,10 +137,10 @@ class ControlNode(Node):
             if self.armed and self.nmpc_status == NMPCStatus.READY:
                 self.publish_nmpc_input()
 
-
             self.count += 1
             self.maintain_offboard()
 
+            # arming attempts are limited to one time per second
             if not self.armed and self.count >= 100 and self.count % 50 == 0:
                 self.offboard_arm()
 
@@ -139,14 +162,8 @@ class ControlNode(Node):
 
 
     def offboard_arm(self):
-        # switch to Offboard
-        self.publish_vehicle_command(
-            VehicleCommand.VEHICLE_CMD_DO_SET_MODE, 1, 6)
-        # arm
-        self.publish_vehicle_command(
-            VehicleCommand.VEHICLE_CMD_COMPONENT_ARM_DISARM, 1.0)
-        if self.logging_on:
-            self.get_logger().info('Publishing arm and offboard mode commands')
+        self.publish_vehicle_command(VehicleCommand.VEHICLE_CMD_DO_SET_MODE, 1, 6)  # offboard mode
+        self.publish_vehicle_command(VehicleCommand.VEHICLE_CMD_COMPONENT_ARM_DISARM, 1.0) # arm
 
 
     def publish_vehicle_command(self, command, p1=0., p2=0.):
@@ -165,11 +182,11 @@ class ControlNode(Node):
     def disarm(self):
         self.publish_vehicle_command(
             VehicleCommand.VEHICLE_CMD_COMPONENT_ARM_DISARM,
-            0.0,          # param1 = disarm
-            21196.0       # param2 = FORCE (disarm in-air)
+            0.0,          # disarm
+            21196.0       # FORCE (disarm in-air)
         )
 
-
+    # send the latest state info to the nmpc node
     def publish_nmpc_input(self):
         msg = NMPCInput()
         msg.timestamp_sample = self.timestamp_sample
@@ -199,7 +216,7 @@ class ControlNode(Node):
             self.x_offset = float(self.state[0])
             self.y_offset = float(self.state[1])
 
-    # recieve armed status
+
     def battery_callback(self, msg):
         self.voltage = msg.voltage_v
         
@@ -209,7 +226,6 @@ class ControlNode(Node):
         self.get_logger().info('NMPC status: ' + str(self.nmpc_status))
 
 
-    # recieve vehicle odometry message
     def state_callback(self, msg):
         self.state = [0.0] * 13
 

@@ -1,14 +1,19 @@
+# This is a simple ROS2 Node that monitors the keyboard and forwards 
+# commands to the drone for waypoint advancing, landing and shutdowns
+#
+
+
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
-from hop_interfaces.msg import NMPCInput, NMPCStatus, CommandInput
+from hop_interfaces.msg import CommandInput
 
-
+# for monitoring the keyboard
 import sys
 import select
 import termios
 import tty
-import threading
+
 
 class KeyboardMonitorNode(Node):
 
@@ -38,19 +43,18 @@ class KeyboardMonitorNode(Node):
         self.term_settings = termios.tcgetattr(self.std_in_fd)
         tty.setcbreak(self.std_in_fd)
 
+        # start the monitoring
         self.timer = self.create_timer(self.dt, self.keyboard_callback)    
         self.get_logger().info('Keyboard Monitor Node Running')
         
 
-    # give it a key node shutdown
-    # only publish if the key changes
+
     def keyboard_callback(self):
 
-        # monitor keyboard presses
+        # read keyboard presses
         if select.select([sys.stdin], [], [], 0.0)[0]:
             self.key = sys.stdin.read(1)
             
-        # check to see if a key was pressed
         if not self.key == '':
 
             if self.key == 's': # s means shutdown the node
@@ -64,7 +68,7 @@ class KeyboardMonitorNode(Node):
                 elif self.key == 'l':
                     msg.command = CommandInput.LAND
                     self.get_logger().info('LAND requested')
-                elif not self.key == '':
+                elif not self.key == '': 
                     msg.command = CommandInput.SHUTDOWN
                     self.get_logger().info('SHUTDOWN requested')
 
@@ -78,7 +82,7 @@ class KeyboardMonitorNode(Node):
 
 
     def destroy_node(self):
-        # reset terminal settings
+        # reset terminal settings before shutting down
         termios.tcsetattr(self.std_in_fd, termios.TCSANOW, self.term_settings)
         super().destroy_node()
 

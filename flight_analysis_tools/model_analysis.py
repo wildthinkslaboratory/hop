@@ -13,14 +13,15 @@ import matplotlib.pyplot as plt
 from plotting.plots import plot_state, plot_control, plot_pwm, plot_attitude, plot_parameters, plot_weighted_error_state, plot_weighted_error_control
 from hop.equations_of_motion import Equations6DOF
 
+plot_NMPC_horizons = False
 
 mc = Constants()
-equations = Equations6DOF(mc)
 fd = FlightData()
 
 # update the constants with those used in the flight
 mc.update_from_dictionary(fd.constants)
 
+equations = Equations6DOF(mc)
 model = DroneModel(mc)  
 
 # create an nmpc to compute the control
@@ -60,10 +61,10 @@ took_too_long = 0
 max_cost = 0
 for i in range(len(fd.state_data)-1):
 
-    if i > 0:
-        tstep = fd.timestamps[i] - fd.timestamps[i-1]
-        if tstep > 0.025:
-            print(i, tstep)
+    # if i > 0:
+    #     tstep = fd.timestamps[i] - fd.timestamps[i-1]
+    #     if tstep > 0.025:
+    #         print(i, tstep)
             
     # update parameters with current voltage
     fd.parameters[i][3] = fd.voltage[i]
@@ -85,11 +86,20 @@ for i in range(len(fd.state_data)-1):
         print(mpc.mpc.solver_stats['return_status'])
 
     state_sol = mpc.mpc.data.prediction(('_x',))
+    horizon = np.empty([len(state_sol[0]),13])
     for k, state in enumerate(state_sol):
+        for j, val in enumerate(state):
+            horizon[j][k] = val
+
         cost_by_state[i][k] = sum([(c - xrnp[k]) @ mc.Q[k,k] @ (c - xrnp[k]) for c in state])
         if cost_by_state[i][k] > max_cost:
             max_cost = cost_by_state[i][k]
 
+    if plot_NMPC_horizons:
+        fis = mc.finite_interval_size
+        hspan = np.arange(0, len(state_sol[0]) * fis , fis)
+        plot_state(hspan, horizon, 'state')
+        plt.show()
 
     # turn quaternions into attitude
     # it's easier to read
@@ -140,7 +150,7 @@ plot_pwm(tspan, fd.pwm_servos, fd.pwm_motors, 'pwm')
 plot_control(tspan[:-1], control_data_computed, 'control computed')
 plot_control(tspan[:-1], control_computed_diff, 'control computed difference')
 plot_state(tspan[:-1], flight_model_error, 'flight state vs model predicted state error')
-plot_weighted_error_state(tspan, residual_state, 'state weighted squared errors')
+plot_weighted_error_state(tspan, residual_state, 'state weighted squared errors', max_cost)
 plot_weighted_error_control(tspan, residual_control, 'control weighted squared errors')
 plot_weighted_error_state(tspan, cost_by_state, 'cost across horizon', max_cost)
 plot_attitude(tspan, attitude, 'attitude')
