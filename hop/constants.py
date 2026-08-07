@@ -218,14 +218,18 @@ class Constants:
         return s
 
 
+
     def __dict__(self):
         mcd = {}
         mcd['battery_v'] = self.battery_v
+        mcd['timelimit'] = self.timelimit
+        mcd['shutdown_angle'] = self.shutdown_angle
         mcd['m'] = self.m
         mcd['a'] = self.a
         mcd['b'] = self.b
         mcd['c'] = self.c
         mcd['d'] = self.d
+        mcd['thrust_constant'] = self.thrust_constant
         mcd['px4_height'] = self.px4_height
         mcd['dt'] = self.dt
         mcd['terminal_cost_factor'] = self.terminal_cost_factor
@@ -241,31 +245,110 @@ class Constants:
         mcd['ur'] = self.ur.full().flatten().tolist()
         mcd['moment_arm'] = self.moment_arm.tolist()
         mcd['I'] = self.I.tolist()
+        mcd['outer_gimbal_range'] = self.outer_gimbal_range 
+        mcd['inner_gimbal_range'] = self.inner_gimbal_range 
+        mcd['theta_dot_constraint'] = self.theta_dot_constraint
+        mcd['thrust_dot_limit'] = self.thrust_dot_limit 
+        mcd['prop_thrust_constraint'] = self.prop_thrust_constraint 
+        mcd['diff_thrust_constraint'] = self.diff_thrust_constraint 
+        mcd['gmb_deg_1pwm'] = self.gmb_deg_1pwm 
+        mcd['nmpc_rate_constraints'] = self.nmpc_rate_constraints
+        mcd['rate_scale_factor'] = self.rate_scale_factor
+        mcd['actuator_rate_costs'] = self.actuator_rate_costs.tolist()
+        mcd['horizon_time'] = self.horizon_time
+        mcd['ms_time_step'] = self.ms_time_step  
+        mcd['spectral_order'] = self.spectral_order
+        mcd['finite_interval_size'] = self.finite_interval_size 
+        mcd['number_intervals'] = self.number_intervals
+        mcd['collocation_degree'] = self.collocation_degree
         mcd['ipopt_settings'] = self.ipopt_settings
         return mcd
 
 
     def update_from_dictionary(self, mcd):
-        self.battery_v = mcd['battery_v']
-        self.m = mcd['m']
-        self.a = mcd['a'] 
-        self.b = mcd['b'] 
-        self.c = mcd['c'] 
-        self.d = mcd['d'] 
-        self.px4_height = mcd['px4_height']
-        self.dt = mcd['dt']
-        self.hover_thrust = mcd['hover_thrust']
-        self.P_avg_dt = mcd['P_avg_dt']
-        self.P_diff_dt = mcd['P_diff_dt']
-        self.Q = ca.diag(mcd['Q'])
-        self.R = ca.diag(mcd['R'])
-        self.g = np.array(mcd['g'])
-        self.x0 = ca.vertcat(mcd['x0'])
-        self.xr = ca.vertcat(mcd['xr'])
-        self.ur = ca.DM(mcd['ur'])
-        self.moment_arm = np.array(mcd['moment_arm'])
-        self.I = np.array(mcd['I'])
-        self.ipopt_settings = mcd['ipopt_settings']
+        if 'battery_v' in mcd:
+            self.battery_v = mcd['battery_v']
+        if 'timelimit' in mcd:
+            self.timelimit = mcd['timelimit']
+        if 'shutdown_angle' in mcd:
+            self.shutdown_angle = mcd['shutdown_angle']
+        if 'm' in mcd:
+            self.m = mcd['m']
+        if 'a' in mcd:
+            self.a = mcd['a'] 
+        if 'b' in mcd:
+            self.b = mcd['b'] 
+        if 'c' in mcd:
+            self.c = mcd['c'] 
+        if 'd' in mcd:
+            self.d = mcd['d'] 
+        if 'thrust_constant' in mcd:
+            self.thrust_constant = mcd['thrust_constant']
+        if 'px4_height' in mcd:
+            self.px4_height = mcd['px4_height']
+        if 'dt' in mcd:
+            self.dt = mcd['dt']
+        if 'terminal_cost_factor' in mcd:
+            self.terminal_cost_factor = mcd['terminal_cost_factor']
+        if 'hover_thrust' in mcd:
+            self.hover_thrust = mcd['hover_thrust']
+        if 'gmb_deg_dt' in mcd:
+            self.gmb_deg_dt = mcd['gmb_deg_dt']
+        if 'P_avg_dt' in mcd:
+            self.P_avg_dt = mcd['P_avg_dt']
+        if 'P_diff_dt' in mcd:
+            self.P_diff_dt = mcd['P_diff_dt']
+        if 'Q' in mcd:
+            self.Q = ca.diag(mcd['Q'])
+        if 'R' in mcd:
+            self.R = ca.diag(mcd['R'])
+        if 'g' in mcd:
+            self.g = np.array(mcd['g'])
+        if 'x0' in mcd:
+            self.x0 = ca.vertcat(mcd['x0'])
+        if 'xr' in mcd:
+            self.xr = ca.vertcat(mcd['xr'])
+        if 'ur' in mcd:
+            self.ur = ca.DM(mcd['ur'])
+        if 'moment_arm' in mcd:
+            self.moment_arm = np.array(mcd['moment_arm'])
+        if 'I' in mcd:
+            self.I = np.array(mcd['I'])
+        if 'outer_gimbal_range' in mcd:
+            self.outer_gimbal_range = mcd['outer_gimbal_range']
+        if 'inner_gimbal_range' in mcd:
+            self.inner_gimbal_range = mcd['inner_gimbal_range']
+        if 'theta_dot_constraint' in mcd:
+            self.theta_dot_constraint = mcd['theta_dot_constraint']
+        if 'thrust_dot_limit' in mcd:
+            self.thrust_dot_limit = mcd['thrust_dot_limit'] 
+        if 'prop_thrust_constraint' in mcd:
+            self.prop_thrust_constraint = mcd['prop_thrust_constraint']
+        if 'diff_thrust_constraint' in mcd:
+            self.diff_thrust_constraint = mcd['diff_thrust_constraint']
+        if 'gmb_deg_1pwm' in mcd:
+            self.gmb_deg_1pwm = mcd['gmb_deg_1pwm']
+        if 'nmpc_rate_constraints' in mcd:
+            self.nmpc_rate_constraints = mcd['nmpc_rate_constraints']
+        if 'rate_scale_factor' in mcd:
+            self.rate_scale_factor = mcd['rate_scale_factor']
+        if 'actuator_rate_costs' in mcd:
+            self.actuator_rate_costs = np.array(mcd['actuator_rate_costs'])
+        if 'horizon_time' in mcd:
+            self.horizon_time = mcd['horizon_time'] 
+        if 'ms_time_step' in mcd:
+            self.ms_time_step = mcd['ms_time_step']
+        if 'spectral_order' in mcd:
+            self.spectral_order = mcd['spectral_order']
+        if 'finite_interval_size' in mcd:
+            self.finite_interval_size = mcd['finite_interval_size']
+        if 'number_intervals' in mcd:
+            self.number_intervals = mcd['number_intervals']
+        if 'collocation_degree' in mcd:
+            self.collocation_degree = mcd['collocation_degree']
+        if 'ipopt_settings' in mcd:
+            self.ipopt_settings = mcd['ipopt_settings']
+
 
     # This function makes it possible to print the Constants with print function
     # This way we can add our constants to our runs and simulation logs.
