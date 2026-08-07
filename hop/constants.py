@@ -8,8 +8,8 @@ class Constants:
 
         # general constants
         # ---------------------------------------------------------------
-        self.timelimit = 10 # time limit for a flight in seconds 
-        self.shutdown_angle = 10.0 # shutdown if attitude exceeds this angle
+        self.timelimit = 0.5 # time limit for a flight in seconds 
+        self.shutdown_angle = 8.0 # shutdown if attitude exceeds this angle
 
         self.battery_v = 25.0 # 25 volt battery
 
@@ -82,7 +82,7 @@ class Constants:
         self.inner_gimbal_range = [-13.5,13.5]      # inner gimbal range limit in degrees
         self.theta_dot_constraint = 6.16            # gimbal rate of change limit in degrees per dt
         self.thrust_dot_limit = 20.0                # thrust rate of change limit in Newtons per dt
-        self.hover_thrust = 0.70                   # the thrust rate needed to hover
+        self.hover_thrust = 0.60                   # the thrust rate needed to hover
         self.prop_thrust_constraint = 1.0          # max thrust allowed 
         self.diff_thrust_constraint = [-0.2,0.2]    # min and max thrust difference allowed
 
@@ -96,7 +96,7 @@ class Constants:
         # self.Q = ca.diag([40.0,40.0,50.0, 10.0,10.0,15.0, 2500.0,2500.0,200.0,200.0, 30.0,30.0,1.0 ])
 
         # self.Q = ca.diag([50.0,50.0,50.0, 10.0,10.0,10.0, 526.0,526.0,15.0,0.0, 15.0,15.0,1.0 ])
-        self.Q = ca.diag([40.0,40.0,80.0, 20.0,20.0,40.0, 526.0,526.0,33.0,0.0, 180.0,180.0,8.0 ])
+        self.Q = ca.diag([1.0,1.0,10.0, 1.0,1.0,10.0, 526.0,526.0,33.0,0.0, 50.0,50.0,8.0 ])
         self.R = ca.diag([0.01, 0.01, 100, 100])
         
         self.gmb_deg_1pwm = 52

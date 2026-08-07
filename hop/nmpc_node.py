@@ -165,11 +165,11 @@ class NMPCNode(Node):
 
             else:      
                 self.mpc.set_waypoint(parameters)
-                # control = np.array(self.mpc.mpc.make_step(state)).flatten()
+                control = np.array(self.mpc.mpc.make_step(state)).flatten()
 
             pwm_servos, pwm_motors = self.control_translator(control)   
-            # self.run_motors(pwm_motors)
-            # self.run_servos(pwm_servos)   
+            self.run_motors(pwm_motors)
+            self.run_servos(pwm_servos)   
             nmpc_time = perf_counter() - start_time
 
             self.log_rows.append({
