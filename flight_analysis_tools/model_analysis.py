@@ -13,14 +13,15 @@ import matplotlib.pyplot as plt
 from plotting.plots import plot_state, plot_control, plot_pwm, plot_attitude, plot_parameters, plot_weighted_error_state, plot_weighted_error_control
 from hop.equations_of_motion import Equations6DOF
 
+plot_NMPC_horizons = False
 
 mc = Constants()
-equations = Equations6DOF(mc)
 fd = FlightData()
 
 # update the constants with those used in the flight
 mc.update_from_dictionary(fd.constants)
 
+equations = Equations6DOF(mc)
 model = DroneModel(mc)  
 
 # create an nmpc to compute the control
@@ -93,10 +94,12 @@ for i in range(len(fd.state_data)-1):
         cost_by_state[i][k] = sum([(c - xrnp[k]) @ mc.Q[k,k] @ (c - xrnp[k]) for c in state])
         if cost_by_state[i][k] > max_cost:
             max_cost = cost_by_state[i][k]
-    fis = mc.finite_interval_size
-    hspan = np.arange(0, len(state_sol[0]) * fis , fis)
-    plot_state(hspan, horizon, 'state')
-    plt.show()
+
+    if plot_NMPC_horizons:
+        fis = mc.finite_interval_size
+        hspan = np.arange(0, len(state_sol[0]) * fis , fis)
+        plot_state(hspan, horizon, 'state')
+        plt.show()
 
     # turn quaternions into attitude
     # it's easier to read
