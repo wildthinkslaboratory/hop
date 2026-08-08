@@ -38,6 +38,14 @@ from random import uniform
 
 mc = Constants()
 
+from enum import Enum
+
+class ShutdownReason(Enum):
+    NONE = 0
+    TIMEOUT = 1
+    ANGLE_EXCEEDED = 2
+    COMMAND = 3
+
 class NMPCNode(Node):
 
     def __init__(self, dt = mc.dt):
@@ -117,7 +125,8 @@ class NMPCNode(Node):
             self.mpc.setup_cost()
             self.mpc.set_start_state(mc.x0)
 
-
+        self.shutdown_reason = ShutdownReason.NONE
+        self.first_nmpc_call = True
         status = NMPCStatus()
         status.status = NMPCStatus.READY
         status.timestamp = self.get_clock().now().nanoseconds // 1000
@@ -128,28 +137,24 @@ class NMPCNode(Node):
 
 ############################# callbacks  ####################################
 
-    # publish all of our messages
+    
     def nmpc(self, msg):
+
+        if self.first_nmpc_call:
+            self.first_nmpc_call = False
+            self.start_time = perf_counter()
 
         nmpc_receive_time = self.get_clock().now().nanoseconds // 1000
         runtime = perf_counter() - self.start_time
         x_theta, y_theta, theta = quaternion_to_angle(self.q)
 
-        if self.command == CommandInput.SHUTDOWN or runtime > mc.timelimit or theta > mc.shutdown_angle:
-            self.run_motors([0.0, 0.0])
-            self.run_servos([0.0, 0.0])
-            disarm_msg = NMPCStatus()
-            disarm_msg.status = NMPCStatus.DISARM_REQUEST
-            self.publisher_status.publish(disarm_msg)
+        if runtime > mc.timelimit:
+            self.shutdown_reason = ShutdownReason.TIMEOUT
+        if theta > mc.shutdown_angle:
+            self.shutdown_reason = ShutdownReason.ANGLE_EXCEEDED
 
-            if runtime > mc.timelimit:
-                self.get_logger().info('time limit of ' + str(mc.timelimit) + ' sec was exceeded.')
-            elif theta > 10.0:
-                self.get_logger().info('attitude exceeded limit of ' + str(mc.shutdown_angle) + ' degrees.')
-            
-            self.get_logger().info('NMPC Node shutting down')
-
-            rclpy.shutdown()
+        if not self.shutdown_reason == ShutdownReason.NONE:
+            self.shutdown()
         else:
             start_time = perf_counter()
             state = DM(np.array(msg.state))
@@ -157,19 +162,14 @@ class NMPCNode(Node):
             parameters[3] = msg.battery_voltage   
             self.q = np.reshape(state[6:10], (4,))
 
-            control = np.array([0.0, 0.0, mc.hover_thrust, 0.0])
-            if self.model_time_delay:
-                control = self.ms_nmpc.make_step(state, self.control_history.flatten(), parameters).flatten()
-                self.control_history = np.roll(self.control_history, -1, axis=0)
-                self.control_history[-1] = control
-
-            else:      
+            control = np.array([0.0, 0.0, 0.0, 0.0])
+            if mc.run_nmpc:    
                 self.mpc.set_waypoint(parameters)
                 control = np.array(self.mpc.mpc.make_step(state)).flatten()
-
             pwm_servos, pwm_motors = self.control_translator(control)   
             self.run_motors(pwm_motors)
             self.run_servos(pwm_servos)   
+
             nmpc_time = perf_counter() - start_time
 
             self.log_rows.append({
@@ -187,6 +187,10 @@ class NMPCNode(Node):
             self.waypoint_i = self.waypoint_i + 1
         else:
             self.command = msg.command
+            self.get_logger().info('Command received ' + str(msg.command))
+            if msg.command == CommandInput.SHUTDOWN:
+                self.shutdown_reason = ShutdownReason.COMMAND
+                self.shutdown()
 
 
 
@@ -216,15 +220,30 @@ class NMPCNode(Node):
         return [outer_angle_pwm, inner_angle_pwm], [top_prop_pwm, bottom_prop_pwm]
         
 
-    # when we exit do clean up and output the run data
-    def destroy_node(self):
+    def shutdown(self):
+
+        # shutdown motors and servos
+        self.run_motors([0.0, 0.0])
+        self.run_servos([0.0, 0.0])
+
+        # tell the main control node to disarm and shutdown
+        disarm_msg = NMPCStatus()
+        disarm_msg.status = NMPCStatus.DISARM_REQUEST
+        self.publisher_status.publish(disarm_msg)
+      
+        self.get_logger().info('NMPC Node shutting down: ' + str(self.shutdown_reason))
 
         # write out the nmpc data
         data = {'constants': mc.__dict__(), 'run_data': self.log_rows}
         output_data(data, "src/hop/plotter_logs/current.json")
         formatted_date = datetime.now().strftime("%Y-%m-%d-%H-%M")
         output_data(data, "src/hop/plotter_logs/" + formatted_date + "log.json")
-        super().destroy_node()
+        rclpy.shutdown()
+
+
+    # # when we exit do clean up and output the run data
+    # def destroy_node(self):
+    #     super().destroy_node()
 
 ################################### PUBLISHER functions #######################################
 

@@ -8,8 +8,9 @@ class Constants:
 
         # general constants
         # ---------------------------------------------------------------
-        self.timelimit = 0.5 # time limit for a flight in seconds 
+        self.timelimit = 1.0 # time limit for a flight in seconds 
         self.shutdown_angle = 8.0 # shutdown if attitude exceeds this angle
+        self.run_nmpc = False
 
         self.battery_v = 25.0 # 25 volt battery
 
@@ -147,7 +148,7 @@ class Constants:
             # np.array([0.0, 0.0, 0.5, 25.0, self.hover_thrust]),
             # np.array([0.0, 0.0, 0.6, 25.0, self.hover_thrust]),
             # np.array([0.0, 0.0, 0.5, 25.0, self.hover_thrust]),
-            np.array([0.0, 0.0, 0.8, 25.0, self.hover_thrust]),
+            np.array([0.0, 0.0, 0.84, 25.0, self.hover_thrust]),
             np.array([0.0, 0.0, 0.3, 25.0, 0.0]),
             np.array([0.0, 0.0, 0.3, 25.0, 0.0]),
         ]
@@ -159,7 +160,7 @@ class Constants:
         # constants for specific NLP formulations
         # --------------------------------------------------------------- 
 
-        self.horizon_time = 1.0
+        self.horizon_time = 1.5
 
         # multiple shooter constants
         self.ms_time_step = 0.25 # number of timesteps for nmpc to consider
@@ -182,6 +183,7 @@ class Constants:
             'ipopt.sb': 'yes',
             'print_time': 0,
             'ipopt.linear_solver': 'ma27',
+            "ipopt.max_wall_time": 0.2,
             # 'ipopt.warm_start_init_point': 'yes',
             # 'ipopt.warm_start_bound_push': 1e-6,
             # 'ipopt.warm_start_mult_bound_push': 1e-6,
