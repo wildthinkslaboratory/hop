@@ -8,8 +8,9 @@ class Constants:
 
         # general constants
         # ---------------------------------------------------------------
-        self.timelimit = 10 # time limit for a flight in seconds 
-        self.shutdown_angle = 10.0 # shutdown if attitude exceeds this angle
+        self.timelimit = 1.0 # time limit for a flight in seconds 
+        self.shutdown_angle = 8.0 # shutdown if attitude exceeds this angle
+        self.run_nmpc = False
 
         self.battery_v = 25.0 # 25 volt battery
 
@@ -82,7 +83,7 @@ class Constants:
         self.inner_gimbal_range = [-13.5,13.5]      # inner gimbal range limit in degrees
         self.theta_dot_constraint = 6.16            # gimbal rate of change limit in degrees per dt
         self.thrust_dot_limit = 20.0                # thrust rate of change limit in Newtons per dt
-        self.hover_thrust = 0.70                   # the thrust rate needed to hover
+        self.hover_thrust = 0.60                   # the thrust rate needed to hover
         self.prop_thrust_constraint = 1.0          # max thrust allowed 
         self.diff_thrust_constraint = [-0.2,0.2]    # min and max thrust difference allowed
 
@@ -91,7 +92,7 @@ class Constants:
         self.dt = 0.02 # 50 Hz like in paper
         self.x0 = ca.vertcat(0.0,0.0,0.0, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0) # initial state                                                    # state cost matrix
 
-        self.Q = ca.diag([0.1,0.1,10.0, 0.1,0.1,5.0, 500.0,500.0,1.0,0.0, 25.0,25.0,0.1 ])
+        self.Q = ca.diag([1.0,1.0,10.0, 1.0,1.0,10.0, 526.0,526.0,33.0,0.0, 50.0,50.0,8.0 ])
         self.R = ca.diag([0.01, 0.01, 100, 100])
         
         self.gmb_deg_1pwm = 52
@@ -142,7 +143,7 @@ class Constants:
             # np.array([0.0, 0.0, 0.5, 25.0, self.hover_thrust]),
             # np.array([0.0, 0.0, 0.6, 25.0, self.hover_thrust]),
             # np.array([0.0, 0.0, 0.5, 25.0, self.hover_thrust]),
-            np.array([0.0, 0.0, 0.8, 25.0, self.hover_thrust]),
+            np.array([0.0, 0.0, 0.84, 25.0, self.hover_thrust]),
             np.array([0.0, 0.0, 0.3, 25.0, 0.0]),
             np.array([0.0, 0.0, 0.3, 25.0, 0.0]),
         ]
@@ -154,7 +155,7 @@ class Constants:
         # constants for specific NLP formulations
         # --------------------------------------------------------------- 
 
-        self.horizon_time = 1.0
+        self.horizon_time = 1.5
 
         # multiple shooter constants
         self.ms_time_step = 0.25 # number of timesteps for nmpc to consider
@@ -177,6 +178,7 @@ class Constants:
             'ipopt.sb': 'yes',
             'print_time': 0,
             'ipopt.linear_solver': 'ma27',
+            "ipopt.max_wall_time": 0.2,
             # 'ipopt.warm_start_init_point': 'yes',
             # 'ipopt.warm_start_bound_push': 1e-6,
             # 'ipopt.warm_start_mult_bound_push': 1e-6,
