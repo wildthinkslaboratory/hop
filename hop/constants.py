@@ -8,9 +8,9 @@ class Constants:
 
         # general constants
         # ---------------------------------------------------------------
-        self.timelimit = 1.0 # time limit for a flight in seconds 
+        self.timelimit = 3.0 # time limit for a flight in seconds 
         self.shutdown_angle = 8.0 # shutdown if attitude exceeds this angle
-        self.run_nmpc = False
+        self.run_nmpc = True
 
         self.battery_v = 25.0 # 25 volt battery
 
@@ -97,7 +97,7 @@ class Constants:
         # self.Q = ca.diag([40.0,40.0,50.0, 10.0,10.0,15.0, 2500.0,2500.0,200.0,200.0, 30.0,30.0,1.0 ])
 
         # self.Q = ca.diag([50.0,50.0,50.0, 10.0,10.0,10.0, 526.0,526.0,15.0,0.0, 15.0,15.0,1.0 ])
-        self.Q = ca.diag([1.0,1.0,10.0, 1.0,1.0,10.0, 526.0,526.0,33.0,0.0, 50.0,50.0,8.0 ])
+        self.Q = ca.diag([1.0,1.0,10.0, 1.0,1.0,5.0, 526.0,526.0,33.0,0.0, 25.0,25.0,8.0 ])
         self.R = ca.diag([0.01, 0.01, 100, 100])
         
         self.gmb_deg_1pwm = 52
@@ -183,7 +183,7 @@ class Constants:
             'ipopt.sb': 'yes',
             'print_time': 0,
             'ipopt.linear_solver': 'ma27',
-            "ipopt.max_wall_time": 0.2,
+            "ipopt.max_wall_time": 0.03,
             # 'ipopt.warm_start_init_point': 'yes',
             # 'ipopt.warm_start_bound_push': 1e-6,
             # 'ipopt.warm_start_mult_bound_push': 1e-6,
