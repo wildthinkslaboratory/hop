@@ -21,6 +21,8 @@ fd = FlightData()
 # update the constants with those used in the flight
 mc.update_from_dictionary(fd.constants)
 
+print(mc.tuning_info())
+
 equations = Equations6DOF(mc)
 model = DroneModel(mc)  
 
@@ -86,7 +88,9 @@ for i in range(len(fd.state_data)-1):
         print(mpc.mpc.solver_stats['return_status'])
 
     state_sol = mpc.mpc.data.prediction(('_x',))
+    control_sol = mpc.mpc.data.prediction(('_u',))
     horizon = np.empty([len(state_sol[0]),13])
+    u_horizon = np.empty([len(state_sol[0]),4])
     for k, state in enumerate(state_sol):
         for j, val in enumerate(state):
             horizon[j][k] = val
@@ -95,10 +99,16 @@ for i in range(len(fd.state_data)-1):
         if cost_by_state[i][k] > max_cost:
             max_cost = cost_by_state[i][k]
 
+    for k, u in enumerate(control_sol):
+        for j, val in enumerate(u):
+            u_horizon[j][k] = val
+
+
     if plot_NMPC_horizons:
         fis = mc.finite_interval_size
         hspan = np.arange(0, len(state_sol[0]) * fis , fis)
         plot_state(hspan, horizon, 'state')
+        plot_control(hspan, u_horizon, 'control')
         plt.show()
 
     # turn quaternions into attitude
