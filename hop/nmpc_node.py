@@ -22,7 +22,7 @@ from hop_interfaces.msg import NMPCInput, NMPCStatus, CommandInput
 from time import perf_counter
 from datetime import datetime
 from hop.utilities import output_data, quaternion_to_angle
-from simulation_tools.integrators import RKSimulator
+from hop.integrators import RKSimulator
 from hop.equations_of_motion import Equations6DOF
 
 from casadi import DM
@@ -33,6 +33,8 @@ from hop.dompc import DroneNMPCdompc
 
 from hop.equations_of_motion import Equations6DOF
 from hop.multiShootTDelay import DroneNMPCMultiShootTDelay
+from collections import deque
+
 
 
 from time import sleep
@@ -113,8 +115,11 @@ class NMPCNode(Node):
 
         self.equations = Equations6DOF(mc)
         self.rk_sim = RKSimulator(0.02, 1) # set up to make one 20ms step
-        self.control_history = np.tile([0.0, 0.0, mc.hover_thrust, 0.0], mc.nmpc_delay)
-        print(self.control_history)
+        self.control_history = deque(
+            [np.array([0.0, 0.0, mc.hover_thrust, 0.0]) for i in range(mc.nmpc_delay)],
+            maxlen=mc.nmpc_delay
+        )
+
         self.model = DroneModel(mc)
         self.mpc = DroneNMPCdompc(mc.dt, self.model.model)
         self.mpc.setup_cost()
@@ -159,13 +164,20 @@ class NMPCNode(Node):
 
             control = np.array([0.0, 0.0, 0.0, 0.0])
             if mc.run_nmpc:    
-                # if we are modeling a time delay we integrate the state forward
-                # with the control history before calling the nmpc
-                for i in range(len(self.control_history)):
-                    state = self.rk_sim.make_step(self.equations.f, state, self.control_history[i], params)
+                
+                # integrate the state forward with the control history before calling the nmpc
+                self.get_logger().info('state' + str(state))
+                for control in self.control_history:
+                    state = self.rk_sim.make_step(self.equations.f, state, control, parameters)
 
+                self.get_logger().info('advanced state' + str(state))
                 self.mpc.set_waypoint(parameters)
                 control = np.array(self.mpc.mpc.make_step(state)).flatten()
+                self.control_history.append(control.copy())
+  
+
+                
+
             pwm_servos, pwm_motors = self.control_translator(control)   
             self.run_motors(pwm_motors)
             self.run_servos(pwm_servos)   
