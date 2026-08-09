@@ -11,6 +11,7 @@ class Constants:
         self.timelimit = 10.0 # time limit for a flight in seconds 
         self.shutdown_angle = 10.0 # shutdown if attitude exceeds this angle
         self.run_nmpc = True
+        self.nmpc_delay = 2 # how many cycles it takes for the control to be actuated 
 
         self.battery_v = 25.0 # 25 volt battery
 
@@ -227,6 +228,7 @@ class Constants:
         mcd['battery_v'] = self.battery_v
         mcd['timelimit'] = self.timelimit
         mcd['shutdown_angle'] = self.shutdown_angle
+        mcd['nmpc_delay'] = self.nmpc_delay
         mcd['m'] = self.m
         mcd['a'] = self.a
         mcd['b'] = self.b
@@ -275,6 +277,8 @@ class Constants:
             self.timelimit = mcd['timelimit']
         if 'shutdown_angle' in mcd:
             self.shutdown_angle = mcd['shutdown_angle']
+        if 'nmpc_delay' in mcd:
+            self.nmpc_delay = mcd['nmpc_delay']
         if 'm' in mcd:
             self.m = mcd['m']
         if 'a' in mcd:
