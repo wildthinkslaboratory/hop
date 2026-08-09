@@ -212,8 +212,8 @@ class NMPCNode(Node):
         return top_prop_pwm, bottom_prop_pwm
 
     def control_translator(self, control):
-        gimbal_angles = control[0:2]
-        thrust_values = control[2:4]
+        gimbal_angles = control[0:2].copy()
+        thrust_values = control[2:4].copy()
         outer_angle_pwm, inner_angle_pwm = self.get_angle_pwm(gimbal_angles)
         top_prop_pwm, bottom_prop_pwm = self.get_thrust_pwm(thrust_values)
 
