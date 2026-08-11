@@ -5,12 +5,14 @@ from hop.dompc import DroneNMPCdompc
 from hop.constants import Constants
 from hop.utilities import quaternion_to_angle
 from flight_analysis_tools.flight_data import FlightData
+from simulation_tools.integrators import RKSimulator
 import casadi as ca
 import numpy as np
 import statistics as stats
 from time import perf_counter
 import matplotlib.pyplot as plt
 from plotting.plots import plot_state, plot_control, plot_pwm, plot_attitude, plot_parameters, plot_weighted_error_state, plot_weighted_error_control
+from plotting.plots import plot_state_and_predicted
 from hop.equations_of_motion import Equations6DOF
 
 plot_NMPC_horizons = False
@@ -25,6 +27,7 @@ print(mc.tuning_info())
 
 equations = Equations6DOF(mc)
 model = DroneModel(mc)  
+rk_sim = RKSimulator(0.005, 4)
 
 # create an nmpc to compute the control
 # We run the nmpc on the flight state and see if the computed control
@@ -38,11 +41,14 @@ flight_model_error = np.empty([fd.len_used_data-1,13])
 control_data_computed = np.empty([fd.len_used_data-1,4])
 control_computed_diff = np.empty([fd.len_used_data-1,4])
 predicted_state = np.empty([fd.len_used_data-1,13])
+predicted_state_cont = np.empty([fd.len_used_data,13])
 residual_state = np.empty([fd.len_used_data,13])
 residual_control = np.empty([fd.len_used_data,4])
 attitude = np.empty([fd.len_used_data,3])
 timing_int = np.empty([fd.len_used_data,2])
 cost_by_state = np.empty([fd.len_used_data,13])
+
+predicted_state_cont[0] = fd.state_data[0]
 
 time_data = []
 cost_data = []
@@ -128,7 +134,9 @@ for i in range(len(fd.state_data)-1):
         residual_control[i][j] = control_error[j] * mc.R[j,j] * control_error[j]
 
     # predict the next state and compare with actual next state
-    x0 = fd.state_data[i] + mc.dt* equations.f(fd.state_data[i],np.reshape(fd.control_data[i], (4,1)), fd.parameters[i])
+    x0 = rk_sim.make_step(equations.f, fd.state_data[i], fd.control_data[i], fd.parameters[i])
+    pred_state = rk_sim.make_step(equations.f, predicted_state_cont[i], fd.control_data[i], fd.parameters[i])
+    predicted_state_cont[i+1] = np.reshape(pred_state, (13,))
     flight_model_error[i] = fd.state_data[i+1] -  np.reshape(x0, (13,))
     predicted_state[i] = np.reshape(x0, (13,))
 
@@ -166,7 +174,7 @@ plot_weighted_error_state(tspan, cost_by_state, 'cost across horizon', max_cost)
 plot_attitude(tspan, attitude, 'attitude')
 plot_control(tspan, fd.control_data, 'flight control data')
 plot_state(tspan, fd.state_data, 'state')
-
+plot_state_and_predicted(tspan, fd.state_data, predicted_state_cont, 'state')
 plt.show()
 
 
