@@ -150,7 +150,7 @@ class NMPCNode(Node):
 
         if runtime > mc.timelimit:
             self.shutdown_reason = ShutdownReason.TIMEOUT
-        if theta > mc.shutdown_angle:
+        elif theta > mc.shutdown_angle:
             self.shutdown_reason = ShutdownReason.ANGLE_EXCEEDED
 
         if not self.shutdown_reason == ShutdownReason.NONE:
@@ -166,11 +166,10 @@ class NMPCNode(Node):
             if mc.run_nmpc:    
                 
                 # integrate the state forward with the control history before calling the nmpc
-                self.get_logger().info('state' + str(state))
+       
                 for control in self.control_history:
                     state = self.rk_sim.make_step(self.equations.f, state, control, parameters)
 
-                self.get_logger().info('advanced state' + str(state))
                 self.mpc.set_waypoint(parameters)
                 control = np.array(self.mpc.mpc.make_step(state)).flatten()
                 self.control_history.append(control.copy())
