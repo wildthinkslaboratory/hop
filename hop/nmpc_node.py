@@ -22,6 +22,8 @@ from hop_interfaces.msg import NMPCInput, NMPCStatus, CommandInput
 from time import perf_counter
 from datetime import datetime
 from hop.utilities import output_data, quaternion_to_angle
+from hop.integrators import RKSimulator
+from hop.equations_of_motion import Equations6DOF
 
 from casadi import DM
 import numpy as np
@@ -31,6 +33,8 @@ from hop.dompc import DroneNMPCdompc
 
 from hop.equations_of_motion import Equations6DOF
 from hop.multiShootTDelay import DroneNMPCMultiShootTDelay
+from collections import deque
+
 
 
 from time import sleep
@@ -107,23 +111,19 @@ class NMPCNode(Node):
         self.log_rows = []
         self.waypoint_i = 0
         self.command = CommandInput.NONE
-        self.model_time_delay = False
         self.q = np.array([0.0, 0.0, 0.0, 1.0])
 
-        # build the model and set up the NMPC
-        if self.model_time_delay:
-            self.equations = Equations6DOF(mc)
-            delay = 2
-            self.ms_nmpc = DroneNMPCMultiShootTDelay(self.equations, delay * 2)
-            self.ms_nmpc.build_nmpc_instance()
-            self.ms_nmpc.set_start_state(mc.x0)
-            self.control_history = np.tile([0.0, 0.0, mc.hover_thrust, 0.0], ((delay * 2), 1))
+        self.equations = Equations6DOF(mc)
+        self.rk_sim = RKSimulator(0.02, 1) # set up to make one 20ms step
+        self.control_history = deque(
+            [np.array([0.0, 0.0, mc.hover_thrust, 0.0]) for i in range(mc.nmpc_delay)],
+            maxlen=mc.nmpc_delay
+        )
 
-        else:
-            self.model = DroneModel(mc)
-            self.mpc = DroneNMPCdompc(mc.dt, self.model.model)
-            self.mpc.setup_cost()
-            self.mpc.set_start_state(mc.x0)
+        self.model = DroneModel(mc)
+        self.mpc = DroneNMPCdompc(mc.dt, self.model.model)
+        self.mpc.setup_cost()
+        self.mpc.set_start_state(mc.x0)
 
         self.shutdown_reason = ShutdownReason.NONE
         self.first_nmpc_call = True
@@ -150,7 +150,7 @@ class NMPCNode(Node):
 
         if runtime > mc.timelimit:
             self.shutdown_reason = ShutdownReason.TIMEOUT
-        if theta > mc.shutdown_angle:
+        elif theta > mc.shutdown_angle:
             self.shutdown_reason = ShutdownReason.ANGLE_EXCEEDED
 
         if not self.shutdown_reason == ShutdownReason.NONE:
@@ -164,8 +164,19 @@ class NMPCNode(Node):
 
             control = np.array([0.0, 0.0, 0.0, 0.0])
             if mc.run_nmpc:    
+                
+                # integrate the state forward with the control history before calling the nmpc
+       
+                for control in self.control_history:
+                    state = self.rk_sim.make_step(self.equations.f, state, control, parameters)
+
                 self.mpc.set_waypoint(parameters)
                 control = np.array(self.mpc.mpc.make_step(state)).flatten()
+                self.control_history.append(control.copy())
+  
+
+                
+
             pwm_servos, pwm_motors = self.control_translator(control)   
             self.run_motors(pwm_motors)
             self.run_servos(pwm_servos)   
