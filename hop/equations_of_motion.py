@@ -33,7 +33,7 @@ class Equations6DOF:
         # Now we build up the equations of motion and create a function
         # for the system dynamics
         I_mat = ca.DM(mc.I)
-        norm_P_avg = self.u[2] * self.p[3] / mc.battery_v
+        norm_P_avg = self.u[2] # * self.p[3] / mc.battery_v
         F = (mc.a * norm_P_avg**2 + mc.b * norm_P_avg + mc.c) * mc.thrust_constant
         M = mc.d * mc.Izz * self.u[3]
 
