@@ -14,6 +14,7 @@ class Constants:
         self.nmpc_delay = 3 # how many cycles it takes for the control to be actuated 
 
         self.battery_v = 25.0 # 25 volt battery
+        self.v_altha = 0.95 # factor for low pass filter of voltage
 
         # model related constants
         # ---------------------------------------------------------------

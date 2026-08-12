@@ -193,7 +193,7 @@ class ControlNode(Node):
         msg.main_receive_time = self.main_receive_time
         msg.main_send_time = self.get_clock().now().nanoseconds // 1000
         msg.state = self.state
-        msg.battery_voltage = self.voltage
+        msg.battery_voltage = self.filtered_voltage
         self.publisher_nmpc_input.publish(msg)
 
 
@@ -219,6 +219,9 @@ class ControlNode(Node):
 
     def battery_callback(self, msg):
         self.voltage = msg.voltage_v
+
+        # low pass filter for voltage
+        self.filtered_voltage = mc.v_alpha * self.filtered_voltage + (1 - mc.v_alpha) * self.voltage
         
 
     def nmpc_status_callback(self, msg):
