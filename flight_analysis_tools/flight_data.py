@@ -4,12 +4,12 @@ import numpy as np
 
 
 class FlightData:
-    def __init__(self):
+    def __init__(self, filename='./plotter_logs/current.json'):
         
         # read in logfile and time point to begin analyzing
         self.dt = 0.02
         self.start_time = 0.0
-        self.log_file_name = './plotter_logs/current.json'
+        self.log_file_name = filename
         if len(sys.argv) > 1:
             self.log_file_name = sys.argv[1]
             self.start_time = float(sys.argv[2])
