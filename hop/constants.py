@@ -14,11 +14,11 @@ class Constants:
         self.nmpc_delay = 3 # how many cycles it takes for the control to be actuated 
 
         self.battery_v = 25.0 # 25 volt battery
-        self.v_altha = 0.95 # factor for low pass filter of voltage
+        self.v_alpha = 0.95 # factor for low pass filter of voltage
 
         # model related constants
         # ---------------------------------------------------------------
-        self.m = 1.576    # mass of drone in kg
+        self.m = 1.617    # mass of drone in kg
 
         self.px4_height = 0.3
 
@@ -37,11 +37,11 @@ class Constants:
         # self.Ixz =  0.0003
         # self.Iyz =  0.0010
 
-        self.Ixx =  0.0590     # moments of inertia
-        self.Iyy =  0.0594
+        self.Ixx =  0.0621     # moments of inertia
+        self.Iyy =  0.0624
         self.Izz =  0.0130
         self.Ixz =  0.0002
-        self.Iyz =  0.0009
+        self.Iyz =  0.0007
 
 
         self.I = np.array([
@@ -57,9 +57,9 @@ class Constants:
         # ])
 
         self.moment_arm = np.array([
-            0.000073,
-            0.000271,
-            -0.208324
+            0.000035,
+            -0.000072,
+            -0.21531
         ])
 
 

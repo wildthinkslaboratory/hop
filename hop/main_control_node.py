@@ -106,7 +106,8 @@ class ControlNode(Node):
         # read this data from pixhawk and then we translate it to 
         # the appropriate coordinate systems and forward to the nmpc_node
         self.state = mc.x0
-        self.voltage = 0.0    
+        self.voltage = 0.0  
+        self.filtered_voltage = 0.0  
         self.timestamp_sample = 0
         self.main_receive_time = 0  
 
@@ -220,8 +221,12 @@ class ControlNode(Node):
     def battery_callback(self, msg):
         self.voltage = msg.voltage_v
 
-        # low pass filter for voltage
-        self.filtered_voltage = mc.v_alpha * self.filtered_voltage + (1 - mc.v_alpha) * self.voltage
+        # initialize the filtered voltage
+        if self.filtered_voltage == 0.0:
+            self.filtered_voltage = self.voltage
+        else:
+            # low pass filter for voltage
+            self.filtered_voltage = mc.v_alpha * self.filtered_voltage + (1 - mc.v_alpha) * self.voltage
         
 
     def nmpc_status_callback(self, msg):
