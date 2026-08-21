@@ -13,7 +13,7 @@ fig, ax = plt.subplots(figsize=(12,6))
 
 
 n_cycles = len(fd.timing_data)-1
-n_cycles = 50
+n_cycles = min(40, n_cycles)
 
 
 # we map our first pi time to the time of the first pixhawk send time 

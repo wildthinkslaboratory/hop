@@ -94,7 +94,6 @@ class Constants:
         # ---------------------------------------------------------------        
         self.dt = 0.02 # 50 Hz like in paper
         self.x0 = ca.vertcat(0.0,0.0,0.0, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0) # initial state                                                    # state cost matrix
-    
 
         # self.Q = ca.diag([80.0,80.0,100.0, 20.0,20.0,25.0, 2500.0,2500.0,200.0,200.0, 20.0,20.0,1.0 ])
         # self.Q = ca.diag([40.0,40.0,50.0, 10.0,10.0,15.0, 2500.0,2500.0,200.0,200.0, 30.0,30.0,1.0 ])
@@ -210,16 +209,16 @@ class Constants:
         s += 'qy: ' +  str(round(q_component_to_angle(np.sqrt(1 / self.Q[7, 7])))) + ' degrees\n'
         s += 'qz: ' +  str(round(q_component_to_angle(np.sqrt(1 / self.Q[8, 8])))) + ' degrees\n'
         s += 'angular velocity deviation\n'
-        s += 'vx: ' +  str(np.sqrt(1 / self.Q[10, 10])) + ' rad / s\n'
-        s += 'vy: ' +  str(np.sqrt(1 / self.Q[11, 11])) + ' rad / s\n'
-        s += 'vz: ' +  str(np.sqrt(1 / self.Q[12, 12])) + ' rad / s\n'
+        s += 'vx: ' +  str(np.sqrt(1 / self.Q[10, 10]) * (180.0 / np.pi)) + ' deg / s\n'
+        s += 'vy: ' +  str(np.sqrt(1 / self.Q[11, 11]) * (180.0 / np.pi)) + ' deg / s\n'
+        s += 'vz: ' +  str(np.sqrt(1 / self.Q[12, 12]) * (180.0 / np.pi)) + ' deg / s\n'
         s += '\nR Tuning Information\n'
         s += '-----------------------\n'
         s += 'gimbal deviation\n'
-        s += 'theta 1: ' +  str(np.sqrt(1 / self.R[0, 0])) + ' degrees / sed\n'
-        s += 'theta 2: ' +  str(np.sqrt(1 / self.R[1, 1])) + ' degrees / sed\n'
-        s += 'P avg: ' +  str(np.sqrt(1 / self.Q[2, 2])) + ' [0-1]\n'
-        s += 'P diff: ' +  str(np.sqrt(1 / self.Q[3, 3])) + ' [0-1]\n'
+        s += 'theta 1: ' +  str(np.sqrt(1 / self.R[0, 0])) + ' degrees / sec\n'
+        s += 'theta 2: ' +  str(np.sqrt(1 / self.R[1, 1])) + ' degrees / sec\n'
+        s += 'P avg: ' +  str(np.sqrt(1 / self.R[2, 2])) + ' [0-1]\n'
+        s += 'P diff: ' +  str(np.sqrt(1 / self.R[3, 3])) + ' [0-1]\n'
         return s
 
 
