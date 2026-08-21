@@ -106,7 +106,8 @@ class ControlNode(Node):
         # read this data from pixhawk and then we translate it to 
         # the appropriate coordinate systems and forward to the nmpc_node
         self.state = mc.x0
-        self.voltage = 0.0    
+        self.voltage = 0.0  
+        self.filtered_voltage = 0.0  
         self.timestamp_sample = 0
         self.main_receive_time = 0  
 
