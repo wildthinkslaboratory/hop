@@ -158,15 +158,14 @@ class NMPCNode(Node):
         else:
             start_time = perf_counter()
             state = DM(np.array(msg.state))
+            raw_state = state.copy()
             parameters = mc.waypoints[self.waypoint_i]
-            parameters[3] = msg.battery_voltage   
+            parameters[3] = msg.filtered_voltage   
             self.q = np.reshape(state[6:10], (4,))
-
             control = np.array([0.0, 0.0, 0.0, 0.0])
             if mc.run_nmpc:    
                 
                 # integrate the state forward with the control history before calling the nmpc
-       
                 for control in self.control_history:
                     state = self.rk_sim.make_step(self.equations.f, state, control, parameters)
 
@@ -185,11 +184,17 @@ class NMPCNode(Node):
 
             self.log_rows.append({
                 'state': state.full().flatten().tolist(),
+                'raw_state': raw_state.full().flatten().tolist(),
                 'control': control.tolist(),
                 'timing': [msg.timestamp_sample, msg.main_receive_time, msg.main_send_time, nmpc_receive_time, nmpc_time],
                 'pwm_motors': pwm_motors,
                 'pwm_servos': pwm_servos,
                 'parameters': parameters.tolist(),
+                'current_a': msg.current_a,
+                'current_average_a': msg.current_average_a,
+                'discharged_mah': msg.discharged_mah,
+                'remaining': msg.remaining,
+                'raw_voltage': msg.voltage,
             })
     
 
