@@ -106,8 +106,15 @@ class ControlNode(Node):
         # read this data from pixhawk and then we translate it to 
         # the appropriate coordinate systems and forward to the nmpc_node
         self.state = mc.x0
+
+        # battery status data for thrust analysis
         self.voltage = 0.0  
         self.filtered_voltage = 0.0  
+        self.current_a = 0.0
+        self.current_average_a = 0.0
+        self.discharged_mah = 0.0
+        self.remaining = 0.0
+
         self.timestamp_sample = 0
         self.main_receive_time = 0  
 
@@ -194,7 +201,14 @@ class ControlNode(Node):
         msg.main_receive_time = self.main_receive_time
         msg.main_send_time = self.get_clock().now().nanoseconds // 1000
         msg.state = self.state
-        msg.battery_voltage = self.filtered_voltage
+        msg.battery_voltage = self.voltage
+
+        # additional info for thrust testing
+        msg.current_a = self.current_a
+        msg.current_average_a = self.current_average_a 
+        msg.discharged_mah = self.discharged_mah 
+        msg.remaining = self.remaining
+
         self.publisher_nmpc_input.publish(msg)
 
 
@@ -220,6 +234,10 @@ class ControlNode(Node):
 
     def battery_callback(self, msg):
         self.voltage = msg.voltage_v
+        self.current_a = msg.current_a
+        self.current_average_a = msg.current_average_a
+        self.discharged_mah = msg.discharged_mah
+        self.remaining = msg.remaining
 
         # initialize the filtered voltage
         if self.filtered_voltage == 0.0:
