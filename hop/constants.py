@@ -81,7 +81,7 @@ class Constants:
  
         # mechanical and hardware constants
         # ---------------------------------------------------------------    
-        self.gimbal_offset = [3.0, 0.0]   
+        self.gimbal_offset = [6.0, 0.0]   
         self.outer_gimbal_range = [-20,20]          # outer gimbal range limit in degrees
         self.inner_gimbal_range = [-13.5,13.5]      # inner gimbal range limit in degrees
         self.theta_dot_constraint = 6.16            # gimbal rate of change limit in degrees per dt
@@ -250,6 +250,7 @@ class Constants:
         mcd['ur'] = self.ur.full().flatten().tolist()
         mcd['moment_arm'] = self.moment_arm.tolist()
         mcd['I'] = self.I.tolist()
+        mcd['gimbal_offset'] = self.gimbal_offset 
         mcd['outer_gimbal_range'] = self.outer_gimbal_range 
         mcd['inner_gimbal_range'] = self.inner_gimbal_range 
         mcd['theta_dot_constraint'] = self.theta_dot_constraint
@@ -321,6 +322,8 @@ class Constants:
             self.moment_arm = np.array(mcd['moment_arm'])
         if 'I' in mcd:
             self.I = np.array(mcd['I'])
+        if 'gimbal_offset' in mcd:
+            self.gimbal_offset = mcd['gimbal_offset']
         if 'outer_gimbal_range' in mcd:
             self.outer_gimbal_range = mcd['outer_gimbal_range']
         if 'inner_gimbal_range' in mcd:
@@ -385,6 +388,7 @@ class Constants:
         s += f"{'d:':10}  {str(self.d):15}\n"
         s += 'Mechanical and hardware constants: \n'
         s += '-----------------------------------------------\n'
+        s += f"{'gimbal offset:':20}  {str(self.gimbal_offset)}\n" 
         s += f"{'outer gimbal range:':20}  {str(self.outer_gimbal_range)}\n" 
         s += f"{'inner gimbal range:':20}  {str(self.inner_gimbal_range)}\n" 
         s += f"{'theta dot max:':20}  {str(self.theta_dot_constraint)}\n" 
