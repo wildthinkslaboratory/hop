@@ -202,6 +202,7 @@ class ControlNode(Node):
         msg.main_send_time = self.get_clock().now().nanoseconds // 1000
         msg.state = self.state
         msg.battery_voltage = self.voltage
+        msg.filtered_voltage = self.filtered_voltage
 
         # additional info for thrust testing
         msg.current_a = self.current_a

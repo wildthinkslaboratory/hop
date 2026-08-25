@@ -158,7 +158,7 @@ class NMPCNode(Node):
         else:
             start_time = perf_counter()
             state = DM(np.array(msg.state))
-            raw_state = state.copy()
+            raw_state = DM(state)
             parameters = mc.waypoints[self.waypoint_i]
             parameters[3] = msg.filtered_voltage   
             self.q = np.reshape(state[6:10], (4,))
@@ -194,7 +194,7 @@ class NMPCNode(Node):
                 'current_average_a': msg.current_average_a,
                 'discharged_mah': msg.discharged_mah,
                 'remaining': msg.remaining,
-                'raw_voltage': msg.voltage,
+                'raw_voltage': msg.battery_voltage,
             })
     
 
