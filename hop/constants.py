@@ -14,7 +14,7 @@ class Constants:
         self.nmpc_delay = 3 # how many cycles it takes for the control to be actuated 
 
         self.battery_v = 25.0 # 25 volt battery
-        self.v_alpha = 0.5 # factor for low pass filter of voltage
+        self.v_alpha = 0.75 # factor for low pass filter of voltage
 
         # model related constants
         # ---------------------------------------------------------------
@@ -81,7 +81,7 @@ class Constants:
  
         # mechanical and hardware constants
         # ---------------------------------------------------------------    
-        self.gimbal_offset = [6.0, 0.0]   
+        self.gimbal_offset = [4.0, 0.0]   
         self.outer_gimbal_range = [-20,20]          # outer gimbal range limit in degrees
         self.inner_gimbal_range = [-13.5,13.5]      # inner gimbal range limit in degrees
         self.theta_dot_constraint = 6.16            # gimbal rate of change limit in degrees per dt
@@ -99,7 +99,7 @@ class Constants:
         # self.Q = ca.diag([40.0,40.0,50.0, 10.0,10.0,15.0, 2500.0,2500.0,200.0,200.0, 30.0,30.0,1.0 ])
 
         # self.Q = ca.diag([50.0,50.0,50.0, 10.0,10.0,10.0, 526.0,526.0,15.0,0.0, 15.0,15.0,1.0 ])
-        self.Q = ca.diag([1.0,1.0,10.0, 1.0,1.0,5.0, 526.0,526.0,33.0,0.0, 18.0,18.0,8.0 ])
+        self.Q = ca.diag([10.0,10.0,10.0, 5.0,5.0,5.0, 526.0,526.0,33.0,0.0, 18.0,18.0,8.0 ])
         self.R = ca.diag([0.01, 0.01, 100, 100])
         
         self.gmb_deg_1pwm = 52

@@ -211,7 +211,6 @@ class NMPCNode(Node):
 
 
     def get_angle_pwm(self, gimbal_angles):
-        gimbal_angles[0] = gimbal_angles[0] + mc.gimbal_offset[0]      # gimbal offset
         gimbal_angles[0] = np.clip(gimbal_angles[0], mc.outer_gimbal_range[0], mc.outer_gimbal_range[1])
         gimbal_angles[1] = np.clip(gimbal_angles[1],  mc.inner_gimbal_range[0], mc.inner_gimbal_range[1])
 

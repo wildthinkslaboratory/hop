@@ -110,6 +110,7 @@ class ControlNode(Node):
         # battery status data for thrust analysis
         self.voltage = 0.0  
         self.filtered_voltage = 0.0  
+        self.voltage_history = deque(maxlen=8)
         self.current_a = 0.0
         self.current_average_a = 0.0
         self.discharged_mah = 0.0
@@ -233,19 +234,19 @@ class ControlNode(Node):
             self.y_offset = float(self.state[1])
 
 
+
     def battery_callback(self, msg):
         self.voltage = msg.voltage_v
+        self.voltage_history.append(self.voltage)
+        self.filtered_voltage = np.mean(self.voltage_history)
         self.current_a = msg.current_a
         self.current_average_a = msg.current_average_a
         self.discharged_mah = msg.discharged_mah
         self.remaining = msg.remaining
 
-        # initialize the filtered voltage
-        if self.filtered_voltage == 0.0:
-            self.filtered_voltage = self.voltage
-        else:
-            # low pass filter for voltage
-            self.filtered_voltage = mc.v_alpha * self.filtered_voltage + (1 - mc.v_alpha) * self.voltage
+
+
+
         
 
     def nmpc_status_callback(self, msg):
