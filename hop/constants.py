@@ -14,7 +14,7 @@ class Constants:
         self.nmpc_delay = 3 # how many cycles it takes for the control to be actuated 
 
         self.battery_v = 25.0 # 25 volt battery
-        self.v_alpha = 0.75 # factor for low pass filter of voltage
+        self.v_alpha = 0.92 # factor for low pass filter of voltage
 
         # model related constants
         # ---------------------------------------------------------------
@@ -226,6 +226,7 @@ class Constants:
     def __dict__(self):
         mcd = {}
         mcd['battery_v'] = self.battery_v
+        mcd['v_alpha'] = self.v_alpha
         mcd['timelimit'] = self.timelimit
         mcd['shutdown_angle'] = self.shutdown_angle
         mcd['nmpc_delay'] = self.nmpc_delay
@@ -274,6 +275,8 @@ class Constants:
     def update_from_dictionary(self, mcd):
         if 'battery_v' in mcd:
             self.battery_v = mcd['battery_v']
+        if 'v_alpha' in mcd:
+            self.v_alpha = mcd['v_alpha']
         if 'timelimit' in mcd:
             self.timelimit = mcd['timelimit']
         if 'shutdown_angle' in mcd:

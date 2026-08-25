@@ -109,9 +109,8 @@ class ControlNode(Node):
         self.state = mc.x0
 
         # battery status data for thrust analysis
-        self.voltage = 0.0  
+        self.raw_voltage = 0.0  
         self.filtered_voltage = 0.0  
-        self.voltage_history = deque(maxlen=12)
         self.current_a = 0.0
         self.current_average_a = 0.0
         self.discharged_mah = 0.0
@@ -203,7 +202,7 @@ class ControlNode(Node):
         msg.main_receive_time = self.main_receive_time
         msg.main_send_time = self.get_clock().now().nanoseconds // 1000
         msg.state = self.state
-        msg.battery_voltage = self.voltage
+        msg.raw_voltage = self.raw_voltage
         msg.filtered_voltage = self.filtered_voltage
 
         # additional info for thrust testing
@@ -237,9 +236,15 @@ class ControlNode(Node):
 
 
     def battery_callback(self, msg):
-        self.voltage = msg.voltage_v
-        self.voltage_history.append(self.voltage)
-        self.filtered_voltage = np.mean(self.voltage_history)
+        self.raw_voltage = msg.voltage_v
+
+        # initialize the filtered voltage
+        if self.filtered_voltage == 0.0:
+            self.filtered_voltage = self.raw_voltage
+        else:
+            # low pass filter for voltage
+            self.filtered_voltage = mc.v_alpha * self.filtered_voltage + (1 - mc.v_alpha) * self.raw_voltage
+
         self.current_a = msg.current_a
         self.current_average_a = msg.current_average_a
         self.discharged_mah = msg.discharged_mah

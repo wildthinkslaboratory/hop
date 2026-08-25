@@ -174,8 +174,6 @@ class NMPCNode(Node):
                 self.control_history.append(control.copy())
   
 
-                
-
             pwm_servos, pwm_motors = self.control_translator(control)   
             self.run_motors(pwm_motors)
             self.run_servos(pwm_servos)   
@@ -194,7 +192,7 @@ class NMPCNode(Node):
                 'current_average_a': msg.current_average_a,
                 'discharged_mah': msg.discharged_mah,
                 'remaining': msg.remaining,
-                'raw_voltage': msg.battery_voltage,
+                'raw_voltage': msg.raw_voltage,
             })
     
 
