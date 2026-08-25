@@ -37,12 +37,15 @@ class Equations6DOF:
         F = (mc.a * norm_P_avg**2 + mc.b * norm_P_avg + mc.c) * mc.thrust_constant
         M = mc.d * mc.Izz * self.u[3]
 
-        F_vector = F * ca.vertcat(
-            sin((np.pi/180)*self.u[1]),
-            -sin((np.pi/180)*self.u[0])*cos((np.pi/180)*self.u[1]),
-            cos((np.pi/180)*self.u[0])*cos((np.pi/180)*self.u[1])
-        )
 
+        theta_x = self.u[0] + mc.gimbal_offset[0]
+        theta_y = self.u[1] + mc.gimbal_offset[1]
+
+        F_vector = F * ca.vertcat(
+            sin((np.pi/180) * theta_y),
+            -sin((np.pi/180) * theta_x)*cos((np.pi/180) * theta_y),
+            cos((np.pi/180) * theta_x)*cos((np.pi/180) * theta_y)
+        )
 
 
         roll_moment = ca.vertcat(0, 0, M)

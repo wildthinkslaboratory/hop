@@ -162,7 +162,7 @@ plt.figure(3)
 plt.plot(tspan, fd.voltage)
 plt.title('voltage')
 
-plot_parameters(tspan[:-1], fd.parameters, 'parameters')
+plot_parameters(tspan, fd.parameters, 'parameters')
 plot_pwm(tspan, fd.pwm_servos, fd.pwm_motors, 'pwm')
 
 plot_control(tspan[:-1], control_data_computed, 'control computed')
