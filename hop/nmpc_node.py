@@ -174,8 +174,6 @@ class NMPCNode(Node):
                 self.control_history.append(control.copy())
   
 
-                
-
             pwm_servos, pwm_motors = self.control_translator(control)   
             self.run_motors(pwm_motors)
             self.run_servos(pwm_servos)   
@@ -194,7 +192,7 @@ class NMPCNode(Node):
                 'current_average_a': msg.current_average_a,
                 'discharged_mah': msg.discharged_mah,
                 'remaining': msg.remaining,
-                'raw_voltage': msg.battery_voltage,
+                'raw_voltage': msg.raw_voltage,
             })
     
 
@@ -211,7 +209,6 @@ class NMPCNode(Node):
 
 
     def get_angle_pwm(self, gimbal_angles):
-        gimbal_angles[0] = gimbal_angles[0] + mc.gimbal_offset[0]      # gimbal offset
         gimbal_angles[0] = np.clip(gimbal_angles[0], mc.outer_gimbal_range[0], mc.outer_gimbal_range[1])
         gimbal_angles[1] = np.clip(gimbal_angles[1],  mc.inner_gimbal_range[0], mc.inner_gimbal_range[1])
 

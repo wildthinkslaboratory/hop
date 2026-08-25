@@ -8,13 +8,13 @@ class Constants:
 
         # general constants
         # ---------------------------------------------------------------
-        self.timelimit = 20.0 # time limit for a flight in seconds 
-        self.shutdown_angle = 15.0 # shutdown if attitude exceeds this angle
+        self.timelimit = 8.0 # time limit for a flight in seconds 
+        self.shutdown_angle = 12.0 # shutdown if attitude exceeds this angle
         self.run_nmpc = True
         self.nmpc_delay = 3 # how many cycles it takes for the control to be actuated 
 
         self.battery_v = 25.0 # 25 volt battery
-        self.v_alpha = 0.5 # factor for low pass filter of voltage
+        self.v_alpha = 0.92 # factor for low pass filter of voltage
 
         # model related constants
         # ---------------------------------------------------------------
@@ -81,7 +81,7 @@ class Constants:
  
         # mechanical and hardware constants
         # ---------------------------------------------------------------    
-        self.gimbal_offset = [6.0, 0.0]   
+        self.gimbal_offset = [4.0, 0.0]   
         self.outer_gimbal_range = [-20,20]          # outer gimbal range limit in degrees
         self.inner_gimbal_range = [-13.5,13.5]      # inner gimbal range limit in degrees
         self.theta_dot_constraint = 6.16            # gimbal rate of change limit in degrees per dt
@@ -99,7 +99,7 @@ class Constants:
         # self.Q = ca.diag([40.0,40.0,50.0, 10.0,10.0,15.0, 2500.0,2500.0,200.0,200.0, 30.0,30.0,1.0 ])
 
         # self.Q = ca.diag([50.0,50.0,50.0, 10.0,10.0,10.0, 526.0,526.0,15.0,0.0, 15.0,15.0,1.0 ])
-        self.Q = ca.diag([1.0,1.0,10.0, 1.0,1.0,5.0, 526.0,526.0,33.0,0.0, 18.0,18.0,8.0 ])
+        self.Q = ca.diag([10.0,10.0,10.0, 5.0,5.0,5.0, 526.0,526.0,33.0,0.0, 18.0,18.0,8.0 ])
         self.R = ca.diag([0.01, 0.01, 100, 100])
         
         self.gmb_deg_1pwm = 52
@@ -150,7 +150,7 @@ class Constants:
             # np.array([0.0, 0.0, 0.5, 25.0, self.hover_thrust]),
             # np.array([0.0, 0.0, 0.6, 25.0, self.hover_thrust]),
             # np.array([0.0, 0.0, 0.5, 25.0, self.hover_thrust]),
-            np.array([0.0, 0.0, 0.84, 25.0, self.hover_thrust]),
+            np.array([0.0, 0.0, 0.9, 25.0, self.hover_thrust]),
             np.array([0.0, 0.0, 0.3, 25.0, 0.0]),
             np.array([0.0, 0.0, 0.3, 25.0, 0.0]),
         ]
@@ -226,6 +226,7 @@ class Constants:
     def __dict__(self):
         mcd = {}
         mcd['battery_v'] = self.battery_v
+        mcd['v_alpha'] = self.v_alpha
         mcd['timelimit'] = self.timelimit
         mcd['shutdown_angle'] = self.shutdown_angle
         mcd['nmpc_delay'] = self.nmpc_delay
@@ -274,6 +275,8 @@ class Constants:
     def update_from_dictionary(self, mcd):
         if 'battery_v' in mcd:
             self.battery_v = mcd['battery_v']
+        if 'v_alpha' in mcd:
+            self.v_alpha = mcd['v_alpha']
         if 'timelimit' in mcd:
             self.timelimit = mcd['timelimit']
         if 'shutdown_angle' in mcd:
