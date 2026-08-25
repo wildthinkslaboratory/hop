@@ -8,8 +8,8 @@ class Constants:
 
         # general constants
         # ---------------------------------------------------------------
-        self.timelimit = 20.0 # time limit for a flight in seconds 
-        self.shutdown_angle = 15.0 # shutdown if attitude exceeds this angle
+        self.timelimit = 8.0 # time limit for a flight in seconds 
+        self.shutdown_angle = 12.0 # shutdown if attitude exceeds this angle
         self.run_nmpc = True
         self.nmpc_delay = 3 # how many cycles it takes for the control to be actuated 
 
