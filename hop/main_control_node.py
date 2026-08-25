@@ -26,12 +26,13 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 from px4_msgs.msg import BatteryStatus, OffboardControlMode, VehicleStatus, VehicleCommand, VehicleOdometry
 from hop_interfaces.msg import NMPCInput, NMPCStatus
-
 from casadi import DM
 import numpy as np
 from hop.constants import Constants
 from hop.utilities import quaternion_multiply
 from math import sqrt
+from collections import deque
+
 mc = Constants()
 
 class ControlNode(Node):
@@ -110,7 +111,7 @@ class ControlNode(Node):
         # battery status data for thrust analysis
         self.voltage = 0.0  
         self.filtered_voltage = 0.0  
-        self.voltage_history = deque(maxlen=8)
+        self.voltage_history = deque(maxlen=12)
         self.current_a = 0.0
         self.current_average_a = 0.0
         self.discharged_mah = 0.0

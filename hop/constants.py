@@ -150,7 +150,7 @@ class Constants:
             # np.array([0.0, 0.0, 0.5, 25.0, self.hover_thrust]),
             # np.array([0.0, 0.0, 0.6, 25.0, self.hover_thrust]),
             # np.array([0.0, 0.0, 0.5, 25.0, self.hover_thrust]),
-            np.array([0.0, 0.0, 0.84, 25.0, self.hover_thrust]),
+            np.array([0.0, 0.0, 0.9, 25.0, self.hover_thrust]),
             np.array([0.0, 0.0, 0.3, 25.0, 0.0]),
             np.array([0.0, 0.0, 0.3, 25.0, 0.0]),
         ]
