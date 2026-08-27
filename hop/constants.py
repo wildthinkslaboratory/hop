@@ -76,7 +76,7 @@ class Constants:
         self.c = 0.03 * self.tcc
         # rotation about z axis caused by differential thrust between motors is modeled linearly with d
         self.d = 6.0
-        self.thrust_constant = 1.3
+        self.thrust_constant = 1.25
 
  
         # mechanical and hardware constants
@@ -107,7 +107,7 @@ class Constants:
         # The JX PDI-6221MG servo has a speed of 0.18 sec/60° at 4.8V 
         # that's 6.5 degrees per 0.02 sec so moving 6 degrees in a time step would be max
         # gimbal angle degrees change per dt
-        self.gmb_deg_dt = 6.0
+        self.gmb_deg_dt = -5.0
 
         self.nmpc_rate_constraints = True
 
@@ -150,7 +150,7 @@ class Constants:
             # np.array([0.0, 0.0, 0.5, 25.0, self.hover_thrust]),
             # np.array([0.0, 0.0, 0.6, 25.0, self.hover_thrust]),
             # np.array([0.0, 0.0, 0.5, 25.0, self.hover_thrust]),
-            np.array([0.0, 0.0, 1.0, 25.0, self.hover_thrust]),
+            np.array([0.0, 0.0, 1.1, 25.0, self.hover_thrust]),
             np.array([0.0, 0.0, 0.3, 25.0, 0.0]),
             np.array([0.0, 0.0, 0.3, 25.0, 0.0]),
         ]
