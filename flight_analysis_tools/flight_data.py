@@ -91,7 +91,8 @@ class FlightData:
         assert(end >= 0 and end <= self.len_used_data)
 
         tspan = np.arange(0, (end-begin) * self.dt , self.dt)
-
+        if not len(tspan) == end-begin:
+            tspan = tspan[:-1]
         if 'raw_voltage' in plots or plots == []:
             plt.figure(i)
             i += 1
