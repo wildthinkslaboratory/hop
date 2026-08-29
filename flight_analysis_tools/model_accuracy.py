@@ -11,19 +11,19 @@ fd = FlightData()
 mc = Constants()
 mc.update_from_dictionary(fd.constants)
 
-show_horizon_trajectory = False
+show_horizon_trajectory = True
 
 
 ##########################################################
 # If you want to mess with any constants to see if you 
 # can get a better fit to the flight data, do it here
 
-# mc.gimbal_offset = [2.25, 1.6]   
+mc.gimbal_offset = [1.8, 1.25]    
 
 
 ##########################################################
 delay = mc.nmpc_delay
-horizon_steps = 16 # int(mc.horizon_time / mc.dt)
+horizon_steps = 25 # int(mc.horizon_time / mc.dt)
 equations = Equations6DOF(mc)
 rk_sim1 = RKSimulator(0.005, 4)
 
@@ -70,6 +70,8 @@ for i in range(delay, len(fd.state_data)-1):
         if show_horizon_trajectory:
             tspan = np.arange(0, (horizon_steps+1) * mc.dt, mc.dt)
             trajectory_comparison(tspan, horizon_traj, tspan, fd.state_data[i:i+horizon_steps+1])
+            plot_state(tspan, fd.state_data[i:i+horizon_steps+1], 'actual flight data')
+            plot_state(tspan, horizon_traj, 'predicted trajectory')
             plt.show()
 
 

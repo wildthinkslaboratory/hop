@@ -81,13 +81,13 @@ class Constants:
  
         # mechanical and hardware constants
         # ---------------------------------------------------------------    
-        self.gimbal_offset = [2.25, 1.6]     
+        self.gimbal_offset = [1.8, 1.25]      
         self.outer_gimbal_range = [-20,20]          # outer gimbal range limit in degrees
         self.inner_gimbal_range = [-13.5,13.5]      # inner gimbal range limit in degrees
         self.theta_dot_constraint = 6.16            # gimbal rate of change limit in degrees per dt
         self.thrust_dot_limit = 20.0                # thrust rate of change limit in Newtons per dt
-        self.hover_thrust = 0.60                   # the thrust rate needed to hover
-        self.prop_thrust_constraint = 1.0          # max thrust allowed 
+        self.hover_thrust = 0.7                     # the thrust rate needed to hover
+        self.prop_thrust_constraint = 1.0           # max thrust allowed 
         self.diff_thrust_constraint = [-0.2,0.2]    # min and max thrust difference allowed
 
         # NMPC related constants

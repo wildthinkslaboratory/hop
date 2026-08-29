@@ -21,8 +21,50 @@ from time import perf_counter
 
 
 
+        # plt.figure(figsize=(10, 6))
+
+        # plt.stackplot(
+        #     hspan,
+        #     state_cost,
+        #     labels=state_names
+        # )
+
+        # plt.xlabel('Time in horizon (s)')
+        # plt.ylabel('State cost')
+        # plt.legend(loc='upper right')
+
+        # plt.figure(figsize=(10, 6))
+
+        # plt.stackplot(
+        #     uspan,
+        #     control_cost,
+        #     labels=control_names
+        # )
+
+        # plt.xlabel('Time in horizon (s)')
+        # plt.ylabel('Control cost')
+        # plt.legend(loc='upper right')
+
+#####################################################################
+
+        # attitude_data = fd.attitude[i:end]
+
+        # plt.figure(5)
+        # plt.plot(hspan, horizon[:,0])
+        # plt.plot(tspan, attitude_data[:,0])
+        # plt.title('x tilt')
+
+
+        # plt.figure(6)
+        # plt.plot(hspan, horizon[:,1])
+        # plt.plot(tspan, attitude_data[:,1])
+        # plt.title('x tilt')
+
+
 state_names = ['x', 'y', 'z', 'v_x', 'v_y', 'v_z', 'q_x', 'q_y','q_z','q_0','w_x','w_y','w_z',]
 control_names = ['theta 1', 'theta 2', 'P avg', 'P diff']
+control_incs = [1.0, 1.0, 0.05, 0.05]
+
 mc = Constants()
 fd = FlightData()
 mc.update_from_dictionary(fd.constants)
@@ -45,114 +87,67 @@ horizon_timesteps = int(mc.horizon_time / mc.dt)
 
 
 
-for i in range(delay, len(fd.state_data)-1):
+for i in range(len(fd.state_data)-1):
 
     start_time = perf_counter()
     mpc.set_waypoint(np.array(fd.parameters[i]))
     u = mpc.mpc.make_step(fd.future_state_data[i])
     step_time = perf_counter() - start_time
 
-    time_data[i] = step_time
-    control_computed_diff[i] = fd.control_data[i] - np.reshape(u, (4,))
+    if i >= 15:
 
-    if not mpc.mpc.solver_stats['return_status'] == 'Solve_Succeeded':
-        status[i] = 1
-    print('Solver Status:', status[i], '  Solver cpu time: ', time_data[i])
+        time_data[i] = step_time
+        control_computed_diff[i] = fd.control_data[i] - np.reshape(u, (4,))
 
-    x_r[0:2] = fd.parameters[i][0:2]
-    state_sol = mpc.mpc.data.prediction(('_x',))
-    control_sol = mpc.mpc.data.prediction(('_u',))
-    horizon = np.empty([len(state_sol[0]),13])
-    state_cost = np.empty([13, len(state_sol[0])])
-    u_horizon = np.empty([len(control_sol[0]),4])
-    for k, state in enumerate(state_sol):
-        for j, val in enumerate(state):
-            horizon[j][k] = val
-            state_cost[k][j] = (val - x_r[k]) * mc.Q[k,k] * (val - x_r[k])
+        if not mpc.mpc.solver_stats['return_status'] == 'Solve_Succeeded':
+            status[i] = 1
+        print('Solver Status:', status[i], '  Solver cpu time: ', time_data[i])
 
-    # collect attitude data across horizon
-    attitude = np.empty([len(state_sol[0]),3])
-    for k, state in enumerate(horizon):
-        q = np.reshape(state[6:10].copy(), (4,))
-        attitude[k] = quaternion_to_angle(q)
+        x_r[0:3] = fd.parameters[i][0:3]
+        state_sol = mpc.mpc.data.prediction(('_x',))
+        control_sol = mpc.mpc.data.prediction(('_u',))
+        horizon = np.empty([len(state_sol[0]),13])
+        state_cost = np.empty([13, len(state_sol[0])])
+        u_horizon = np.empty([len(control_sol[0]),4])
+        for k, state in enumerate(state_sol):
+            for j, val in enumerate(state):
+                horizon[j][k] = val
+                state_cost[k][j] = (val - x_r[k]) * mc.Q[k,k] * (val - x_r[k])
 
-    # set the goal thrust
-    u_r[2] = fd.parameters[i][4] *  mc.battery_v / fd.parameters[i][3] 
-    control_cost = np.empty([4, len(control_sol[0])])
-    for k, u in enumerate(control_sol):
-        for j, val in enumerate(u):
-            u_horizon[j][k] = val
-            control_cost[k][j] = (val - u_r[k]) * mc.R[k,k] * (val - u_r[k])
+        # collect attitude data across horizon
+        attitude = np.empty([len(state_sol[0]),3])
+        for k, state in enumerate(horizon):
+            q = np.reshape(state[6:10].copy(), (4,))
+            attitude[k] = quaternion_to_angle(q)
 
-    fis = mc.finite_interval_size
-    horizon_length = (len(state_sol[0])-1) * fis
-    hspan = np.arange(0, horizon_length + fis, fis)
+        # set the goal thrust
+        u_r[2] = fd.parameters[i][4] *  mc.battery_v / fd.parameters[i][3] 
+        control_cost = np.empty([4, len(control_sol[0])])
+        for k, u in enumerate(control_sol):
+            for j, val in enumerate(u):
+                u_horizon[j][k] = val
+                control_cost[k][j] = (val - u_r[k]) * mc.R[k,k] * (val - u_r[k])
 
-    control_length = (len(control_sol[0])-1) * fis
-    uspan = np.arange(0, control_length + fis, fis)
+        fis = mc.finite_interval_size
+        horizon_length = (len(state_sol[0])-1) * fis
+        hspan = np.arange(0, horizon_length + fis, fis)
 
-    end = min(fd.len_used_data, i + horizon_timesteps)
-    state_data = fd.state_data[i:end]
-    tspan = np.arange(0, len(state_data) * mc.dt, mc.dt)
-    if not len(tspan) == len(state_data):
-        tspan = tspan[:-1]
+        control_length = (len(control_sol[0])-1) * fis
+        uspan = np.arange(0, control_length + fis, fis)
 
-    trajectory_comparison(hspan, horizon, tspan, state_data)
-
-    attitude_data = fd.attitude[i:end]
-
-    plt.figure(5)
-    plt.plot(hspan, horizon[:,0])
-    plt.plot(tspan, attitude_data[:,0])
-    plt.title('x tilt')
-
-
-    plt.figure(6)
-    plt.plot(hspan, horizon[:,1])
-    plt.plot(tspan, attitude_data[:,1])
-    plt.title('x tilt')
+        end = min(fd.len_used_data, i + horizon_timesteps)
+        state_data = fd.state_data[i:end]
+        tspan = np.arange(0, len(state_data) * mc.dt, mc.dt)
+        if not len(tspan) == len(state_data):
+            tspan = tspan[:-1]
 
 
 
-    plt.figure(figsize=(10, 6))
-
-    plt.stackplot(
-        hspan,
-        state_cost,
-        labels=state_names
-    )
-
-    plt.xlabel('Time in horizon (s)')
-    plt.ylabel('State cost')
-    plt.legend(loc='upper right')
-
-    plt.figure(figsize=(10, 6))
-
-    plt.stackplot(
-        uspan,
-        control_cost,
-        labels=control_names
-    )
-
-    plt.xlabel('Time in horizon (s)')
-    plt.ylabel('Control cost')
-    plt.legend(loc='upper right')
-
-
-    # time_steps = int(horizon_length / 0.02)
-    # tspan = np.arange(0, horizon_length + mc.dt, mc.dt)
-
-    # if time_steps > len(fd.state_data):
-    #     tspan = np.arange(0, len(fd.state_data) * mc.dt, mc.dt)
-    #     plot_state(tspan, fd.state_data, 'flight state data')
-    #     plot_control(tspan, fd.control_data, 'flight control data')
-    # else:
-    #     plot_state(tspan, fd.state_data[i:i+time_steps], 'state')
-
-    plot_state(hspan, horizon, 'state nmpc horizon')
-    plot_control(uspan, u_horizon, 'control nmpc horizon')
-    fd.plot(plots=['state'])
-    plt.show()
+        # trajectory_comparison(hspan, horizon, tspan, state_data)
+        plot_state(tspan, state_data, 'actual horizon trajectory')
+        plot_state(hspan, horizon, 'state nmpc horizon')
+        plot_control(uspan, u_horizon, 'control nmpc horizon')
+        plt.show()
 tspan = np.arange(0, fd.len_used_data * fd.dt , fd.dt)
 
 plt.figure(1)

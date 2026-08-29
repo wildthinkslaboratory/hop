@@ -1,7 +1,7 @@
 
 #
 # This runs a simple simulation of the dompc formulation with an animation at the end.
-# It's good for checking the algorithm after major to constants 
+# It's good for checking the algorithm after major changes to constants 
 # or the model
 #
 
@@ -19,9 +19,10 @@ import statistics as stats
 from time import perf_counter
 import matplotlib.pyplot as plt
 from matplotlib import colors
-from plotting.plots import plot_comparison, plot_state_for_paper, plot_control_for_paper, plot_state
+from plotting.plots import plot_comparison, plot_state_for_paper, plot_control_for_paper, plot_state, plot_control
 from hop.utilities import sig_figs
 from tools.animation import RocketAnimation
+from hop.equations_of_motion import Equations6DOF
 from simulation_tools.integrators import RKSimulator
 mc = Constants()
 
@@ -130,7 +131,7 @@ for test in test_list:
     # estimator.x0 = x_init
 
     # set up the Runge-Kutta simulator
-    ms_model = DroneNMPCMultiShoot(mc)
+    equations = Equations6DOF(mc)
     rk_sim = RKSimulator(0.005, 4)
 
     mpc.setup_cost()
@@ -157,7 +158,7 @@ for test in test_list:
         #     x0 = estimator.make_step(y_next)
 
         # runge kutta 4 simulator
-        x0 = rk_sim.make_step(ms_model.f, x0, u0, parameters)
+        x0 = rk_sim.make_step(equations.f, x0, u0, parameters)
   
         state_data[k] = np.reshape(x0, (13,))
         control_data[k] = np.reshape(u0, (4,))
@@ -177,6 +178,7 @@ for test in test_list:
     # # uncomment if you want to see plots of the trajectories
 
 
+    plot_control(tspan, control_data)
 
     plt.ion()
     fig, axs = plt.subplots(4)
