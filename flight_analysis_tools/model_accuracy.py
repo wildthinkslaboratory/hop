@@ -11,19 +11,15 @@ fd = FlightData()
 mc = Constants()
 mc.update_from_dictionary(fd.constants)
 
-show_horizon_trajectory = True
+show_horizon_trajectory = False
 
 
 ##########################################################
 # If you want to mess with any constants to see if you 
 # can get a better fit to the flight data, do it here
 
-mc.gimbal_offset = [2.25, 1.6]   
+# mc.gimbal_offset = [2.25, 1.6]   
 
-# mc.thrust_constant = 1.0
-# mc.a = 15.23 * 9.81
-# mc.b = -19.47 * 9.81
-# mc.c = 7.841 * 9.81
 
 ##########################################################
 delay = mc.nmpc_delay
@@ -45,6 +41,12 @@ zero = np.zeros([fd.len_used_data-1,1])
 
 for i in range(delay, len(fd.state_data)-1):
 
+    # x = fd.state_data[i][0]  
+    # y = fd.state_data[i][1]
+    # z = fd.state_data[i][2]
+    # r_xy = np.sqrt(x**2 + y**2)
+    
+    #####################################################################
     predicted_state = np.reshape(rk_sim1.make_step(equations.f, fd.state_data[i], fd.control_data[i-delay], fd.parameters[i]), (13,))
     residual_1[i] = predicted_state - fd.state_data[i+1]
 
@@ -67,7 +69,6 @@ for i in range(delay, len(fd.state_data)-1):
 
         if show_horizon_trajectory:
             tspan = np.arange(0, (horizon_steps+1) * mc.dt, mc.dt)
-            print(len(tspan), len(horizon_traj), len(fd.state_data[i:i+horizon_steps+1]))
             trajectory_comparison(tspan, horizon_traj, tspan, fd.state_data[i:i+horizon_steps+1])
             plt.show()
 

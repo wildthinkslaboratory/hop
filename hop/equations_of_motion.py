@@ -6,6 +6,8 @@ from hop.constants import Constants
 
 # Making the equations of motion a separate class to assure that all of our NLP's 
 # use the same equations. If we change the model it happens in one place.
+# The dompc implementation doesn't use this though so you need to make sure that 
+# drone_model.py (used by dompc) and this match so we have one set of equations.
 class Equations6DOF:
     def __init__(self, mc):
         self.mc = mc
@@ -33,8 +35,22 @@ class Equations6DOF:
         # Now we build up the equations of motion and create a function
         # for the system dynamics
         I_mat = ca.DM(mc.I)
-        norm_P_avg = self.u[2] * self.p[3] / mc.battery_v
-        F = (mc.a * norm_P_avg**2 + mc.b * norm_P_avg + mc.c) * mc.thrust_constant
+
+        top = self.u[2] - self.u[3]/2
+        bot = self.u[2] + self.u[3]/2
+        volt = self.p[3]
+        F = (
+            mc.c0
+            + mc.c1 * top
+            + mc.c2 * bot
+            + mc.c3 * volt
+            + mc.c4 * top**2
+            + mc.c5 * bot**2
+            + mc.c6 * volt**2
+            + mc.c7 * top * bot
+            + mc.c8 * top * volt
+            + mc.c9 * bot * volt
+        ) 
         M = mc.d * mc.Izz * self.u[3]
 
 
@@ -79,4 +95,5 @@ class Equations6DOF:
         # f is function that returns the change in state for a given state and control values
         self.f = ca.Function('f', [self.x, self.u, self.p], [self.RHS])
 
-        
+        # this is helpful for thrust modeling
+        self.T = ca.Function('T', [self.u, self.p], [F_vector])
