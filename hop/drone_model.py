@@ -27,15 +27,24 @@ class DroneModel:
         parameters = self.model.set_variable(var_type='_p', var_name='parameters', shape=(5,1))
 
         I_mat = ca.DM(mc.I)
-        norm_P_avg = u[2] * parameters[3] / mc.battery_v
-        F = (mc.a * norm_P_avg**2 + mc.b * norm_P_avg + mc.c) * mc.thrust_constant
-        M = mc.d * mc.Izz * u[3]
 
-        # F_vector = F * ca.vertcat(
-        #     sin((np.pi/180)*u[1]),
-        #     -sin((np.pi/180)*u[0])*cos((np.pi/180)*u[1]),
-        #     cos((np.pi/180)*u[0])*cos((np.pi/180)*u[1])
-        # )
+        top = u[2] - u[3]/2
+        bot = u[2] + u[3]/2
+        volt = parameters[3]
+        F = (
+            mc.c0
+            + mc.c1 * top
+            + mc.c2 * bot
+            + mc.c3 * volt
+            + mc.c4 * top**2
+            + mc.c5 * bot**2
+            + mc.c6 * volt**2
+            + mc.c7 * top * bot
+            + mc.c8 * top * volt
+            + mc.c9 * bot * volt
+        ) 
+
+        M = mc.d * mc.Izz * u[3]
 
         theta_x = u[0] + mc.gimbal_offset[0]
         theta_y = u[1] + mc.gimbal_offset[1]
