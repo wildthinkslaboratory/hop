@@ -2,7 +2,7 @@ from flight_analysis_tools.flight_data import FlightData
 from hop.constants import Constants
 from simulation_tools.integrators import RKSimulator
 from hop.equations_of_motion import Equations6DOF
-from plotting.plots import plot_state
+from plotting.plots import plot_state, trajectory_comparison
 from hop.utilities import quaternion_to_angle
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,18 +11,27 @@ fd = FlightData()
 mc = Constants()
 mc.update_from_dictionary(fd.constants)
 
+show_horizon_trajectory = False
+
+
 ##########################################################
 # If you want to mess with any constants to see if you 
 # can get a better fit to the flight data, do it here
 
-mc.gimbal_offset = [2.75, 1.1]   
+# mc.gimbal_offset = [2.25, 1.6]   
+
 
 ##########################################################
 delay = mc.nmpc_delay
+horizon_steps = 16 # int(mc.horizon_time / mc.dt)
 equations = Equations6DOF(mc)
-rk_sim4 = RKSimulator(0.005, 4)
+rk_sim1 = RKSimulator(0.005, 4)
 
-model_error = np.zeros([fd.len_used_data-1,13])
+
+residual_1 = np.zeros([fd.len_used_data-1,13])
+residual_delay = np.zeros([fd.len_used_data-1,13])
+residual_horizon = np.zeros([fd.len_used_data-1,13])
+
 predicted_dx = np.zeros([fd.len_used_data-1,13])
 full_predicted_dx = np.zeros([fd.len_used_data-1,13])
 actual_dx = np.zeros([fd.len_used_data-1,13])
@@ -31,9 +40,38 @@ actual_angle = fd.attitude[:-2]
 zero = np.zeros([fd.len_used_data-1,1])
 
 for i in range(delay, len(fd.state_data)-1):
-    actual_state = fd.state_data[i+1]
-    predicted_state = np.reshape(rk_sim4.make_step(equations.f, fd.state_data[i], fd.control_data[i-delay], fd.parameters[i]), (13,))
-    model_error[i] = actual_state -  predicted_state
+
+    # x = fd.state_data[i][0]  
+    # y = fd.state_data[i][1]
+    # z = fd.state_data[i][2]
+    # r_xy = np.sqrt(x**2 + y**2)
+    
+    #####################################################################
+    predicted_state = np.reshape(rk_sim1.make_step(equations.f, fd.state_data[i], fd.control_data[i-delay], fd.parameters[i]), (13,))
+    residual_1[i] = predicted_state - fd.state_data[i+1]
+
+
+    if (i < len(fd.state_data) - delay):
+        state = fd.state_data[i]
+        for j in range(delay):
+            state = rk_sim1.make_step(equations.f, state, fd.control_data[i-delay+j], fd.parameters[i+j])
+        residual_delay[i] = np.reshape(state, (13,)) - fd.state_data[i+delay]
+
+
+    if (i < len(fd.state_data) - horizon_steps):
+        horizon_traj = np.zeros([horizon_steps+1, 13])
+        state = fd.state_data[i]
+        horizon_traj[0] = fd.state_data[i]
+        for j in range(horizon_steps):
+            state = rk_sim1.make_step(equations.f, state, fd.control_data[i-delay+j], fd.parameters[i+j])
+            horizon_traj[j+1] = np.reshape(state, (13,))
+        residual_horizon[i] = np.reshape(state, (13,)) - fd.state_data[i+horizon_steps]
+
+        if show_horizon_trajectory:
+            tspan = np.arange(0, (horizon_steps+1) * mc.dt, mc.dt)
+            trajectory_comparison(tspan, horizon_traj, tspan, fd.state_data[i:i+horizon_steps+1])
+            plt.show()
+
 
     full_predicted_dx[i] = np.reshape(equations.f(fd.future_state_data[i-delay], fd.control_data[i-delay], fd.parameters[i-delay]) * mc.dt, (13,))
     predicted_dx[i] = np.reshape(equations.f(fd.state_data[i], fd.control_data[i-delay], fd.parameters[i]) * mc.dt, (13,))
@@ -113,5 +151,7 @@ plt.xlabel('Time')
 # plt.xlabel('Time')
 
 
-plot_state(tspan, model_error, 'flight state vs model predicted state error')
+plot_state(tspan, residual_1, 'predicted state minus actual')
+plot_state(tspan, residual_delay, 'delay steps state minus actual')
+plot_state(tspan, residual_horizon, 'horizon steps state minus actual')
 plt.show()

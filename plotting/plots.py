@@ -3,6 +3,73 @@ import matplotlib.pyplot as plt
 
 plotdir = "plots/"
 
+def trajectory_comparison(tspan1, state1, tspan2, state2, title='trajectory comparison'):
+    fig, axs = plt.subplots(3)
+    fig.set_figheight(8)
+    fig.suptitle(title + ' position')
+
+    axs[0].plot(tspan1, state1[:,0])
+    axs[0].plot(tspan2, state2[:,0])
+    axs[0].set_ylabel('$x$')
+
+    axs[1].plot(tspan1, state1[:,1])
+    axs[1].plot(tspan2, state2[:,1])
+    axs[1].set_ylabel('$y$')
+
+    axs[2].plot(tspan1, state1[:,2])
+    axs[2].plot(tspan2, state2[:,2])
+    axs[2].set_ylabel('$z$')
+
+    fig2, axs2 = plt.subplots(3)
+    fig2.set_figheight(8)
+    fig2.suptitle(title + ' velocity')
+
+    axs2[0].plot(tspan1, state1[:,3])
+    axs2[0].plot(tspan2, state2[:,3])
+    axs2[0].set_ylabel('$v_x$')
+
+    axs2[1].plot(tspan1, state1[:,4])
+    axs2[1].plot(tspan2, state2[:,4])
+    axs2[1].set_ylabel('$v_y$')
+
+    axs2[2].plot(tspan1, state1[:,5])
+    axs2[2].plot(tspan2, state2[:,5])
+    axs2[2].set_ylabel('$v_z$')
+
+    fig3, axs3 = plt.subplots(3)
+    fig3.set_figheight(8)
+    fig3.suptitle(title + ' q')
+
+    axs3[0].plot(tspan1, state1[:,6])
+    axs3[0].plot(tspan2, state2[:,6])
+    axs3[0].set_ylabel('$q_x$')
+
+    axs3[1].plot(tspan1, state1[:,7])
+    axs3[1].plot(tspan2, state2[:,7])
+    axs3[1].set_ylabel('$q_y$')
+
+    axs3[2].plot(tspan1, state1[:,8])
+    axs3[2].plot(tspan2, state2[:,8])
+    axs3[2].set_ylabel('$q_z$')
+
+    fig4, axs4 = plt.subplots(3)
+    fig4.set_figheight(8)
+    fig4.suptitle(title + ' angular velocity')
+
+    axs4[0].plot(tspan1, state1[:,10])
+    axs4[0].plot(tspan2, state2[:,10])
+    axs4[0].set_ylabel('$w_x$')
+
+    axs4[1].plot(tspan1, state1[:,11])
+    axs4[1].plot(tspan2, state2[:,11])
+    axs4[1].set_ylabel('$w_y$')
+
+    axs4[2].plot(tspan1, state1[:,12])
+    axs4[2].plot(tspan2, state2[:,12])
+    axs4[2].set_ylabel('$w_z$')
+
+
+
 def plot_state(tspan, data, title='State'):
     fig, axs = plt.subplots(4)
     fig.set_figheight(8)

@@ -31,12 +31,6 @@ class Constants:
             self.gz
         ])
 
-        # self.Ixx =  0.0595     # moments of inertia
-        # self.Iyy =  0.0598
-        # self.Izz =  0.0128
-        # self.Ixz =  0.0003
-        # self.Iyz =  0.0010
-
         self.Ixx =  0.0621     # moments of inertia
         self.Iyy =  0.0624
         self.Izz =  0.0130
@@ -49,12 +43,6 @@ class Constants:
             [0.0,      self.Iyy, self.Iyz],
             [self.Ixz, self.Iyz, self.Izz]
         ])
-
-        # self.moment_arm = np.array([
-        #     0.0015,
-        #     0.007,
-        #     -0.209799
-        # ])
 
         self.moment_arm = np.array([
             0.000035,
@@ -74,6 +62,18 @@ class Constants:
         self.a = 1.647 * self.tcc
         self.b = 0.9797 * self.tcc
         self.c = 0.03 * self.tcc
+
+        self.c0 = 107.94566969
+        self.c1 = -45.46240373
+        self.c2 = -36.95055472
+        self.c3 = -5.55902710
+        self.c4 = 18.01888078
+        self.c5 = -9.40028998
+        self.c6 = 0.07930391
+        self.c7 = 7.00378066
+        self.c8 = 0.64737357
+        self.c9 = 2.07224182
+
         # rotation about z axis caused by differential thrust between motors is modeled linearly with d
         self.d = 6.0
         self.thrust_constant = 1.25
@@ -117,7 +117,7 @@ class Constants:
         self.P_avg_dt = 0.04
         self.P_diff_dt = 0.02
 
-        self.rate_scale_factor = 5
+        self.rate_scale_factor = 10
         self.actuator_rate_costs = self.rate_scale_factor * np.array([
             1, 
             1, 
