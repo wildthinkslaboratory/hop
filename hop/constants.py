@@ -117,7 +117,7 @@ class Constants:
         self.P_avg_dt = 0.04
         self.P_diff_dt = 0.02
 
-        self.rate_scale_factor = 5
+        self.rate_scale_factor = 10
         self.actuator_rate_costs = self.rate_scale_factor * np.array([
             1, 
             1, 
