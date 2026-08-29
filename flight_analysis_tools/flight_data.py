@@ -13,11 +13,15 @@ class FlightData:
         self.dt = 0.02
         self.start_time = 0.0
         self.log_file_name = filename
+        self.end_time = None
         if len(sys.argv) > 1:
             self.log_file_name = sys.argv[1]
             self.start_time = float(sys.argv[2])
             print(self.log_file_name, self.start_time)
 
+        if len(sys.argv) > 3:
+            self.end_time = float(sys.argv[3])
+            
 
         log = import_data(self.log_file_name)   
         self.constants = log['constants']
@@ -64,20 +68,24 @@ class FlightData:
 
 
         stop_index = int(self.start_time // self.dt)
-        self.len_used_data = len(data) - stop_index -1
+        end_index = len(data)
+        if not self.end_time == None: 
+            end_index = int(self.end_time // self.dt)
+
+        self.len_used_data = end_index - stop_index -1
 
         # Truncate the data to start at the takeoff
-        self.state_data = self.state_data[stop_index+1:]
-        self.future_state_data = self.future_state_data[stop_index+1:]
-        self.control_data = self.control_data[stop_index+1:]
-        self.pwm_motors = self.pwm_motors[stop_index+1:]
-        self.pwm_servos = self.pwm_servos[stop_index+1:]
-        self.parameters = self.parameters[stop_index+1:]
-        self.attitude = self.attitude[stop_index+1:]
-        self.timing_data = self.timing_data[stop_index+1:]
-        self.current = self.current[stop_index+1:]
-        self.raw_voltage = self.raw_voltage[stop_index+1:]
-        self.timestamps = self.timestamps[stop_index+1:]
+        self.state_data = self.state_data[stop_index+1: end_index]
+        self.future_state_data = self.future_state_data[stop_index+1:end_index]
+        self.control_data = self.control_data[stop_index+1:end_index]
+        self.pwm_motors = self.pwm_motors[stop_index+1:end_index]
+        self.pwm_servos = self.pwm_servos[stop_index+1:end_index]
+        self.parameters = self.parameters[stop_index+1:end_index]
+        self.attitude = self.attitude[stop_index+1:end_index]
+        self.timing_data = self.timing_data[stop_index+1:end_index]
+        self.current = self.current[stop_index+1:end_index]
+        self.raw_voltage = self.raw_voltage[stop_index+1:end_index]
+        self.timestamps = self.timestamps[stop_index+1:end_index]
 
 
 
