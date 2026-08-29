@@ -76,12 +76,12 @@ class Constants:
 
         # rotation about z axis caused by differential thrust between motors is modeled linearly with d
         self.d = 6.0
-        self.thrust_constant = 1.3
+        self.thrust_constant = 1.25
 
  
         # mechanical and hardware constants
         # ---------------------------------------------------------------    
-        self.gimbal_offset = [4.0, 0.0]   
+        self.gimbal_offset = [2.25, 1.6]     
         self.outer_gimbal_range = [-20,20]          # outer gimbal range limit in degrees
         self.inner_gimbal_range = [-13.5,13.5]      # inner gimbal range limit in degrees
         self.theta_dot_constraint = 6.16            # gimbal rate of change limit in degrees per dt
@@ -99,7 +99,7 @@ class Constants:
         # self.Q = ca.diag([40.0,40.0,50.0, 10.0,10.0,15.0, 2500.0,2500.0,200.0,200.0, 30.0,30.0,1.0 ])
 
         # self.Q = ca.diag([50.0,50.0,50.0, 10.0,10.0,10.0, 526.0,526.0,15.0,0.0, 15.0,15.0,1.0 ])
-        self.Q = ca.diag([10.0,10.0,10.0, 5.0,5.0,5.0, 526.0,526.0,33.0,0.0, 18.0,18.0,8.0 ])
+        self.Q = ca.diag([10.0,10.0,10.0, 3.0,3.0,3.0, 526.0,526.0,33.0,0.0, 10.0,10.0,8.0 ])
         self.R = ca.diag([0.01, 0.01, 100, 100])
         
         self.gmb_deg_1pwm = 52
@@ -107,7 +107,7 @@ class Constants:
         # The JX PDI-6221MG servo has a speed of 0.18 sec/60° at 4.8V 
         # that's 6.5 degrees per 0.02 sec so moving 6 degrees in a time step would be max
         # gimbal angle degrees change per dt
-        self.gmb_deg_dt = 6.0
+        self.gmb_deg_dt = -5.0
 
         self.nmpc_rate_constraints = True
 
@@ -117,7 +117,7 @@ class Constants:
         self.P_avg_dt = 0.04
         self.P_diff_dt = 0.02
 
-        self.rate_scale_factor = 10
+        self.rate_scale_factor = 5
         self.actuator_rate_costs = self.rate_scale_factor * np.array([
             1, 
             1, 
@@ -128,7 +128,7 @@ class Constants:
         # control cost matrix
         self.terminal_cost_factor = 15.0
         self.xr = ca.vertcat(0.0,0.0,self.px4_height, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0) # goal state
-        self.ur = ca.DM([0.0, 0.0, self.hover_thrust, 0.0])                          # goal control
+        self.ur = ca.DM([self.gimbal_offset[0], self.gimbal_offset[1], self.hover_thrust, 0.0])                          # goal control
 
         # list of navigation waypoints for the flight to follow
         # these are (x,y,z) points in world frame meters
@@ -150,7 +150,7 @@ class Constants:
             # np.array([0.0, 0.0, 0.5, 25.0, self.hover_thrust]),
             # np.array([0.0, 0.0, 0.6, 25.0, self.hover_thrust]),
             # np.array([0.0, 0.0, 0.5, 25.0, self.hover_thrust]),
-            np.array([0.0, 0.0, 0.9, 25.0, self.hover_thrust]),
+            np.array([0.0, 0.0, 1.1, 25.0, self.hover_thrust]),
             np.array([0.0, 0.0, 0.3, 25.0, 0.0]),
             np.array([0.0, 0.0, 0.3, 25.0, 0.0]),
         ]
