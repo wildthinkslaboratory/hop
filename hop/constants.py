@@ -63,20 +63,20 @@ class Constants:
         self.b = 0.9797 * self.tcc
         self.c = 0.03 * self.tcc
 
-        self.c0 = 512.96285760
-        self.c1 = -640.91829035
-        self.c2 = -0.13801349
-        self.c3 = -23.27789538
-        self.c4 = 27.87748878
-        self.c5 = 133.66750019
-        self.c6 = 0.14813063
-        self.c7 = -50.47407710
-        self.c8 = 29.00105676
-        self.c9 = -7.07389478
+        # self.c0 = 512.96285760
+        # self.c1 = -640.91829035
+        # self.c2 = -0.13801349
+        # self.c3 = -23.27789538
+        # self.c4 = 27.87748878
+        # self.c5 = 133.66750019
+        # self.c6 = 0.14813063
+        # self.c7 = -50.47407710
+        # self.c8 = 29.00105676
+        # self.c9 = -7.07389478
 
         # rotation about z axis caused by differential thrust between motors is modeled linearly with d
         self.d = 6.0
-        self.thrust_constant = 0.97
+        self.thrust_constant = 1.2
 
  
         # mechanical and hardware constants
@@ -150,7 +150,7 @@ class Constants:
             # np.array([0.0, 0.0, 0.5, 25.0, self.hover_thrust]),
             # np.array([0.0, 0.0, 0.6, 25.0, self.hover_thrust]),
             # np.array([0.0, 0.0, 0.5, 25.0, self.hover_thrust]),
-            np.array([0.0, 0.0, 1.1, 25.0, self.hover_thrust]),
+            np.array([0.0, 0.0, 0.8, 25.0, self.hover_thrust]),
             np.array([0.0, 0.0, 0.3, 25.0, 0.0]),
             np.array([0.0, 0.0, 0.3, 25.0, 0.0]),
         ]

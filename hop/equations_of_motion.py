@@ -34,21 +34,24 @@ class Equations6DOF:
         # for the system dynamics
         I_mat = ca.DM(mc.I)
 
-        top = self.u[2] - self.u[3]/2
-        bot = self.u[2] + self.u[3]/2
-        volt = self.p[3]
-        F = (
-            mc.c0
-            + mc.c1 * top
-            + mc.c2 * bot
-            + mc.c3 * volt
-            + mc.c4 * top**2
-            + mc.c5 * bot**2
-            + mc.c6 * volt**2
-            + mc.c7 * top * bot
-            + mc.c8 * top * volt
-            + mc.c9 * bot * volt
-        ) * mc.thrust_constant
+        norm_P_avg = self.u[2] * self.p[3] / mc.battery_v
+        F = (mc.a * norm_P_avg**2 + mc.b * norm_P_avg + mc.c) * mc.thrust_constant
+        
+        # top = self.u[2] - self.u[3]/2
+        # bot = self.u[2] + self.u[3]/2
+        # volt = self.p[3]
+        # F = (
+        #     mc.c0
+        #     + mc.c1 * top
+        #     + mc.c2 * bot
+        #     + mc.c3 * volt
+        #     + mc.c4 * top**2
+        #     + mc.c5 * bot**2
+        #     + mc.c6 * volt**2
+        #     + mc.c7 * top * bot
+        #     + mc.c8 * top * volt
+        #     + mc.c9 * bot * volt
+        # ) * mc.thrust_constant
 
         M = mc.d * mc.Izz * self.u[3]
 
