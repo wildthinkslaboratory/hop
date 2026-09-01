@@ -81,7 +81,7 @@ class Constants:
  
         # mechanical and hardware constants
         # ---------------------------------------------------------------    
-        self.gimbal_offset = [1.8, 1.25]      
+        self.gimbal_offset = [2.1, 1.5]      
         self.outer_gimbal_range = [-20,20]          # outer gimbal range limit in degrees
         self.inner_gimbal_range = [-13.5,13.5]      # inner gimbal range limit in degrees
         self.theta_dot_constraint = 6.16            # gimbal rate of change limit in degrees per dt

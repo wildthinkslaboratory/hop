@@ -20,14 +20,25 @@ show_horizon_trajectory = False
 # If you want to mess with any constants to see if you 
 # can get a better fit to the flight data, do it here
 
-mc.gimbal_offset = [1.7, 1.5]    
+mc.c0 = 1190.17576780
+mc.c1 = -888.95015705
+mc.c2 = 177.07459823
+mc.c3 = -83.40572209
+mc.c4 = 63.94244695
+mc.c5 = 193.82678378
+mc.c6 = 1.59003698
+mc.c7 = -50.14206997
+mc.c8 = 38.00193436
+mc.c9 = -19.31290257 
 
+mc.thrust_constant = 0.5
 
 ##########################################################
 delay = mc.nmpc_delay
 
 horizon_steps = 25 # int(mc.horizon_time / mc.dt)
 equations = Equations6DOF(mc)
+
 rk_sim1 = RKSimulator(0.005, 4)
 
 
