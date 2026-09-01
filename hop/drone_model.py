@@ -42,7 +42,7 @@ class DroneModel:
             + mc.c7 * top * bot
             + mc.c8 * top * volt
             + mc.c9 * bot * volt
-        ) 
+        ) * mc.thrust_constant
 
         M = mc.d * mc.Izz * u[3]
 

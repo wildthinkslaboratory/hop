@@ -8,6 +8,12 @@ from scipy.optimize import least_squares
 
 
 
+def get_az(vz, dt):
+    t = np.arange(5) * dt
+    slope, _ = np.polyfit(t, vz, 1)
+    return slope
+
+
 # put all the flight logs that we want to analyze in this directory
 directory = Path("thrust_files")
 
@@ -18,8 +24,6 @@ directory = Path("thrust_files")
 #     alpha = 0.9 + a / 100.0
 #     a_z_prev = 0.0
 
-# We're trying to understand how the PWM of the top and bottom
-# motors and voltage map to the generated thrust.
 thrust = []
 voltage = []
 p_top = []
@@ -28,12 +32,8 @@ acceleration_z = []
 all_thrust = []
 old_thrust = []
 delta_T = []
-
 time = []
-def get_az(vz, dt):
-    t = np.arange(5) * dt
-    slope, _ = np.polyfit(t, vz, 1)
-    return slope
+
 
 
 for file in directory.iterdir():
@@ -45,7 +45,6 @@ for file in directory.iterdir():
     for i in range(len(fd.state_data) - 2):# min(len(fd.state_data) - 2,100)):#len(fd.state_data) - 2):
         if i > 5:
             # estimate the thrust in Newtons
-
             v = fd.parameters[i][3]  # read the filtered voltage value from the parameters
             a_z_raw = get_az(fd.state_data[i-2:i+3, 5], mc.dt)
 
@@ -64,7 +63,8 @@ for file in directory.iterdir():
             z = fd.state_data[i][2]
             r_xy = np.sqrt(x**2 + y**2)
 
-
+            # we limit our data points to those that aren't being pulled by the tether.
+            # so stay close to (x,y) = (0,0) and points above the tether height
             if i > 6 and abs(fd.control_data[i][3]) <= 0.08 and r_xy < 0.1 and z > 0.7:
 
                 delta_T.append(T - all_thrust[-2])
@@ -86,174 +86,92 @@ p_avg = (p_top + p_bottom) / 2
 
 p_diff = (p_top - p_bottom) / 2
 p_diff_abs = abs((p_top - p_bottom) / 2)
-
 p_avg_scaled = p_avg * 25.0 / voltage
+
+
 ##########################################################################
-# fig = plt.figure()
-# ax = fig.add_subplot(projection='3d')
+fig = plt.figure()
+ax = fig.add_subplot(projection='3d')
 
-# sc = ax.scatter(
-#     p_top,
-#     p_bottom,
-#     thrust,
-#     c=voltage,
-#     cmap='turbo',
-#     s=8
-# )
+sc = ax.scatter(
+    p_top,
+    p_bottom,
+    thrust,
+    c=old_thrust,
+    cmap='turbo',
+    s=8
+)
 
-# ax.set_xlabel("Top PWM")
-# ax.set_ylabel("Bottom PWM")
-# ax.set_zlabel("Thrust (N)")
-# plt.colorbar(sc, label="Voltage (V)")
-# plt.show()
+ax.set_xlabel("Top PWM")
+ax.set_ylabel("Bottom PWM")
+ax.set_zlabel("Thrust (N)")
+plt.colorbar(sc, label="Previous Thrust")
+plt.show()
 
 #########################################################################
 
+fig = plt.figure()
+ax = fig.add_subplot(projection='3d')
 
+sc = ax.scatter(
+    p_avg,
+    p_diff,
+    thrust,
+    c=old_thrust,
+    cmap='turbo',
+    s=8
+)
 
-# fig = plt.figure()
-# ax = fig.add_subplot(projection='3d')
-
-# sc = ax.scatter(
-#     p_avg,
-#     p_diff,
-#     thrust,
-#     c=voltage,
-#     cmap='turbo',
-#     s=8
-# )
-
-# ax.set_xlabel("Average PWM")
-# ax.set_ylabel("Differential PWM")
-# ax.set_zlabel("Thrust (N)")
-# plt.colorbar(sc, label="Voltage (V)")
-# plt.show()
-
-##########################################################################
-
-# look at relationship between average PWM and voltage
-plt.scatter(p_avg, thrust, c=old_thrust, cmap='turbo', s=8)
-plt.xlabel("PWM average")
-plt.ylabel("Thrust (N)")
-plt.colorbar(label="pre windo Thrust (N)")
+ax.set_xlabel("Average PWM")
+ax.set_ylabel("Differential PWM")
+ax.set_zlabel("Thrust (N)")
+plt.colorbar(sc, label="Previous Thrust")
 plt.show()
 
-
-# ##########################################################################
-
-# # look at relationship between average PWM and differential thrust
-# plt.scatter(p_avg, thrust, c=p_diff_abs, cmap='turbo', s=8)
-# plt.xlabel("PWM average")
-# plt.ylabel("Thrust (N)")
-# plt.colorbar(label="PWM differential")
-# plt.show()
-
 ##########################################################################
 
-# we fit the data as a quadratic with pwm top, pwm bottom and voltage
-# all being independent of each other
+##########################################################################
+import textwrap
 
-X = np.column_stack([
-    np.ones_like(p_top),
+fig = plt.figure()
 
+ax = fig.add_subplot(projection='3d')
+
+sc = ax.scatter(
+    p_avg,
     old_thrust,
-    p_top,
-    p_bottom,
-    voltage,
+    thrust,
+    c=time,
+    cmap='turbo',
+    s=8
+)
 
-    p_top**2,
-    p_bottom**2,
-    voltage**2,
+ax.set_xlabel("PWM avg")
+ax.set_ylabel("Previous Thrust")
+ax.set_zlabel("Thrust (N)")
 
-    p_top * p_bottom,
-    p_top * voltage,
-    p_bottom * voltage
-])
+plt.colorbar(sc, label="voltage")
 
-coeffs, *_ = np.linalg.lstsq(X, thrust, rcond=None)
+note_text = (
+    "You can see that previous thrust is the best predictor "
+    "how much thrust will result from a given PWM and voltage."
+)
 
-predicted_thrust = X @ coeffs
-error = thrust - predicted_thrust
+note_text = textwrap.fill(note_text, width=70)
 
-rmse = np.sqrt(np.mean((error)**2))
-r2 = 1 - np.sum((error)**2) / \
-        np.sum((thrust - np.mean(thrust))**2)
+# Reserve room for the note
+fig.subplots_adjust(bottom=0.20)
 
-print("coefficients:")
-for i, c in enumerate(coeffs):
-    print(f"c{i} = {c:.8f}")
+fig.text(
+    0.1, 0.06,
+    note_text,
+    ha='left',
+    va='top',
+    fontsize=10
+)
 
-print("RMSE:", rmse)
-print("R²:", r2)
-print("thrust std:", np.std(thrust))
-
-# print("R^2", r2, " alpha ", alpha)
-##########################################################################
-
-# plot predicted thrust vs. flight data thrust
-plt.scatter(thrust, predicted_thrust, c=old_thrust, cmap='turbo', s=5)
-plt.colorbar(label="T_[k-window]")
-
-lo = min(thrust.min(), predicted_thrust.min())
-hi = max(thrust.max(), predicted_thrust.max())
-
-plt.plot([lo, hi], [lo, hi], 'k--')
-
-plt.xlabel("Measured thrust (N)")
-plt.ylabel("Predicted thrust (N)")
-plt.axis("equal")
 plt.show()
 
-X = np.column_stack([
-    np.ones_like(p_top),
-
-    old_thrust,
-    p_top,
-    p_bottom,
-    voltage,
-
-    p_top**2,
-    p_bottom**2,
-    voltage**2,
-
-    p_top * p_bottom,
-    p_top * voltage,
-    p_bottom * voltage
-])
-
-coeffs, *_ = np.linalg.lstsq(X, delta_T, rcond=None)
-
-predicted_thrust = X @ coeffs
-error = delta_T - predicted_thrust
-
-rmse = np.sqrt(np.mean((error)**2))
-r2 = 1 - np.sum((error)**2) / \
-        np.sum((delta_T - np.mean(delta_T))**2)
-
-print("coefficients:")
-for i, c in enumerate(coeffs):
-    print(f"c{i} = {c:.8f}")
-
-print("RMSE:", rmse)
-print("R²:", r2)
-print("thrust std:", np.std(delta_T))
-
-# print("R^2", r2, " alpha ", alpha)
-##########################################################################
-
-# plot predicted thrust vs. flight data thrust
-plt.scatter(delta_T, predicted_thrust, c=voltage, cmap='turbo', s=5)
-plt.colorbar(label="voltage (V)")
-
-lo = min(delta_T.min(), predicted_thrust.min())
-hi = max(delta_T.max(), predicted_thrust.max())
-
-plt.plot([lo, hi], [lo, hi], 'k--')
-
-plt.xlabel("Measured delta thrust (N)")
-plt.ylabel("Predicted delta thrust (N)")
-plt.axis("equal")
-plt.show()
 
 
 ##########################################################################
@@ -261,27 +179,135 @@ plt.show()
 # we fit the data as a quadratic with pwm top, pwm bottom and voltage
 # all being independent of each other
 
-X = np.column_stack([
-    np.ones_like(p_top),
-    old_thrust,
-])
+# X = np.column_stack([
+#     np.ones_like(p_top),
 
-coeffs, *_ = np.linalg.lstsq(X, thrust, rcond=None)
+#     old_thrust,
+#     p_top,
+#     p_bottom,
+#     voltage,
 
-predicted_thrust = X @ coeffs
-error = thrust - predicted_thrust
+#     p_top**2,
+#     p_bottom**2,
+#     voltage**2,
 
-rmse = np.sqrt(np.mean((error)**2))
-r2 = 1 - np.sum((error)**2) / \
-        np.sum((thrust - np.mean(thrust))**2)
+#     p_top * p_bottom,
+#     p_top * voltage,
+#     p_bottom * voltage
+# ])
 
-print("coefficients:")
-for i, c in enumerate(coeffs):
-    print(f"c{i} = {c:.8f}")
+# coeffs, *_ = np.linalg.lstsq(X, thrust, rcond=None)
 
-print("RMSE:", rmse)
-print("R²:", r2)
-print("thrust std:", np.std(thrust))
+# predicted_thrust = X @ coeffs
+# error = thrust - predicted_thrust
+
+# rmse = np.sqrt(np.mean((error)**2))
+# r2 = 1 - np.sum((error)**2) / \
+#         np.sum((thrust - np.mean(thrust))**2)
+
+# print("coefficients:")
+# for i, c in enumerate(coeffs):
+#     print(f"c{i} = {c:.8f}")
+
+# print("RMSE:", rmse)
+# print("R²:", r2)
+# print("thrust std:", np.std(thrust))
+
+
+##########################################################################
+
+# # plot predicted thrust vs. flight data thrust
+# plt.scatter(thrust, predicted_thrust, c=old_thrust, cmap='turbo', s=5)
+# plt.colorbar(label="T_[k-window]")
+
+# lo = min(thrust.min(), predicted_thrust.min())
+# hi = max(thrust.max(), predicted_thrust.max())
+
+# plt.plot([lo, hi], [lo, hi], 'k--')
+
+# plt.xlabel("Measured thrust (N)")
+# plt.ylabel("Predicted thrust (N)")
+# plt.axis("equal")
+# plt.show()
+
+# X = np.column_stack([
+#     np.ones_like(p_top),
+
+#     old_thrust,
+#     p_top,
+#     p_bottom,
+#     voltage,
+
+#     p_top**2,
+#     p_bottom**2,
+#     voltage**2,
+
+#     p_top * p_bottom,
+#     p_top * voltage,
+#     p_bottom * voltage
+# ])
+
+# coeffs, *_ = np.linalg.lstsq(X, delta_T, rcond=None)
+
+# predicted_thrust = X @ coeffs
+# error = delta_T - predicted_thrust
+
+# rmse = np.sqrt(np.mean((error)**2))
+# r2 = 1 - np.sum((error)**2) / \
+#         np.sum((delta_T - np.mean(delta_T))**2)
+
+# print("coefficients:")
+# for i, c in enumerate(coeffs):
+#     print(f"c{i} = {c:.8f}")
+
+# print("RMSE:", rmse)
+# print("R²:", r2)
+# print("thrust std:", np.std(delta_T))
+
+# print("R^2", r2, " alpha ", alpha)
+##########################################################################
+
+# # plot predicted thrust vs. flight data thrust
+# plt.scatter(delta_T, predicted_thrust, c=voltage, cmap='turbo', s=5)
+# plt.colorbar(label="voltage (V)")
+
+# lo = min(delta_T.min(), predicted_thrust.min())
+# hi = max(delta_T.max(), predicted_thrust.max())
+
+# plt.plot([lo, hi], [lo, hi], 'k--')
+
+# plt.xlabel("Measured delta thrust (N)")
+# plt.ylabel("Predicted delta thrust (N)")
+# plt.axis("equal")
+# plt.show()
+
+
+##########################################################################
+
+# we fit the data as a quadratic with pwm top, pwm bottom and voltage
+# all being independent of each other
+
+# X = np.column_stack([
+#     np.ones_like(p_top),
+#     old_thrust,
+# ])
+
+# coeffs, *_ = np.linalg.lstsq(X, thrust, rcond=None)
+
+# predicted_thrust = X @ coeffs
+# error = thrust - predicted_thrust
+
+# rmse = np.sqrt(np.mean((error)**2))
+# r2 = 1 - np.sum((error)**2) / \
+#         np.sum((thrust - np.mean(thrust))**2)
+
+# print("coefficients:")
+# for i, c in enumerate(coeffs):
+#     print(f"c{i} = {c:.8f}")
+
+# print("RMSE:", rmse)
+# print("R²:", r2)
+# print("thrust std:", np.std(thrust))
 
 
 
@@ -289,64 +315,64 @@ print("thrust std:", np.std(thrust))
 ##########################################################################
 
 # plot predicted thrust vs. flight data thrust
-plt.scatter(thrust, predicted_thrust, c=old_thrust, cmap='turbo', s=5)
-plt.colorbar(label="T_[k-window]")
+# plt.scatter(thrust, predicted_thrust, c=old_thrust, cmap='turbo', s=5)
+# plt.colorbar(label="T_[k-window]")
 
-lo = min(thrust.min(), predicted_thrust.min())
-hi = max(thrust.max(), predicted_thrust.max())
+# lo = min(thrust.min(), predicted_thrust.min())
+# hi = max(thrust.max(), predicted_thrust.max())
 
-plt.plot([lo, hi], [lo, hi], 'k--')
+# plt.plot([lo, hi], [lo, hi], 'k--')
 
-plt.xlabel("Measured thrust (N)")
-plt.ylabel("Predicted thrust (N)")
-plt.axis("equal")
-plt.show()
+# plt.xlabel("Measured thrust (N)")
+# plt.ylabel("Predicted thrust (N)")
+# plt.axis("equal")
+# plt.show()
 
 
 
 # let's try a simpler model and see how it compares
 
-A = np.column_stack((p_avg_scaled**2, p_avg_scaled, np.ones_like(p_top)))
-coeffs_2, _, _, _ = np.linalg.lstsq(A, thrust, rcond=None)
+# A = np.column_stack((p_avg_scaled**2, p_avg_scaled, np.ones_like(p_top)))
+# coeffs_2, _, _, _ = np.linalg.lstsq(A, thrust, rcond=None)
 
-a, b, c = coeffs_2
+# a, b, c = coeffs_2
 
-print('a: ', a / 9.81)
-print('b: ', b / 9.81)
-print('c: ', c / 9.81)
+# print('a: ', a / 9.81)
+# print('b: ', b / 9.81)
+# print('c: ', c / 9.81)
 
-predicted_thrust_2 = A @ coeffs_2
-error_2 = thrust - predicted_thrust_2
+# predicted_thrust_2 = A @ coeffs_2
+# error_2 = thrust - predicted_thrust_2
 
-rmse = np.sqrt(np.mean((error_2)**2))
-r2 = 1 - np.sum((error_2)**2) / \
-        np.sum((thrust - np.mean(thrust))**2)
+# rmse = np.sqrt(np.mean((error_2)**2))
+# r2 = 1 - np.sum((error_2)**2) / \
+#         np.sum((thrust - np.mean(thrust))**2)
 
-print("coefficients:")
-for i, c in enumerate(coeffs_2):
-    print(f"c{i} = {c:.8f}")
+# print("coefficients:")
+# for i, c in enumerate(coeffs_2):
+#     print(f"c{i} = {c:.8f}")
 
-print("RMSE:", rmse)
-print("R²:", r2)
-print("thrust std:", np.std(thrust))
+# print("RMSE:", rmse)
+# print("R²:", r2)
+# print("thrust std:", np.std(thrust))
 
 
 ##########################################################################
 
-plt.figure(3)
-# plot predicted thrust vs. flight data thrust
-plt.scatter(thrust, predicted_thrust_2, c=voltage, cmap='turbo', s=5)
-plt.colorbar(label="Voltage (V)")
+# plt.figure(3)
+# # plot predicted thrust vs. flight data thrust
+# plt.scatter(thrust, predicted_thrust_2, c=voltage, cmap='turbo', s=5)
+# plt.colorbar(label="Voltage (V)")
 
-lo = min(thrust.min(), predicted_thrust_2.min())
-hi = max(thrust.max(), predicted_thrust_2.max())
+# lo = min(thrust.min(), predicted_thrust_2.min())
+# hi = max(thrust.max(), predicted_thrust_2.max())
 
-plt.plot([lo, hi], [lo, hi], 'k--')
+# plt.plot([lo, hi], [lo, hi], 'k--')
 
-plt.xlabel("Measured thrust (N)")
-plt.ylabel("Predicted thrust simple (N)")
-plt.axis("equal")
-plt.show()
+# plt.xlabel("Measured thrust (N)")
+# plt.ylabel("Predicted thrust simple (N)")
+# plt.axis("equal")
+# plt.show()
 
 
 # #########################################################################
