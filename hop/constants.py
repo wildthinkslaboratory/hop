@@ -63,20 +63,20 @@ class Constants:
         self.b = 0.9797 * self.tcc
         self.c = 0.03 * self.tcc
 
-        self.c0 = 107.94566969
-        self.c1 = -45.46240373
-        self.c2 = -36.95055472
-        self.c3 = -5.55902710
-        self.c4 = 18.01888078
-        self.c5 = -9.40028998
-        self.c6 = 0.07930391
-        self.c7 = 7.00378066
-        self.c8 = 0.64737357
-        self.c9 = 2.07224182
+        self.c0 = 512.96285760
+        self.c1 = -640.91829035
+        self.c2 = -0.13801349
+        self.c3 = -23.27789538
+        self.c4 = 27.87748878
+        self.c5 = 133.66750019
+        self.c6 = 0.14813063
+        self.c7 = -50.47407710
+        self.c8 = 29.00105676
+        self.c9 = -7.07389478
 
         # rotation about z axis caused by differential thrust between motors is modeled linearly with d
         self.d = 6.0
-        self.thrust_constant = 1.25
+        self.thrust_constant = 0.97
 
  
         # mechanical and hardware constants
