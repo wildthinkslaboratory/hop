@@ -40,6 +40,7 @@ for j, valj in enumerate(offset1_vals):
         roll = 5
         x_history = deque(maxlen=roll)
         back = int(roll / 2)
+        prev_thrust = mc.hover_thrust
 
         for i in range(len(fd.state_data) - back):
             x_history.append(fd.state_data[i].copy())
@@ -47,9 +48,11 @@ for j, valj in enumerate(offset1_vals):
             if i > delay:
                 u = fd.control_data[i-delay - back]
                 x = fd.state_data[i - back]
+                x[13] = prev_thrust
                 p = fd.parameters[i - back]
                 rolled_x = np.mean(x_history, axis=0)
                 predicted_x = rk_sim1.make_step(equations.f, x, u, p)
+                prev_thrust = predicted_x[13]
                 cost[j][k] += get_cost(predicted_x, rolled_x)
 
 
