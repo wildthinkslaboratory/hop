@@ -20,18 +20,7 @@ show_horizon_trajectory = False
 # If you want to mess with any constants to see if you 
 # can get a better fit to the flight data, do it here
 
-mc.c0 = 512.96285760
-mc.c1 = -640.91829035
-mc.c2 = -0.13801349
-mc.c3 = -23.27789538
-mc.c4 = 27.87748878
-mc.c5 = 133.66750019
-mc.c6 = 0.14813063
-mc.c7 = -50.47407710
-mc.c8 = 29.00105676
-mc.c9 = -7.07389478
 
-mc.thrust_constant = 0.9
 
 ##########################################################
 delay = mc.nmpc_delay
