@@ -17,8 +17,9 @@ class Equations6DOF:
         v = ca.SX.sym('v', 3, 1)
         q = ca.SX.sym('q', 4, 1)
         w = ca.SX.sym('w', 3, 1)
+        F = ca.SX.sym('F', 1, 1)
 
-        self.x = ca.vertcat(p,v,q,w)
+        self.x = ca.vertcat(p, v, q, w, F)
         self.u = ca.SX.sym('u', 4, 1)
 
         # Parameters 
@@ -34,24 +35,15 @@ class Equations6DOF:
         # for the system dynamics
         I_mat = ca.DM(mc.I)
 
-        norm_P_avg = self.u[2] * self.p[3] / mc.battery_v
-        F = (mc.a * norm_P_avg**2 + mc.b * norm_P_avg + mc.c) * mc.thrust_constant
-        
-        # top = self.u[2] - self.u[3]/2
-        # bot = self.u[2] + self.u[3]/2
-        # volt = self.p[3]
-        # F = (
-        #     mc.c0
-        #     + mc.c1 * top
-        #     + mc.c2 * bot
-        #     + mc.c3 * volt
-        #     + mc.c4 * top**2
-        #     + mc.c5 * bot**2
-        #     + mc.c6 * volt**2
-        #     + mc.c7 * top * bot
-        #     + mc.c8 * top * volt
-        #     + mc.c9 * bot * volt
-        # ) * mc.thrust_constant
+        volt = self.p[3]
+        F_ss = (
+            mc.c0
+            + mc.c1 * self.u[2]
+            + mc.c2 * volt
+            + mc.c3 * self.u[2]**2
+            + mc.c4 * volt**2
+            + mc.c5 * self.u[2]*volt
+        )
 
         M = mc.d * mc.Izz * self.u[3]
 
@@ -91,11 +83,19 @@ class Equations6DOF:
             v,
             (r_b2w @ F_vector) / mc.m + mc.g,
             0.5 * Q_omega @ q_full,
-            ca.solve(I_mat, M_vector - ca.cross(w, angular_momentum))
+            ca.solve(I_mat, M_vector - ca.cross(w, angular_momentum)),
+            (F_ss - F) / mc.tau
         )
 
         # f is function that returns the change in state for a given state and control values
         self.f = ca.Function('f', [self.x, self.u, self.p], [self.RHS])
 
-        # this is helpful for thrust modeling
-        self.T = ca.Function('T', [self.u, self.p], [F_vector])
+
+        # thrust at the beginning of the timestep
+        F_current = ca.SX.sym('F_current', 1, 1)
+
+        # exact integration of first-order thrust dynamics for one timestep
+        F_next = F_ss + (F_current - F_ss) * ca.exp(-mc.dt / mc.tau)
+
+        self.thrust_step = ca.Function('thrust_step', [F_current, self.u, self.p], [F_next])
+

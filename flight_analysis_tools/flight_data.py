@@ -28,8 +28,8 @@ class FlightData:
         data = log['run_data']
 
         # read in the flight data
-        self.state_data = np.empty([len(data),13])
-        self.future_state_data = np.empty([len(data),13])
+        self.state_data = np.empty([len(data),14])
+        self.future_state_data = np.empty([len(data),14])
         self.control_data = np.empty([len(data),4])
         self.pwm_motors = np.empty([len(data),2])
         self.pwm_servos = np.empty([len(data),2])
@@ -42,11 +42,8 @@ class FlightData:
 
         # collect all the data into arrays
         for i, d in enumerate(data):
-            if 'raw_state' in d:
-                self.state_data[i] = np.array(d['raw_state'])
-            else:
-                self.state_data[i] = np.array(d['state'])
-            self.future_state_data[i] = np.array(d['state'])
+            self.state_data[i] = np.append(np.array(d['raw_state']), 0.0)
+            self.future_state_data[i] = np.append(np.array(d['state']), 0.0)
             self.control_data[i] = np.array(d['control'])
             self.pwm_motors[i] = np.array(d['pwm_motors'])
             self.pwm_servos[i] = np.array(d['pwm_servos'])

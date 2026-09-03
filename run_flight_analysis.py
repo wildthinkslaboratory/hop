@@ -1,4 +1,4 @@
-# from flight_analysis_tools import plot_flight_data
+from flight_analysis_tools import plot_flight_data
 
 from flight_analysis_tools import model_accuracy
 

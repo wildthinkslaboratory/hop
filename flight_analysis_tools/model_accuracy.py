@@ -20,18 +20,7 @@ show_horizon_trajectory = False
 # If you want to mess with any constants to see if you 
 # can get a better fit to the flight data, do it here
 
-mc.c0 = 512.96285760
-mc.c1 = -640.91829035
-mc.c2 = -0.13801349
-mc.c3 = -23.27789538
-mc.c4 = 27.87748878
-mc.c5 = 133.66750019
-mc.c6 = 0.14813063
-mc.c7 = -50.47407710
-mc.c8 = 29.00105676
-mc.c9 = -7.07389478
 
-mc.thrust_constant = 0.9
 
 ##########################################################
 delay = mc.nmpc_delay
@@ -40,16 +29,24 @@ horizon_steps = 25 # int(mc.horizon_time / mc.dt)
 equations = Equations6DOF(mc)
 
 rk_sim1 = RKSimulator(0.005, 4)
+state_sz = 14
 
+# thrust_step = equations.thrust_step(
+#     0.0, 
+#     [0.0, 0.0, 0.8, 0.0], 
+#     [0.0, 0.0, 0.0, 25.0, mc.hover_thrust]
+# )
 
-residual_1 = np.zeros([fd.len_used_data-1,13])
-residual_delay = np.zeros([fd.len_used_data-1,13])
-residual_horizon = np.zeros([fd.len_used_data-1,13])
+# print(thrust_step)
 
-predicted_dx = np.zeros([fd.len_used_data-1,13])
-full_predicted_dx = np.zeros([fd.len_used_data-1,13])
-actual_dx = np.zeros([fd.len_used_data-1,13])
-roll_dx = np.zeros([fd.len_used_data-1,13])
+residual_1 = np.zeros([fd.len_used_data-1,state_sz])
+residual_delay = np.zeros([fd.len_used_data-1,state_sz])
+residual_horizon = np.zeros([fd.len_used_data-1,state_sz])
+
+predicted_dx = np.zeros([fd.len_used_data-1,state_sz])
+full_predicted_dx = np.zeros([fd.len_used_data-1,state_sz])
+actual_dx = np.zeros([fd.len_used_data-1,state_sz])
+roll_dx = np.zeros([fd.len_used_data-1,state_sz])
 predicted_angle = np.zeros([fd.len_used_data-1,3])
 actual_angle = fd.attitude[:-2]
 zero = np.zeros([fd.len_used_data-1,1])
@@ -59,37 +56,33 @@ actual_dvz = []
 
 roll = 5
 x_history = deque(maxlen=roll)
-
+prev_thrust = 15.5
 for i in range(delay, len(fd.state_data)-1):
-
-    # x = fd.state_data[i][0]  
-    # y = fd.state_data[i][1]
-    # z = fd.state_data[i][2]
-    # r_xy = np.sqrt(x**2 + y**2)
     
 
-
     #####################################################################
-    predicted_state = np.reshape(rk_sim1.make_step(equations.f, fd.state_data[i], fd.control_data[i-delay], fd.parameters[i]), (13,))
+    fd.state_data[i][13] = prev_thrust
+    predicted_state = np.reshape(rk_sim1.make_step(equations.f, fd.state_data[i], fd.control_data[i-delay], fd.parameters[i]), (state_sz,))
+    prev_thrust = predicted_state[13]
     residual_1[i] = predicted_state - fd.state_data[i+1]
 
 
     if (i < len(fd.state_data) - delay):
-        state = fd.state_data[i]
+        state = fd.state_data[i].copy()
         for j in range(delay):
             state = rk_sim1.make_step(equations.f, state, fd.control_data[i-delay+j], fd.parameters[i+j])
-        residual_delay[i] = np.reshape(state, (13,)) - fd.state_data[i+delay]
+        residual_delay[i] = np.reshape(state, (state_sz,)) - fd.state_data[i+delay]
 
 
     if (i < len(fd.state_data) - horizon_steps):
-        horizon_traj = np.zeros([horizon_steps+1, 13])
-        state = fd.state_data[i]
+        horizon_traj = np.zeros([horizon_steps+1, state_sz])
+        state = fd.state_data[i].copy()
         horizon_traj[0] = fd.state_data[i]
         
         for j in range(horizon_steps):
             state = rk_sim1.make_step(equations.f, state, fd.control_data[i-delay+j], fd.parameters[i+j])
-            horizon_traj[j+1] = np.reshape(state, (13,))
-        residual_horizon[i] = np.reshape(state, (13,)) - fd.state_data[i+horizon_steps]
+            horizon_traj[j+1] = np.reshape(state, (state_sz,))
+        residual_horizon[i] = np.reshape(state, (state_sz,)) - fd.state_data[i+horizon_steps]
 
         if show_horizon_trajectory:
             tspan = np.arange(0, (horizon_steps+1) * mc.dt, mc.dt)
@@ -99,9 +92,9 @@ for i in range(delay, len(fd.state_data)-1):
             plt.show()
 
 
-    full_predicted_dx[i] = np.reshape(equations.f(fd.future_state_data[i-delay], fd.control_data[i-delay], fd.parameters[i-delay]) * mc.dt, (13,))
-    predicted_dx[i] = np.reshape(equations.f(fd.state_data[i], fd.control_data[i-delay], fd.parameters[i]) * mc.dt, (13,))
-    actual_dx[i] = np.reshape(fd.state_data[i+1] - fd.state_data[i], (13,))
+    # full_predicted_dx[i] = np.reshape(equations.f(fd.future_state_data[i-delay], fd.control_data[i-delay], fd.parameters[i-delay]) * mc.dt, (state_sz,))
+    predicted_dx[i] = np.reshape(equations.f(fd.state_data[i], fd.control_data[i-delay], fd.parameters[i]) * mc.dt, (state_sz,))
+    actual_dx[i] = np.reshape(fd.state_data[i+1] - fd.state_data[i], (state_sz,))
     x_history.append(actual_dx[i].copy())
     back = int(roll / 2)
     if i >= back: 
@@ -193,35 +186,34 @@ plt.xlabel('Time')
 plot_state(tspan, residual_1, 'predicted state minus actual')
 plot_state(tspan, residual_delay, 'delay steps state minus actual')
 plot_state(tspan, residual_horizon, 'horizon steps state minus actual')
-
-plt.figure(6)
-plt.scatter(model_dvz, actual_dvz)
-
-m, b = np.polyfit(model_dvz, actual_dvz, 1)
-
-xfit = np.linspace(np.min(model_dvz),
-                   np.max(model_dvz), 100)
-
-plt.plot(xfit, m*xfit + b,
-         label=f"fit: y={m:.2f}x+{b:.4f}")
-
-plt.xlabel("Predicted Δv_z")
-plt.ylabel("Actual Δv_z")
-
-# Let matplotlib autoscale first
-plt.autoscale()
-
-# Now get the visible limits
-xmin, xmax = plt.xlim()
-ymin, ymax = plt.ylim()
-
-# Draw y=x only over the overlapping visible range
-lo = max(xmin, ymin)
-hi = min(xmax, ymax)
-
-plt.plot([lo, hi], [lo, hi], 'k--', label="y = x")
-
-plt.legend()
 plt.show()
+# plt.figure(6)
+# plt.scatter(model_dvz, actual_dvz)
 
-plt.show()
+# m, b = np.polyfit(model_dvz, actual_dvz, 1)
+
+# xfit = np.linspace(np.min(model_dvz),
+#                    np.max(model_dvz), 100)
+
+# plt.plot(xfit, m*xfit + b,
+#          label=f"fit: y={m:.2f}x+{b:.4f}")
+
+# plt.xlabel("Predicted Δv_z")
+# plt.ylabel("Actual Δv_z")
+
+# # Let matplotlib autoscale first
+# plt.autoscale()
+
+# # Now get the visible limits
+# xmin, xmax = plt.xlim()
+# ymin, ymax = plt.ylim()
+
+# # Draw y=x only over the overlapping visible range
+# lo = max(xmin, ymin)
+# hi = min(xmax, ymax)
+
+# plt.plot([lo, hi], [lo, hi], 'k--', label="y = x")
+
+# plt.legend()
+# plt.show()
+
