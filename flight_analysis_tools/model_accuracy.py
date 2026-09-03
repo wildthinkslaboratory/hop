@@ -31,6 +31,14 @@ equations = Equations6DOF(mc)
 rk_sim1 = RKSimulator(0.005, 4)
 state_sz = 14
 
+# thrust_step = equations.thrust_step(
+#     0.0, 
+#     [0.0, 0.0, 0.8, 0.0], 
+#     [0.0, 0.0, 0.0, 25.0, mc.hover_thrust]
+# )
+
+# print(thrust_step)
+
 residual_1 = np.zeros([fd.len_used_data-1,state_sz])
 residual_delay = np.zeros([fd.len_used_data-1,state_sz])
 residual_horizon = np.zeros([fd.len_used_data-1,state_sz])
@@ -48,7 +56,7 @@ actual_dvz = []
 
 roll = 5
 x_history = deque(maxlen=roll)
-prev_thrust = mc.hover_thrust
+prev_thrust = 15.5
 for i in range(delay, len(fd.state_data)-1):
     
 

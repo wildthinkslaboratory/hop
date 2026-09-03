@@ -96,7 +96,7 @@ class Constants:
         # self.Q = ca.diag([40.0,40.0,50.0, 10.0,10.0,15.0, 2500.0,2500.0,200.0,200.0, 30.0,30.0,1.0 ])
 
         # self.Q = ca.diag([50.0,50.0,50.0, 10.0,10.0,10.0, 526.0,526.0,15.0,0.0, 15.0,15.0,1.0 ])
-        self.Q = ca.diag([10.0,10.0,10.0, 3.0,3.0,3.0, 526.0,526.0,33.0,0.0, 10.0,10.0,8.0 ])
+        self.Q = ca.diag([10.0,10.0,10.0, 3.0,3.0,3.0, 526.0,526.0,33.0,0.0, 10.0,10.0,8.0, 10])
         self.R = ca.diag([0.01, 0.01, 100, 100])
         
         self.gmb_deg_1pwm = 52
@@ -124,8 +124,9 @@ class Constants:
 
         # control cost matrix
         self.terminal_cost_factor = 15.0
-        self.xr = ca.vertcat(0.0,0.0,self.px4_height, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0) # goal state
-        self.ur = ca.DM([self.gimbal_offset[0], self.gimbal_offset[1], self.hover_thrust, 0.0])                          # goal control
+        # goal state and control
+        self.xr = ca.vertcat(0.0,0.0,self.px4_height, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0, self.hover_thrust) 
+        self.ur = ca.DM([self.gimbal_offset[0], self.gimbal_offset[1], self.hover_thrust, 0.0])                          
 
         # list of navigation waypoints for the flight to follow
         # these are (x,y,z) points in world frame meters

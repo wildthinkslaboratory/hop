@@ -32,7 +32,6 @@ from hop.drone_model import DroneModel
 from hop.dompc import DroneNMPCdompc
 
 from hop.equations_of_motion import Equations6DOF
-from hop.multiShootTDelay import DroneNMPCMultiShootTDelay
 from collections import deque
 
 
@@ -119,6 +118,11 @@ class NMPCNode(Node):
             [np.array([0.0, 0.0, mc.hover_thrust, 0.0]) for i in range(mc.nmpc_delay)],
             maxlen=mc.nmpc_delay
         )
+        self.thrust_estimate = self.equations.thrust_step(
+            0.0, 
+            [0.0, 0.0, mc.hover_thrust, 0.0], 
+            [0.0, 0.0, 0.0, 25.0, mc.hover_thrust]
+        )
 
         self.model = DroneModel(mc)
         self.mpc = DroneNMPCdompc(mc.dt, self.model.model)
@@ -157,7 +161,7 @@ class NMPCNode(Node):
             self.shutdown()
         else:
             start_time = perf_counter()
-            state = DM(np.array(msg.state))
+            state = DM(np.append(np.array(msg.state), self.thrust_estimate))
             raw_state = DM(state)
             parameters = mc.waypoints[self.waypoint_i]
             parameters[3] = msg.filtered_voltage   
@@ -166,8 +170,11 @@ class NMPCNode(Node):
             if mc.run_nmpc:    
                 
                 # integrate the state forward with the control history before calling the nmpc
-                for control in self.control_history:
+                for i, control in enumerate(self.control_history):
                     state = self.rk_sim.make_step(self.equations.f, state, control, parameters)
+                    if i == 0:
+                        self.thrust_estimate = float(state[13])
+
 
                 self.mpc.set_waypoint(parameters)
                 control = np.array(self.mpc.mpc.make_step(state)).flatten()
