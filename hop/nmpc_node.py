@@ -118,11 +118,7 @@ class NMPCNode(Node):
             [np.array([0.0, 0.0, mc.hover_thrust, 0.0]) for i in range(mc.nmpc_delay)],
             maxlen=mc.nmpc_delay
         )
-        self.thrust_estimate = self.equations.thrust_step(
-            0.0, 
-            [0.0, 0.0, mc.hover_thrust, 0.0], 
-            [0.0, 0.0, 0.0, 25.0, mc.hover_thrust]
-        )
+        self.thrust_estimate = self.equations.thrust_step(0.0, mc.hover_thrust, 25.0)
 
         self.model = DroneModel(mc)
         self.mpc = DroneNMPCdompc(mc.dt, self.model.model)
@@ -161,6 +157,13 @@ class NMPCNode(Node):
             self.shutdown()
         else:
             start_time = perf_counter()
+
+            # if not msg.thrust == 0.0: # check if there's an observed thrust
+            #     observed_thrust = msg.thrust
+            #     for i in range(5): # the thrust is 0.1 seconds old to advance it to current time
+            #         observed_thrust = equations.thrust_step(observed_thrust, ???, ???) # will need a different deque
+            #         pass
+
             state = DM(np.append(np.array(msg.state), self.thrust_estimate))
             raw_state = DM(state)
             parameters = mc.waypoints[self.waypoint_i]
@@ -196,9 +199,7 @@ class NMPCNode(Node):
                 'pwm_servos': pwm_servos,
                 'parameters': parameters.tolist(),
                 'current_a': msg.current_a,
-                'current_average_a': msg.current_average_a,
-                'discharged_mah': msg.discharged_mah,
-                'remaining': msg.remaining,
+                'observed_thrust': { 'thrust': msg.thrust, 'delay': msg.thrust_delay },
                 'raw_voltage': msg.raw_voltage,
             })
     

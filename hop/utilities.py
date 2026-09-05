@@ -71,6 +71,7 @@ def q_component_to_angle(x):
 
 
 
+
 def vertical_acceleration(vz, dt):
     t = np.arange(len(vz)) * dt
     slope, _ = np.polyfit(t, vz, 1)
