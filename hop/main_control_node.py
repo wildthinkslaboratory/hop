@@ -107,6 +107,7 @@ class ControlNode(Node):
         # read this data from pixhawk and then we translate it to 
         # the appropriate coordinate systems and forward to the nmpc_node
         self.state = mc.x0
+        self.v_z_history = deque(maxlen=11)
 
         # battery status data for thrust analysis
         self.raw_voltage = 0.0  
@@ -277,6 +278,7 @@ class ControlNode(Node):
         vel = np.array(msg.velocity)
         self.state[0:3] = [pos[1] - self.x_offset, pos[0] - self.y_offset, -pos[2]]
         self.state[3:6] = [vel[1], vel[0], -vel[2]]
+        self.v_z_history.append((self.state[5], self.get_clock().now().nanoseconds // 1000000))
     
         # Front Left Up to Front Right Down translation (w, x, y, z)
         FLU_FRD = np.array([0, sqrt(2)/2, sqrt(2)/2, 0])

@@ -68,3 +68,20 @@ def quaternion_to_angle(q):
 def q_component_to_angle(x):
     w = np.sqrt(1-x**2)
     return abs(np.arctan(-2*x*w / (1-2*x**2)) * 180 / np.pi)
+
+
+
+def vertical_acceleration(vz, dt):
+    t = np.arange(len(vz)) * dt
+    slope, _ = np.polyfit(t, vz, 1)
+    return slope
+
+# v_z_window - a set of continugous vertical velocity readings
+# mass - mass of the drone
+# q - state quaterion
+def estimate_thrust_from_state(v_z_window, mass, q, dt):
+    a_z = vertical_acceleration(v_z_window, dt)
+    x_theta, y_theta, theta = quaternion_to_angle(q)
+    return mass * (9.81 + a_z) / np.cos(theta * np.pi / 180.0)
+
+    
