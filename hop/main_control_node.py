@@ -201,8 +201,8 @@ class ControlNode(Node):
         self.nmpc_msg_count += 1        
         msg = NMPCInput()
         
-        # every 5th message we estimate the thrust and send it
-        if self.nmpc_msg_count % 5 == 0:
+        # every 10th message we estimate the thrust and send it
+        if self.nmpc_msg_count % 10 == 0:
             velocities = np.asarray(self.v_z_history, dtype=float)
             times = np.asarray(self.v_z_times, dtype=float)
             times = times - times[0]
