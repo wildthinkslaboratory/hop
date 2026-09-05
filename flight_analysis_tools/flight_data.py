@@ -35,6 +35,7 @@ class FlightData:
             self.state_data = np.empty([len(data),14])
             self.future_state_data = np.empty([len(data),14])
 
+        self.observed_thrust = np.empty([len(data),2])
         self.control_data = np.empty([len(data),4])
         self.pwm_motors = np.empty([len(data),2])
         self.pwm_servos = np.empty([len(data),2])
@@ -63,7 +64,8 @@ class FlightData:
                 self.raw_voltage[i] = d['raw_voltage']
                 self.current[i] = d['current_a']
       
-            
+            if 'observed_thrust' in d:
+                self.observed_thrust[i] = np.array([d['observed_thrust']['thrust'], d['observed_thrust']['delay']])
             # turn quaternions into attitude
             q = np.reshape(self.state_data[i][6:10].copy(), (4,))
             self.attitude[i] = quaternion_to_angle(q)
@@ -88,6 +90,7 @@ class FlightData:
         self.current = self.current[stop_index+1:end_index]
         self.raw_voltage = self.raw_voltage[stop_index+1:end_index]
         self.timestamps = self.timestamps[stop_index+1:end_index]
+        self.observed_thrust = self.observed_thrust[stop_index+1:end_index]
 
 
 
