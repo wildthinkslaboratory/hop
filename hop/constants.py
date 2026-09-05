@@ -8,7 +8,7 @@ class Constants:
 
         # general constants
         # ---------------------------------------------------------------
-        self.timelimit = 8.0 # time limit for a flight in seconds 
+        self.timelimit = 15.0 # time limit for a flight in seconds 
         self.shutdown_angle = 12.0 # shutdown if attitude exceeds this angle
         self.run_nmpc = True
         self.nmpc_delay = 3 # how many cycles it takes for the control to be actuated 
@@ -90,7 +90,7 @@ class Constants:
         # NMPC related constants
         # ---------------------------------------------------------------        
         self.dt = 0.02 # 50 Hz like in paper
-        self.x0 = ca.vertcat(0.0,0.0,0.0, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0) # initial state                                                    # state cost matrix
+        self.x0 = ca.vertcat(0.0,0.0,0.0, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0, 0.0) # initial state                                                    # state cost matrix
 
         # self.Q = ca.diag([80.0,80.0,100.0, 20.0,20.0,25.0, 2500.0,2500.0,200.0,200.0, 20.0,20.0,1.0 ])
         # self.Q = ca.diag([40.0,40.0,50.0, 10.0,10.0,15.0, 2500.0,2500.0,200.0,200.0, 30.0,30.0,1.0 ])
@@ -229,9 +229,13 @@ class Constants:
         mcd['shutdown_angle'] = self.shutdown_angle
         mcd['nmpc_delay'] = self.nmpc_delay
         mcd['m'] = self.m
-        mcd['a'] = self.a
-        mcd['b'] = self.b
-        mcd['c'] = self.c
+        mcd['c0'] = self.c0
+        mcd['c1'] = self.c1
+        mcd['c2'] = self.c2
+        mcd['c3'] = self.c3
+        mcd['c4'] = self.c4
+        mcd['c5'] = self.c5
+        mcd['tau'] = self.tau
         mcd['d'] = self.d
         mcd['thrust_constant'] = self.thrust_constant
         mcd['px4_height'] = self.px4_height
@@ -283,12 +287,20 @@ class Constants:
             self.nmpc_delay = mcd['nmpc_delay']
         if 'm' in mcd:
             self.m = mcd['m']
-        if 'a' in mcd:
-            self.a = mcd['a'] 
-        if 'b' in mcd:
-            self.b = mcd['b'] 
-        if 'c' in mcd:
-            self.c = mcd['c'] 
+        if 'c0' in mcd:
+            self.a = mcd['c0'] 
+        if 'c1' in mcd:
+            self.b = mcd['c1'] 
+        if 'c2' in mcd:
+            self.c = mcd['c2'] 
+        if 'c3' in mcd:
+            self.a = mcd['c3'] 
+        if 'c4' in mcd:
+            self.b = mcd['c4'] 
+        if 'c5' in mcd:
+            self.c = mcd['c5'] 
+        if 'tau' in mcd:
+            self.c = mcd['tau'] 
         if 'd' in mcd:
             self.d = mcd['d'] 
         if 'thrust_constant' in mcd:

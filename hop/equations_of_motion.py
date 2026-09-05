@@ -97,5 +97,5 @@ class Equations6DOF:
         # exact integration of first-order thrust dynamics for one timestep
         F_next = F_ss + (F_current - F_ss) * ca.exp(-mc.dt / mc.tau)
 
-        self.thrust_step = ca.Function('thrust_step', [F_current, self.u, self.p], [F_next])
+        self.thrust_step = ca.Function('thrust_step', [F_current, self.u[2], self.p[3]], [F_next])
 

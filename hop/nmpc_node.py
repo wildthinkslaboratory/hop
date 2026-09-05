@@ -118,11 +118,9 @@ class NMPCNode(Node):
             [np.array([0.0, 0.0, mc.hover_thrust, 0.0]) for i in range(mc.nmpc_delay)],
             maxlen=mc.nmpc_delay
         )
-        self.thrust_estimate = self.equations.thrust_step(
-            0.0, 
-            [0.0, 0.0, mc.hover_thrust, 0.0], 
-            [0.0, 0.0, 0.0, 25.0, mc.hover_thrust]
-        )
+        self.T_history = deque(maxlen=10)
+        self.thrust_estimate = self.equations.thrust_step(0.0, mc.hover_thrust, 25.0)
+        self.observed_T_gain = 0.8
 
         self.model = DroneModel(mc)
         self.mpc = DroneNMPCdompc(mc.dt, self.model.model)
@@ -161,6 +159,15 @@ class NMPCNode(Node):
             self.shutdown()
         else:
             start_time = perf_counter()
+
+            if not msg.thrust_delay == 0.0: # check if there's an observed thrust
+                observed_thrust = msg.thrust
+                steps = round(msg.thrust_delay / mc.dt)
+                if 0 < steps <= len(self.T_history):
+                    for p_avg, voltage in list(self.T_history)[-steps:]:
+                        observed_thrust = self.equations.thrust_step(observed_thrust, p_avg, voltage) 
+                self.thrust_estimate = self.thrust_estimate * (1 - self.observed_T_gain) + observed_thrust * self.observed_T_gain
+
             state = DM(np.append(np.array(msg.state), self.thrust_estimate))
             raw_state = DM(state)
             parameters = mc.waypoints[self.waypoint_i]
@@ -179,6 +186,7 @@ class NMPCNode(Node):
                 self.mpc.set_waypoint(parameters)
                 control = np.array(self.mpc.mpc.make_step(state)).flatten()
                 self.control_history.append(control.copy())
+                self.T_history.append((control[2], parameters[3]))
   
 
             pwm_servos, pwm_motors = self.control_translator(control)   
@@ -196,9 +204,7 @@ class NMPCNode(Node):
                 'pwm_servos': pwm_servos,
                 'parameters': parameters.tolist(),
                 'current_a': msg.current_a,
-                'current_average_a': msg.current_average_a,
-                'discharged_mah': msg.discharged_mah,
-                'remaining': msg.remaining,
+                'observed_thrust': { 'thrust': msg.thrust, 'delay': msg.thrust_delay },
                 'raw_voltage': msg.raw_voltage,
             })
     

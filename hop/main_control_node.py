@@ -29,7 +29,7 @@ from hop_interfaces.msg import NMPCInput, NMPCStatus
 from casadi import DM
 import numpy as np
 from hop.constants import Constants
-from hop.utilities import quaternion_multiply
+from hop.utilities import quaternion_multiply, quaternion_to_angle
 from math import sqrt
 from collections import deque
 
@@ -107,14 +107,14 @@ class ControlNode(Node):
         # read this data from pixhawk and then we translate it to 
         # the appropriate coordinate systems and forward to the nmpc_node
         self.state = mc.x0
+        self.v_z_history = deque(maxlen=10)
+        self.v_z_times = deque(maxlen=10)
+        self.nmpc_msg_count = 0
 
         # battery status data for thrust analysis
         self.raw_voltage = 0.0  
         self.filtered_voltage = 0.0  
         self.current_a = 0.0
-        self.current_average_a = 0.0
-        self.discharged_mah = 0.0
-        self.remaining = 0.0
 
         self.timestamp_sample = 0
         self.main_receive_time = 0  
@@ -197,7 +197,23 @@ class ControlNode(Node):
 
     # send the latest state info to the nmpc node
     def publish_nmpc_input(self):
+
+        self.nmpc_msg_count += 1        
         msg = NMPCInput()
+        
+        # every 10th message we estimate the thrust and send it
+        if self.nmpc_msg_count % 10 == 0:
+            velocities = np.asarray(self.v_z_history, dtype=float)
+            times = np.asarray(self.v_z_times, dtype=float)
+            times = times - times[0]
+            a_z = np.polyfit(times, velocities, 1)[0] # fits a line and get the slope
+            _, _, theta = quaternion_to_angle(self.state[6:10])
+            msg.thrust = mc.m * (-mc.gz + a_z) / np.cos(theta * np.pi / 180.0)
+            msg.thrust_delay = np.mean(times)
+        else:
+            msg.thrust = 0.0
+            msg.thrust_delay = 0.0
+
         msg.timestamp_sample = self.timestamp_sample
         msg.main_receive_time = self.main_receive_time
         msg.main_send_time = self.get_clock().now().nanoseconds // 1000
@@ -207,9 +223,6 @@ class ControlNode(Node):
 
         # additional info for thrust testing
         msg.current_a = self.current_a
-        msg.current_average_a = self.current_average_a 
-        msg.discharged_mah = self.discharged_mah 
-        msg.remaining = self.remaining
 
         self.publisher_nmpc_input.publish(msg)
 
@@ -277,6 +290,9 @@ class ControlNode(Node):
         vel = np.array(msg.velocity)
         self.state[0:3] = [pos[1] - self.x_offset, pos[0] - self.y_offset, -pos[2]]
         self.state[3:6] = [vel[1], vel[0], -vel[2]]
+
+        self.v_z_history.append(self.state[5])
+        self.v_z_times.append(self.get_clock().now().nanoseconds * 1e-9) # convert to seconds
     
         # Front Left Up to Front Right Down translation (w, x, y, z)
         FLU_FRD = np.array([0, sqrt(2)/2, sqrt(2)/2, 0])
@@ -300,7 +316,7 @@ class ControlNode(Node):
 
         self.timestamp_sample = msg.timestamp_sample
         self.main_receive_time = self.get_clock().now().nanoseconds // 1000
-       
+
         if self.logging_on:
             self.get_logger().info(
                 f"""\n=== NMPC Step ===
