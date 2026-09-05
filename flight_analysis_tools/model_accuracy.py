@@ -21,6 +21,7 @@ show_horizon_trajectory = False
 # can get a better fit to the flight data, do it here
 
 
+mc.tau = 0.2
 
 ##########################################################
 delay = mc.nmpc_delay
