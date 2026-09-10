@@ -3,7 +3,7 @@ import numpy as np
 from pathlib import Path
 import matplotlib.pyplot as plt
 from flight_analysis_tools.flight_data import FlightData
-from hop.utilities import quaternion_to_angle
+from hop.utilities import quaternion_to_angle, estimate_thrust_from_state
 from scipy.optimize import least_squares
 
 
@@ -28,16 +28,29 @@ thrust = []
 voltage = []
 p_top = []
 p_bottom = []
-acceleration_z = []
 all_thrust = []
 old_thrust = []
 delta_T = []
 time = []
 
-
+ss_window = 20
+max_p_range = 0.02
+max_p_slope = 0.05 
+ss_thrust = []
+ss_voltage = []
+ss_p_avg = []
+ss_p_diff = []
+ss_old_thrust = []
+ss_time = []
+ss_v_z = []
+ss_z = []
+ss_current = []
+ss_flight_no = []
+id = 0
+last_id = 0
 
 for file in directory.iterdir():
-    # print(file)
+    id += 1 # starting a new contiguous set of data points
     mc = Constants()
     fd = FlightData(file)
     mc.update_from_dictionary(fd.constants)
@@ -45,12 +58,14 @@ for file in directory.iterdir():
     for i in range(len(fd.state_data) - 2):# min(len(fd.state_data) - 2,100)):#len(fd.state_data) - 2):
         if i > 5:
             # estimate the thrust in Newtons
-            v = fd.parameters[i][3]  # read the filtered voltage value from the parameters
-            a_z_raw = get_az(fd.state_data[i-2:i+3, 5], mc.dt)
+            # v = fd.parameters[i][3]  # read the filtered voltage value from the parameters
+            v = fd.raw_voltage[i]
+            # a_z_raw = get_az(fd.state_data[i-1:i, 5], mc.dt)
 
-            # we account for any rotation of the drone
-            x_theta, y_theta, theta = quaternion_to_angle(fd.state_data[i][6:10])
-            T =  mc.m * (-mc.gz + a_z_raw) / np.cos(theta * np.pi / 180.0)
+            # # we account for any rotation of the drone
+            # # x_theta, y_theta, theta = quaternion_to_angle(fd.state_data[i][6:10])
+            # T =  mc.m * (-mc.gz + a_z_raw) / np.cos(theta * np.pi / 180.0)
+            T = estimate_thrust_from_state(fd.state_data[i-1:i+1, 5], mc.m, fd.state_data[i][6:10], mc.dt)
             all_thrust.append(T)
 
             # since the drone is flown on a tether, we restrict data
@@ -65,7 +80,7 @@ for file in directory.iterdir():
 
             # we limit our data points to those that aren't being pulled by the tether.
             # so stay close to (x,y) = (0,0) and points above the tether height
-            if i > 6 and abs(fd.control_data[i][3]) <= 0.08 and r_xy < 0.1 and z > 0.7:
+            if i > (ss_window + mc.nmpc_delay) and r_xy < 0.1 and z > 0.68: # and abs(fd.control_data[i][3]) <= 0.01 and v < 21.0: 
 
                 delta_T.append(T - all_thrust[-2])
                 old_thrust.append(all_thrust[-2])
@@ -73,9 +88,26 @@ for file in directory.iterdir():
                 p_bottom.append(fd.pwm_motors[i-mc.nmpc_delay][1])
                 thrust.append(T)
                 voltage.append(v)
-                acceleration_z.append(a_z_raw)
                 time.append(i)
 
+                p_avg_ss = fd.control_data[i-mc.nmpc_delay - ss_window: i-mc.nmpc_delay, 2]
+                p_avg_range = np.max(p_avg_ss) - np.min(p_avg_ss)
+                tspan = np.arange(ss_window) * mc.dt
+                p_avg_slope = np.polyfit(tspan, p_avg_ss, 1)[0]
+
+                    # if p_avg_range < max_p_range and abs(p_avg_slope) < max_p_slope:
+                    # if not last_id + 1 == i: # if this point is not contiguous with last, it's a new flight
+                    #     id += 1
+                ss_thrust.append(T)
+                ss_voltage.append(voltage[-1])
+                ss_p_avg.append(fd.control_data[i-mc.nmpc_delay][2])
+                ss_p_diff.append(fd.control_data[i-mc.nmpc_delay][3])
+                ss_old_thrust.append(old_thrust[-1])
+                ss_time.append(float(i))
+                ss_v_z.append(fd.state_data[i][5])
+                ss_current.append(fd.current[i])
+                ss_flight_no.append(float(id))
+                ss_z.append(fd.state_data[i][2])
 
 p_top = np.array(p_top)
 p_bottom = np.array(p_bottom)
@@ -84,10 +116,105 @@ voltage = np.array(voltage)
 delta_T = np.array(delta_T)
 p_avg = (p_top + p_bottom) / 2
 
+ss_old_thrust = np.array(ss_old_thrust)
+ss_p_avg = np.array(ss_p_avg)
+ss_p_diff = np.array(ss_p_diff)
+ss_thrust = np.array(ss_thrust)
+ss_voltage = np.array(ss_voltage)
+ss_v_z = np.array(ss_v_z)
+ss_current = np.array(ss_current)
+ss_z = np.array(ss_z)
+ss_flight_no = np.array(ss_flight_no)
+
+
 p_diff = (p_top - p_bottom) / 2
 p_diff_abs = abs((p_top - p_bottom) / 2)
 p_avg_scaled = p_avg * 25.0 / voltage
 
+
+##########################################################################
+
+plt.scatter(ss_p_avg, ss_thrust, c=ss_voltage, cmap='turbo', s=5)
+plt.axhline(15.86, color='k', linestyle='--')
+plt.colorbar(label="steady state voltage (V)")
+
+plt.ylabel("steady state thrust (N)")
+plt.xlabel("steady state PWM average")
+plt.show()
+
+##########################################################################
+
+plt.scatter(ss_p_avg, ss_thrust, c=ss_p_diff, cmap='turbo', s=5)
+plt.axhline(15.86, color='k', linestyle='--')
+plt.colorbar(label="steady state PWM diff")
+
+plt.ylabel("steady state thrust (N)")
+plt.xlabel("steady state PWM average")
+plt.show()
+
+
+##########################################################################
+
+plt.scatter(ss_p_avg, ss_thrust, c=ss_current, cmap='turbo', s=5)
+plt.axhline(15.86, color='k', linestyle='--')
+plt.colorbar(label="steady state current")
+
+plt.ylabel("steady state thrust (N)")
+plt.xlabel("steady state PWM average")
+plt.show()
+
+
+##########################################################################
+
+plt.scatter(ss_p_avg, ss_thrust, c=ss_v_z, cmap='turbo', s=5)
+plt.axhline(15.86, color='k', linestyle='--')
+plt.colorbar(label="steady state v_z")
+
+plt.ylabel("steady state thrust (N)")
+plt.xlabel("steady state PWM average")
+plt.show()
+
+
+##########################################################################
+
+plt.scatter(ss_p_avg, ss_thrust, c=ss_time, cmap='turbo', s=5)
+plt.axhline(15.86, color='k', linestyle='--')
+plt.colorbar(label="steady state time index")
+
+plt.ylabel("steady state thrust (N)")
+plt.xlabel("steady state PWM average")
+plt.show()
+
+##########################################################################
+
+plt.scatter(ss_p_avg, ss_thrust, c=ss_flight_no, cmap='turbo', s=5)
+plt.axhline(15.86, color='k', linestyle='--')
+plt.colorbar(label="steady state flight no")
+
+plt.ylabel("steady state thrust (N)")
+plt.xlabel("steady state PWM average")
+plt.show()
+
+
+##########################################################################
+
+plt.scatter(ss_p_avg, ss_thrust, c=ss_z, cmap='turbo', s=5)
+plt.axhline(15.86, color='k', linestyle='--')
+plt.colorbar(label="steady state z")
+
+plt.ylabel("steady state thrust (N)")
+plt.xlabel("steady state PWM average")
+plt.show()
+
+##########################################################################
+
+plt.scatter(ss_p_avg, ss_thrust, c=ss_old_thrust, cmap='turbo', s=5)
+plt.axhline(15.86, color='k', linestyle='--')
+plt.colorbar(label="steady state previous thrust")
+
+plt.ylabel("steady state thrust (N)")
+plt.xlabel("steady state PWM average")
+plt.show()
 
 ##########################################################################
 fig = plt.figure()
@@ -115,17 +242,17 @@ ax = fig.add_subplot(projection='3d')
 
 sc = ax.scatter(
     p_avg,
-    p_diff,
-    thrust,
-    c=old_thrust,
+    voltage,
+    delta_T,
+    c=time,
     cmap='turbo',
     s=8
 )
 
 ax.set_xlabel("Average PWM")
-ax.set_ylabel("Differential PWM")
-ax.set_zlabel("Thrust (N)")
-plt.colorbar(sc, label="Previous Thrust")
+ax.set_ylabel("voltage (V)")
+ax.set_zlabel("Delta T (N)")
+plt.colorbar(sc, label="Time (i)")
 plt.show()
 
 ##########################################################################

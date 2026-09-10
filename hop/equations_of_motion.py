@@ -34,19 +34,20 @@ class Equations6DOF:
         # Now we build up the equations of motion and create a function
         # for the system dynamics
         I_mat = ca.DM(mc.I)
+        norm_P_avg = self.u[2] * self.p[3] / mc.battery_v
+        F_ss = (mc.a * norm_P_avg**2 + mc.b * norm_P_avg + mc.c) * mc.thrust_constant
 
-        volt = self.p[3]
-        F_ss = (
-            mc.c0
-            + mc.c1 * self.u[2]
-            + mc.c2 * volt
-            + mc.c3 * self.u[2]**2
-            + mc.c4 * volt**2
-            + mc.c5 * self.u[2]*volt
-        )
+        # volt = self.p[3]
+        # F_ss = (
+        #     mc.c0
+        #     + mc.c1 * self.u[2]
+        #     + mc.c2 * volt
+        #     + mc.c3 * self.u[2]**2
+        #     + mc.c4 * volt**2
+        #     + mc.c5 * self.u[2]*volt
+        # )
 
         M = mc.d * mc.Izz * self.u[3]
-
 
         theta_x = self.u[0] + mc.gimbal_offset[0]
         theta_y = self.u[1] + mc.gimbal_offset[1]

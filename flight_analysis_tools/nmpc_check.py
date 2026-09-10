@@ -106,8 +106,8 @@ for i in range(len(fd.state_data)-1):
         x_r[0:3] = fd.parameters[i][0:3]
         state_sol = mpc.mpc.data.prediction(('_x',))
         control_sol = mpc.mpc.data.prediction(('_u',))
-        horizon = np.empty([len(state_sol[0]),13])
-        state_cost = np.empty([13, len(state_sol[0])])
+        horizon = np.empty([len(state_sol[0]),14])
+        state_cost = np.empty([14, len(state_sol[0])])
         u_horizon = np.empty([len(control_sol[0]),4])
         for k, state in enumerate(state_sol):
             for j, val in enumerate(state):

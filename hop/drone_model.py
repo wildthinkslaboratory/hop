@@ -27,16 +27,18 @@ class DroneModel:
         parameters = self.model.set_variable(var_type='_p', var_name='parameters', shape=(5,1))
 
         I_mat = ca.DM(mc.I)
+        norm_P_avg = u[2] * parameters[3] / mc.battery_v
+        F_ss = (mc.a * norm_P_avg**2 + mc.b * norm_P_avg + mc.c) * mc.thrust_constant
 
-        volt = parameters[3]
-        F_ss = (
-            mc.c0
-            + mc.c1 * u[2]
-            + mc.c2 * volt
-            + mc.c3 * u[2]**2
-            + mc.c4 * volt**2
-            + mc.c5 * u[2]*volt
-        )        
+        # volt = parameters[3]
+        # F_ss = (
+        #     mc.c0
+        #     + mc.c1 * u[2]
+        #     + mc.c2 * volt
+        #     + mc.c3 * u[2]**2
+        #     + mc.c4 * volt**2
+        #     + mc.c5 * u[2]*volt
+        # )        
 
         M = mc.d * mc.Izz * u[3]
 

@@ -28,8 +28,14 @@ class FlightData:
         data = log['run_data']
 
         # read in the flight data
-        self.state_data = np.empty([len(data),14])
-        self.future_state_data = np.empty([len(data),14])
+        if len(data[0]['raw_state']) == 13:
+            self.state_data = np.empty([len(data),13])
+            self.future_state_data = np.empty([len(data),13])
+        else:
+            self.state_data = np.empty([len(data),14])
+            self.future_state_data = np.empty([len(data),14])
+
+        self.observed_thrust = np.empty([len(data),2])
         self.control_data = np.empty([len(data),4])
         self.pwm_motors = np.empty([len(data),2])
         self.pwm_servos = np.empty([len(data),2])
@@ -42,8 +48,8 @@ class FlightData:
 
         # collect all the data into arrays
         for i, d in enumerate(data):
-            self.state_data[i] = np.append(np.array(d['raw_state']), 0.0)
-            self.future_state_data[i] = np.append(np.array(d['state']), 0.0)
+            self.state_data[i] = np.array(d['raw_state'])
+            self.future_state_data[i] = np.array(d['state'])
             self.control_data[i] = np.array(d['control'])
             self.pwm_motors[i] = np.array(d['pwm_motors'])
             self.pwm_servos[i] = np.array(d['pwm_servos'])
@@ -58,7 +64,8 @@ class FlightData:
                 self.raw_voltage[i] = d['raw_voltage']
                 self.current[i] = d['current_a']
       
-            
+            if 'observed_thrust' in d:
+                self.observed_thrust[i] = np.array([d['observed_thrust']['thrust'], d['observed_thrust']['delay']])
             # turn quaternions into attitude
             q = np.reshape(self.state_data[i][6:10].copy(), (4,))
             self.attitude[i] = quaternion_to_angle(q)
@@ -83,6 +90,7 @@ class FlightData:
         self.current = self.current[stop_index+1:end_index]
         self.raw_voltage = self.raw_voltage[stop_index+1:end_index]
         self.timestamps = self.timestamps[stop_index+1:end_index]
+        self.observed_thrust = self.observed_thrust[stop_index+1:end_index]
 
 
 
@@ -110,6 +118,12 @@ class FlightData:
             i += 1
             plt.plot(tspan, self.current[begin:end])
             plt.title('raw current')
+
+        if len(self.state_data[0]) == 14:
+            plt.figure(i)
+            i += 1
+            plt.plot(tspan, self.state_data[begin:end, 13])
+            plt.title('predicted thrust')
 
         if 'state' in plots or plots == []: 
             plot_state(tspan, self.state_data[begin:end], 'flight data state')
