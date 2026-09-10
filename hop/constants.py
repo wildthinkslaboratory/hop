@@ -70,6 +70,7 @@ class Constants:
         self.c4 = 0.05932377292335586
         self.c5 = 114.2556622092964
         self.tau = 0.14
+        self.obs_T_gain = 0.5
 
         # rotation about z axis caused by differential thrust between motors is modeled linearly with d
         self.d = 6.0
@@ -229,6 +230,9 @@ class Constants:
         mcd['shutdown_angle'] = self.shutdown_angle
         mcd['nmpc_delay'] = self.nmpc_delay
         mcd['m'] = self.m
+        mcd['a'] = self.a
+        mcd['b'] = self.b
+        mcd['c'] = self.c
         mcd['c0'] = self.c0
         mcd['c1'] = self.c1
         mcd['c2'] = self.c2
@@ -236,6 +240,7 @@ class Constants:
         mcd['c4'] = self.c4
         mcd['c5'] = self.c5
         mcd['tau'] = self.tau
+        mcd['obs_T_gain'] = self.obs_T_gain
         mcd['d'] = self.d
         mcd['thrust_constant'] = self.thrust_constant
         mcd['px4_height'] = self.px4_height
@@ -287,20 +292,31 @@ class Constants:
             self.nmpc_delay = mcd['nmpc_delay']
         if 'm' in mcd:
             self.m = mcd['m']
+
+        if 'a' in mcd:
+            self.a = mcd['a'] 
+        if 'b' in mcd:
+            self.b = mcd['b'] 
+        if 'c' in mcd:
+            self.c = mcd['c']
+
         if 'c0' in mcd:
-            self.a = mcd['c0'] 
+            self.c0 = mcd['c0'] 
         if 'c1' in mcd:
-            self.b = mcd['c1'] 
+            self.c1 = mcd['c1'] 
         if 'c2' in mcd:
-            self.c = mcd['c2'] 
+            self.c2 = mcd['c2'] 
         if 'c3' in mcd:
-            self.a = mcd['c3'] 
+            self.c3 = mcd['c3'] 
         if 'c4' in mcd:
-            self.b = mcd['c4'] 
+            self.c4 = mcd['c4'] 
         if 'c5' in mcd:
-            self.c = mcd['c5'] 
+            self.c5 = mcd['c5'] 
+
         if 'tau' in mcd:
             self.c = mcd['tau'] 
+        if 'obs_T_gain' in mcd:
+            self.c = mcd['obs_T_gain'] 
         if 'd' in mcd:
             self.d = mcd['d'] 
         if 'thrust_constant' in mcd:
@@ -373,64 +389,6 @@ class Constants:
             self.ipopt_settings = mcd['ipopt_settings']
 
 
-    # This function makes it possible to print the Constants with print function
-    # This way we can add our constants to our runs and simulation logs.
-    def __repr__(self):
-        s = 'Constants \n' + '---------------------\n'
-        s += 'General constants: \n'
-        s += '-----------------------------------------------\n'
-        s += f"{'flight time:':15}  {str(self.timelimit):15}\n"
-        s += 'Model related constants: \n'
-        s += '-----------------------------------------------\n'
-        s += f"{'m:':10}  {str(self.m):15}\n"
-        s += f"{'gx:':10}  {str(self.gx):15}\n"
-        s += f"{'gy:':10}  {str(self.gy):15}\n"
-        s += f"{'gz:':10}  {str(self.gz):15}\n"
-        s += f"{'g:':10}  {str(self.g.tolist()):15}\n"
-        s += f"{'Ixx:':10}  {str(self.Ixx):15}\n"
-        s += f"{'Iyy:':10}  {str(self.Iyy):15}\n"
-        s += f"{'Izz:':10}  {str(self.Izz):15}\n"
-        s += f"{'moment arm:':20}  {str(self.moment_arm.tolist())}\n" 
-        s += f"{'I_inv:':20}  {str(self.I_inv.tolist())}\n" 
-        s += 'thrust model constants: \n'
-        s += '-----------------------------------------------\n'        
-        s += f"{'tcc:':10}  {str(self.tcc):15}\n"
-        s += f"{'a:':10}  {str(self.a):15}\n"
-        s += f"{'b:':10}  {str(self.b):15}\n"
-        s += f"{'c:':10}  {str(self.c):15}\n"
-        s += f"{'d:':10}  {str(self.d):15}\n"
-        s += 'Mechanical and hardware constants: \n'
-        s += '-----------------------------------------------\n'
-        s += f"{'gimbal offset:':20}  {str(self.gimbal_offset)}\n" 
-        s += f"{'outer gimbal range:':20}  {str(self.outer_gimbal_range)}\n" 
-        s += f"{'inner gimbal range:':20}  {str(self.inner_gimbal_range)}\n" 
-        s += f"{'theta dot max:':20}  {str(self.theta_dot_constraint)}\n" 
-        s += f"{'thrust dot max:':20}  {str(self.thrust_dot_limit)}\n" 
-        s += f"{'hover thrust:':20}  {str(self.hover_thrust)}\n" 
-        s += f"{'max thrust:':20}  {str(self.prop_thrust_constraint)}\n" 
-        s += f"{'max diff thrus:':20}  {str(self.diff_thrust_constraint)}\n" 
-        s += 'NMPC constants: \n'
-        s += '-----------------------------------------------\n'
-        s += f"{'dt:':10}  {str(self.dt):15}\n"
-        s += f"{'x0:':10}  {str(self.x0)}\n" 
-        s += f"{'Q:':10}  {str(self.Q)}\n" 
-        s += f"{'R:':10}  {str(self.R)}\n" 
-        s += f"{'xr:':10}  {str(self.xr)}\n"
-        s += f"{'ur:':10}  {str(self.ur)}\n"        
-        s += f"{'waypoints:':20}  {str(self.waypoints):15}\n"   
-        s += f"{'NMPC rate constraints:':20}  {str(self.nmpc_rate_constraints)}\n"  
-        s += 'NLP constants: \n'
-        s += '-----------------------------------------------\n'
-        s += f"{'nmpc horizon:':20}  {str(self.mpc_horizon):15}\n"
-        s += f"{'spectral order:':20}  {str(self.spectral_order):15}\n"
-        s += f"{'size of intervals:':20}  {str(self.finite_interval_size):15}\n"
-        s += f"{'num intervals:':20}  {str(self.number_intervals):15}\n"
-        s += f"{'collocation deg:':20}  {str(self.collocation_degree):15}\n"
-        s += 'IPOPT settings: \n'
-        s += '-----------------------------------------------\n'
-        s += str(self.ipopt_settings)
-
-        return s
 
 
 

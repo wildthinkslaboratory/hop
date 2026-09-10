@@ -119,8 +119,7 @@ class NMPCNode(Node):
             maxlen=mc.nmpc_delay
         )
         self.T_history = deque(maxlen=10)
-        self.thrust_estimate = self.equations.thrust_step(0.0, mc.hover_thrust, 25.0)
-        self.observed_T_gain = 0.8
+        self.thrust_estimate = mc.m * (-mc.gz) # assume we're just airborn 
 
         self.model = DroneModel(mc)
         self.mpc = DroneNMPCdompc(mc.dt, self.model.model)
@@ -128,13 +127,17 @@ class NMPCNode(Node):
         self.mpc.set_start_state(mc.x0)
 
         self.shutdown_reason = ShutdownReason.NONE
+        self.first_odometry_msg = True
         self.first_nmpc_call = True
         status = NMPCStatus()
         status.status = NMPCStatus.READY
         status.timestamp = self.get_clock().now().nanoseconds // 1000
         self.publisher_status.publish(status)
         self.get_logger().info('NMPC Ready')
-        self.start_time = perf_counter()
+        self.takeoff_ramp = True
+        self.takeoff_pwm_avg = 0.0
+        self.start_time = 0.0
+        self.takeoff_time = 0.0
 
 
 ############################# callbacks  ####################################
@@ -142,58 +145,75 @@ class NMPCNode(Node):
     
     def nmpc(self, msg):
 
-        if self.first_nmpc_call:
-            self.first_nmpc_call = False
+        # we received a state odometry message
+        nmpc_receive_time = self.get_clock().now().nanoseconds // 1000
+
+        # this is to track runtime: time from first received odometry message
+        if self.first_odometry_msg:
+            self.first_odometry_msg = False
             self.start_time = perf_counter()
 
-        nmpc_receive_time = self.get_clock().now().nanoseconds // 1000
+        # check for shutdown conditions
         runtime = perf_counter() - self.start_time
         x_theta, y_theta, theta = quaternion_to_angle(self.q)
-
         if runtime > mc.timelimit:
             self.shutdown_reason = ShutdownReason.TIMEOUT
         elif theta > mc.shutdown_angle:
             self.shutdown_reason = ShutdownReason.ANGLE_EXCEEDED
 
-        if not self.shutdown_reason == ShutdownReason.NONE:
+
+        if not self.shutdown_reason == ShutdownReason.NONE:     # shutdown time
             self.shutdown()
-        else:
-            start_time = perf_counter()
+        else:                                                   # run the drone
 
-            if not msg.thrust_delay == 0.0: # check if there's an observed thrust
-                observed_thrust = msg.thrust
-                steps = round(msg.thrust_delay / mc.dt)
-                if 0 < steps <= len(self.T_history):
-                    for p_avg, voltage in list(self.T_history)[-steps:]:
-                        observed_thrust = self.equations.thrust_step(observed_thrust, p_avg, voltage) 
-                self.thrust_estimate = self.thrust_estimate * (1 - self.observed_T_gain) + observed_thrust * self.observed_T_gain
+            nmpc_start_time = perf_counter() 
 
-            state = DM(np.append(np.array(msg.state), self.thrust_estimate))
+            state = DM(np.append(np.array(msg.state), 0.0))     # read the state message
             raw_state = DM(state)
             parameters = mc.waypoints[self.waypoint_i]
             parameters[3] = msg.filtered_voltage   
             self.q = np.reshape(state[6:10], (4,))
-            control = np.array([0.0, 0.0, 0.0, 0.0])
-            if mc.run_nmpc:    
+            control = np.array([mc.gimbal_offset[0], mc.gimbal_offset[1], 0.0, 0.0])
+
+            if state[2] < mc.takeoff_height:                  # ramp up motors slowly for takeoff
+                self.takeoff_pwm_avg += 0.005
+                control[2] = self.takeoff_pwm_avg
+            else:                                   # full NMPC takes over control once we're in the air
+                if self.first_nmpc_call:
+                    self.first_nmpc_call = False
+                    self.takeoff_time = perf_counter() - self.start_time
+
                 
+                # sometimes we use an observed thrust value to improve the thrust model
+                # it's stale when we get it so we use the model to move it forward to current time
+                # does moving it forward help or is the model so bad it is noise?
+                if not msg.thrust_delay == 0.0: # check if there's an observed thrust
+                    observed_thrust = msg.thrust
+                    self.thrust_estimate = self.thrust_estimate * (1 - mc.obs_T_gain) + observed_thrust * mc.obs_T_gain
+                    state[13] = self.thrust_estimate
+
+            
                 # integrate the state forward with the control history before calling the nmpc
+                # this is how we manage the time delay between when we send the control command
+                # and the motor actuation
                 for i, control in enumerate(self.control_history):
                     state = self.rk_sim.make_step(self.equations.f, state, control, parameters)
                     if i == 0:
                         self.thrust_estimate = float(state[13])
 
-
+                # this is the actual NMPC call
                 self.mpc.set_waypoint(parameters)
                 control = np.array(self.mpc.mpc.make_step(state)).flatten()
                 self.control_history.append(control.copy())
                 self.T_history.append((control[2], parameters[3]))
-  
 
+
+            # send control command to servos
             pwm_servos, pwm_motors = self.control_translator(control)   
             self.run_motors(pwm_motors)
             self.run_servos(pwm_servos)   
 
-            nmpc_time = perf_counter() - start_time
+            nmpc_time = perf_counter() - nmpc_start_time
 
             self.log_rows.append({
                 'state': state.full().flatten().tolist(),
@@ -206,6 +226,7 @@ class NMPCNode(Node):
                 'current_a': msg.current_a,
                 'observed_thrust': { 'thrust': msg.thrust, 'delay': msg.thrust_delay },
                 'raw_voltage': msg.raw_voltage,
+                'takeoff_time': self.takeoff_time,
             })
     
 
