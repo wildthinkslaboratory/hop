@@ -175,7 +175,7 @@ class NMPCNode(Node):
             self.q = np.reshape(state[6:10], (4,))
             control = np.array([mc.gimbal_offset[0], mc.gimbal_offset[1], 0.0, 0.0])
 
-            if state[2] < mc.takeoff_height or self.takeoff_pwm_avg > 0.8:  # ramp up motors slowly for takeoff
+            if state[2] < 0.64 and self.takeoff_pwm_avg < 0.65:  # ramp up motors slowly for takeoff
                 self.takeoff_pwm_avg += 0.005
                 control[2] = self.takeoff_pwm_avg
             else:                                   # full NMPC takes over control once we're in the air

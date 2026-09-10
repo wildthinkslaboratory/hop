@@ -8,7 +8,7 @@ class Constants:
 
         # general constants
         # ---------------------------------------------------------------
-        self.timelimit = 15.0 # time limit for a flight in seconds 
+        self.timelimit = 4.0 # time limit for a flight in seconds 
         self.shutdown_angle = 12.0 # shutdown if attitude exceeds this angle
         self.run_nmpc = True
         self.nmpc_delay = 3 # how many cycles it takes for the control to be actuated 
@@ -79,7 +79,7 @@ class Constants:
  
         # mechanical and hardware constants
         # ---------------------------------------------------------------    
-        self.gimbal_offset = [1.9, 1.2]      
+        self.gimbal_offset = [4.0, 2.0]      
         self.outer_gimbal_range = [-20,20]          # outer gimbal range limit in degrees
         self.inner_gimbal_range = [-13.5,13.5]      # inner gimbal range limit in degrees
         self.theta_dot_constraint = 6.16            # gimbal rate of change limit in degrees per dt
@@ -129,7 +129,7 @@ class Constants:
         self.xr = ca.vertcat(0.0,0.0,self.px4_height, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0, self.hover_thrust) 
         self.ur = ca.DM([self.gimbal_offset[0], self.gimbal_offset[1], self.hover_thrust, 0.0])                          
 
-        self.takeoff_height = 0.67
+        self.takeoff_height = 0.64
         # list of navigation waypoints for the flight to follow
         # these are (x,y,z) points in world frame meters
         # self.waypoints = [
