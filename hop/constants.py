@@ -129,6 +129,7 @@ class Constants:
         self.xr = ca.vertcat(0.0,0.0,self.px4_height, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0, self.hover_thrust) 
         self.ur = ca.DM([self.gimbal_offset[0], self.gimbal_offset[1], self.hover_thrust, 0.0])                          
 
+        self.takeoff_height = 0.67
         # list of navigation waypoints for the flight to follow
         # these are (x,y,z) points in world frame meters
         # self.waypoints = [
