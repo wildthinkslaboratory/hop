@@ -3,7 +3,7 @@ from hop.constants import Constants
 from simulation_tools.integrators import RKSimulator
 from hop.equations_of_motion import Equations6DOF
 from plotting.plots import plot_state, trajectory_comparison
-from hop.utilities import quaternion_to_angle
+from hop.utilities import quaternion_to_angle, quaternion_multiply2
 import matplotlib.pyplot as plt
 import numpy as np
 from collections import deque
@@ -13,7 +13,7 @@ fd = FlightData()
 mc = Constants()
 mc.update_from_dictionary(fd.constants)
 
-show_horizon_trajectory = False
+show_horizon_trajectory = True
 
 
 ##########################################################
@@ -21,7 +21,6 @@ show_horizon_trajectory = False
 # can get a better fit to the flight data, do it here
 
 
-mc.tau = 0.2
 
 ##########################################################
 delay = mc.nmpc_delay
@@ -62,12 +61,19 @@ for i in range(delay, len(fd.state_data)-1):
     
 
     #####################################################################
+
+
+    # first we use the model to predict the next state 
+    # then we can compare it with the actual next state
     fd.state_data[i][13] = prev_thrust
     predicted_state = np.reshape(rk_sim1.make_step(equations.f, fd.state_data[i], fd.control_data[i-delay], fd.parameters[i]), (state_sz,))
     prev_thrust = predicted_state[13]
     residual_1[i] = predicted_state - fd.state_data[i+1]
 
 
+    # now we predict the state forward the same number
+    # of steps as our time delay to see how much 
+    # the time delay is costing us in accurace
     if (i < len(fd.state_data) - delay):
         state = fd.state_data[i].copy()
         for j in range(delay):
@@ -75,6 +81,9 @@ for i in range(delay, len(fd.state_data)-1):
         residual_delay[i] = np.reshape(state, (state_sz,)) - fd.state_data[i+delay]
 
 
+    # lastly we predict a full NMPC horizon with the model
+    # if NMPC is going to work it needs to at least predict
+    # the basic shape of the horizon
     if (i < len(fd.state_data) - horizon_steps):
         horizon_traj = np.zeros([horizon_steps+1, state_sz])
         state = fd.state_data[i].copy()
@@ -93,6 +102,7 @@ for i in range(delay, len(fd.state_data)-1):
             plt.show()
 
 
+    # Now we look at the differentials for all 6 velocities
     # full_predicted_dx[i] = np.reshape(equations.f(fd.future_state_data[i-delay], fd.control_data[i-delay], fd.parameters[i-delay]) * mc.dt, (state_sz,))
     predicted_dx[i] = np.reshape(equations.f(fd.state_data[i], fd.control_data[i-delay], fd.parameters[i]) * mc.dt, (state_sz,))
     actual_dx[i] = np.reshape(fd.state_data[i+1] - fd.state_data[i], (state_sz,))

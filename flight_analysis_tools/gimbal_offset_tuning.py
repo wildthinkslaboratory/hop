@@ -24,8 +24,8 @@ fd = FlightData()
 mc.update_from_dictionary(fd.constants)
 cost_surface = np.zeros([101,101])
 
-offset1_vals = np.arange(0.0, 4.01, 0.1)
-offset2_vals = np.arange(0.0, 4.01, 0.1)
+offset1_vals = np.arange(-4.0, 4.01, 0.1)
+offset2_vals = np.arange(-4.0, 4.01, 0.1)
 cost = np.zeros((len(offset1_vals), len(offset2_vals)))
 
 
