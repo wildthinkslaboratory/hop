@@ -50,7 +50,7 @@ class Constants:
             -0.21531
         ])
 
-
+        self.takeoff_pwm = 0.72
 
         self.I_diag_temp = [self.Ixx, self.Iyy, self.Izz]
         self.I_inv = np.linalg.inv(self.I)
@@ -78,8 +78,9 @@ class Constants:
 
  
         # mechanical and hardware constants
-        # ---------------------------------------------------------------    
-        self.gimbal_offset = [4.0, 2.0]      
+        # ---------------------------------------------------------------      
+        self.gimbal_offset = [2.6, -1.9]     
+
         self.outer_gimbal_range = [-20,20]          # outer gimbal range limit in degrees
         self.inner_gimbal_range = [-13.5,13.5]      # inner gimbal range limit in degrees
         self.theta_dot_constraint = 6.16            # gimbal rate of change limit in degrees per dt
@@ -126,7 +127,7 @@ class Constants:
         # control cost matrix
         self.terminal_cost_factor = 15.0
         # goal state and control
-        self.xr = ca.vertcat(0.0,0.0,self.px4_height, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0, self.hover_thrust) 
+        self.xr = ca.vertcat(0.0,0.0,self.px4_height, 0.0,0.0,0.0, 0.0,0.0,0.0,1.0, 0.0,0.0,0.0, self.m * (-self.gz)) 
         self.ur = ca.DM([self.gimbal_offset[0], self.gimbal_offset[1], self.hover_thrust, 0.0])                          
 
         self.takeoff_height = 0.64

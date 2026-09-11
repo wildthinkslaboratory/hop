@@ -13,13 +13,14 @@ fd = FlightData()
 mc = Constants()
 mc.update_from_dictionary(fd.constants)
 
-show_horizon_trajectory = True
+show_horizon_trajectory = False
 
 
 ##########################################################
 # If you want to mess with any constants to see if you 
 # can get a better fit to the flight data, do it here
 
+mc.gimbal_offset =  [2.6, -1.9] 
 
 
 ##########################################################
@@ -30,14 +31,6 @@ equations = Equations6DOF(mc)
 
 rk_sim1 = RKSimulator(0.005, 4)
 state_sz = 14
-
-# thrust_step = equations.thrust_step(
-#     0.0, 
-#     [0.0, 0.0, 0.8, 0.0], 
-#     [0.0, 0.0, 0.0, 25.0, mc.hover_thrust]
-# )
-
-# print(thrust_step)
 
 residual_1 = np.zeros([fd.len_used_data-1,state_sz])
 residual_delay = np.zeros([fd.len_used_data-1,state_sz])
@@ -128,15 +121,15 @@ fig.set_figheight(8)
 fig.suptitle('angular velocity differential comparison')
 
 # axs[0].plot(tspan, full_predicted_dx[:,10])
+axs[0].plot(tspan, actual_dx[:,10])
 axs[0].plot(tspan, predicted_dx[:,10])
-# axs[0].plot(tspan, actual_dx[:,10])
 axs[0].plot(tspan, roll_dx[:,10])
 axs[0].plot(tspan, zero)
 axs[0].set_ylabel('$w_x$')
 
 # axs[1].plot(tspan, full_predicted_dx[:,10])
+axs[1].plot(tspan, actual_dx[:,11])
 axs[1].plot(tspan, predicted_dx[:,11])
-# axs[1].plot(tspan, actual_dx[:,11])
 axs[1].plot(tspan, roll_dx[:,11])
 axs[1].plot(tspan, zero)
 axs[1].set_ylabel('$w_y$')

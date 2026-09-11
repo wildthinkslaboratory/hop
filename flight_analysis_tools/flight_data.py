@@ -27,13 +27,9 @@ class FlightData:
         self.constants = log['constants']
         data = log['run_data']
 
-        # read in the flight data
-        if len(data[0]['raw_state']) == 13:
-            self.state_data = np.empty([len(data),13])
-            self.future_state_data = np.empty([len(data),13])
-        else:
-            self.state_data = np.empty([len(data),14])
-            self.future_state_data = np.empty([len(data),14])
+
+        self.state_data = np.empty([len(data),14])
+        self.future_state_data = np.empty([len(data),14])
 
         self.observed_thrust = np.empty([len(data),2])
         self.control_data = np.empty([len(data),4])
@@ -48,8 +44,12 @@ class FlightData:
 
         # collect all the data into arrays
         for i, d in enumerate(data):
-            self.state_data[i] = np.array(d['raw_state'])
-            self.future_state_data[i] = np.array(d['state'])
+            if len(data[0]['raw_state']) == 13:
+                self.state_data[i] = np.append(np.array(d['raw_state']), 0.0)
+                self.future_state_data[i] = np.append(np.array(d['state']), 0.0)
+            else:
+                self.state_data[i] = np.array(d['raw_state'])
+                self.future_state_data[i] = np.array(d['state'])
             self.control_data[i] = np.array(d['control'])
             self.pwm_motors[i] = np.array(d['pwm_motors'])
             self.pwm_servos[i] = np.array(d['pwm_servos'])

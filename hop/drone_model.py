@@ -59,10 +59,15 @@ class DroneModel:
         q_full = state[6:10]
         q_full = q_full / ca.norm_2(q_full)
 
+        qx = q_full[0]
+        qy = q_full[1]
+        qz = q_full[2]
+        qw = q_full[3]
+
         r_b2w = ca.vertcat(
-            ca.horzcat(1 - 2*(state[7]**2 + state[8]**2), 2*(state[6]*state[7] - state[8]*state[9]), 2*(state[6]*state[8] + state[7]*state[9])),
-            ca.horzcat(2*(state[6]*state[7] + state[8]*state[9]), 1 - 2*(state[6]**2 + state[8]**2), 2*(state[7]*state[8] - state[6]*state[9])),
-            ca.horzcat(2*(state[6]*state[8] - state[7]*state[9]), 2*(state[7]*state[8] + state[6]*state[9]), 1 - 2*(state[6]**2 + state[7]**2)),
+            ca.horzcat(1 - 2*(qy**2 + qz**2), 2*(qx*qy - qz*qw), 2*(qx*qz + qy*qw)),
+            ca.horzcat(2*(qx*qy + qz*qw), 1 - 2*(qx**2 + qz**2), 2*(qy*qz - qx*qw)),
+            ca.horzcat(2*(qx*qz - qy*qw), 2*(qy*qz + qx*qw), 1 - 2*(qx**2 + qy**2)),
         )
 
         Q_omega = ca.vertcat(
@@ -85,7 +90,7 @@ class DroneModel:
         x_error = state - x_r
         x_cost = x_error.T @ mc.Q @ x_error 
         terminal_cost = x_error.T @ (mc.terminal_cost_factor * mc.Q) @ x_error 
-        u_goal = ca.vertcat(mc.gimbal_offset[0], mc.gimbal_offset[1], mc.hover_thrust, 0.0)
+        u_goal = ca.vertcat(-mc.gimbal_offset[0], -mc.gimbal_offset[1], mc.hover_thrust, 0.0)
         u_error = u - u_goal
         u_cost = u_error.T @ mc.R @ u_error
         cost = x_cost + u_cost
